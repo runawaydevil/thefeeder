@@ -1,0 +1,45 @@
+<svg width="1200" height="630" viewBox="0 0 1200 630" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <!-- Background Gradient -->
+  <defs>
+    <linearGradient id="bgGradient" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" style="stop-color:#f97316;stop-opacity:1" />
+      <stop offset="100%" style="stop-color:#ea580c;stop-opacity:1" />
+    </linearGradient>
+    <linearGradient id="textGradient" x1="0%" y1="0%" x2="100%" y2="0%">
+      <stop offset="0%" style="stop-color:#ffffff;stop-opacity:1" />
+      <stop offset="100%" style="stop-color:#fef3c7;stop-opacity:1" />
+    </linearGradient>
+  </defs>
+  
+  <!-- Background -->
+  <rect width="1200" height="630" fill="url(#bgGradient)"/>
+  
+  <!-- RSS Icon -->
+  <circle cx="150" cy="315" r="80" fill="white" fill-opacity="0.1"/>
+  <path d="M110 355c0 11.046 8.954 20 20 20s20-8.954 20-20-8.954-20-20-20-20 8.954-20 20zM90 295v20c27.614 0 50 22.386 50 50h20c0-38.66-31.34-70-70-70zM90 255v20c49.706 0 90 40.294 90 90h20c0-60.751-49.249-110-110-110z" fill="white"/>
+  
+  <!-- Main Title -->
+  <text x="280" y="280" font-family="system-ui, -apple-system, sans-serif" font-size="72" font-weight="bold" fill="url(#textGradient)">
+    Pablo's RSS Magazine
+  </text>
+  
+  <!-- Subtitle -->
+  <text x="280" y="340" font-family="system-ui, -apple-system, sans-serif" font-size="32" fill="white" fill-opacity="0.9">
+    Modern RSS Reader with Feed Diversity
+  </text>
+  
+  <!-- Description -->
+  <text x="280" y="390" font-family="system-ui, -apple-system, sans-serif" font-size="24" fill="white" fill-opacity="0.8">
+    Automatically fetches and displays articles from FreshRSS feeds
+  </text>
+  
+  <!-- Author -->
+  <text x="280" y="550" font-family="system-ui, -apple-system, sans-serif" font-size="20" fill="white" fill-opacity="0.7">
+    Created by Pablo Murad (@runawaydevil)
+  </text>
+  
+  <!-- Decorative Elements -->
+  <circle cx="1050" cy="150" r="60" fill="white" fill-opacity="0.1"/>
+  <circle cx="1100" cy="500" r="40" fill="white" fill-opacity="0.1"/>
+  <circle cx="950" cy="450" r="30" fill="white" fill-opacity="0.1"/>
+</svg>

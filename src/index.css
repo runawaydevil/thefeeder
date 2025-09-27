@@ -1,0 +1,323 @@
+@import url('https://fonts.googleapis.com/css2?family=Playfair+Display:wght@400;500;600;700&family=Inter:wght@300;400;500;600&display=swap');
+
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* RSS Magazine Theme - Cores leves inspiradas em feeds RSS */
+:root {
+  --rss-orange: #ff6600;
+  --rss-orange-light: #ff8533;
+  --rss-orange-dark: #e55a00;
+  --rss-gold: #ffd700;
+  --rss-gold-light: #ffed4e;
+  --rss-gold-dark: #ccac00;
+  --rss-cream: #fefdf8;
+  --rss-warm-white: #fafafa;
+  --rss-light-gray: #f5f5f5;
+  --rss-text-dark: #2c2c2c;
+  --rss-text-medium: #666666;
+  --rss-text-light: #999999;
+}
+
+/* Dark theme variables */
+.dark {
+  --rss-orange: #ff7722;
+  --rss-orange-light: #ff9944;
+  --rss-orange-dark: #cc5500;
+  --rss-gold: #ffdd33;
+  --rss-gold-light: #ffee66;
+  --rss-gold-dark: #ccaa00;
+  --rss-cream: #1a1a1a;
+  --rss-warm-white: #111111;
+  --rss-light-gray: #2a2a2a;
+  --rss-text-dark: #e5e5e5;
+  --rss-text-medium: #b3b3b3;
+  --rss-text-light: #888888;
+}
+
+/* Background gradients */
+.rss-gradient-bg {
+  background: linear-gradient(135deg, var(--rss-cream) 0%, var(--rss-warm-white) 100%);
+}
+
+.dark .rss-gradient-bg {
+  background: linear-gradient(135deg, #0f0f0f 0%, #1a1a1a 100%);
+}
+
+.rss-card-bg {
+  background: rgba(255, 255, 255, 0.8);
+  backdrop-filter: blur(10px);
+  border: 1px solid rgba(255, 215, 0, 0.1);
+}
+
+.dark .rss-card-bg {
+  background: rgba(30, 30, 30, 0.8);
+  backdrop-filter: blur(10px);
+  border: 1px solid rgba(255, 215, 0, 0.2);
+}
+
+.rss-accent {
+  color: var(--rss-orange);
+}
+
+.rss-accent-bg {
+  background-color: var(--rss-orange);
+}
+
+.rss-gold-accent {
+  color: var(--rss-gold-dark);
+}
+
+.rss-gold-bg {
+  background: linear-gradient(45deg, var(--rss-gold) 0%, var(--rss-orange-light) 100%);
+}
+
+/* RSS Icon styling */
+.rss-icon {
+  filter: drop-shadow(0 2px 4px rgba(255, 102, 0, 0.2));
+}
+
+/* Hover effects */
+.rss-hover:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 8px 25px rgba(255, 102, 0, 0.15);
+  transition: all 0.3s ease;
+}
+
+/* Mobile responsive adjustments */
+@media (max-width: 768px) {
+  .rss-mobile-padding {
+    padding: 1rem;
+  }
+  
+  .rss-mobile-text {
+    font-size: 0.9rem;
+    line-height: 1.4;
+  }
+}
+
+/* Utility classes */
+.line-clamp-2 {
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+
+.line-clamp-3 {
+  display: -webkit-box;
+  -webkit-line-clamp: 3;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+
+/* Smooth scrolling */
+html {
+  scroll-behavior: smooth;
+}
+
+/* Focus styles for accessibility */
+button:focus,
+a:focus {
+  outline: 2px solid var(--rss-orange);
+  outline-offset: 2px;
+}
+
+/* Pablo's Magazine Design System */
+
+@layer base {
+  :root {
+    /* Pablo's Magazine - Light Theme */
+    --background: 0 0% 100%;
+    --foreground: 222.2 84% 4.9%;
+
+    /* Magazine theme colors - Light */
+    --primary: 24.6 95% 53.1%;
+    --primary-foreground: 210 40% 98%;
+    --primary-muted: 24.6 95% 93.1%;
+
+    /* Light accents */
+    --accent: 210 40% 96%;
+    --accent-foreground: 222.2 47.4% 11.2%;
+    --accent-muted: 210 40% 90%;
+
+    /* Content cards */
+    --card: 0 0% 100%;
+    --card-foreground: 222.2 84% 4.9%;
+    --card-border: 214.3 31.8% 91.4%;
+
+    /* Text hierarchy */
+    --muted: 210 40% 96%;
+    --muted-foreground: 215.4 16.3% 46.9%;
+    
+    /* Interactive elements */
+    --border: 214.3 31.8% 91.4%;
+    --input: 214.3 31.8% 91.4%;
+    --ring: 24.6 95% 53.1%;
+
+    /* Magazine-specific tokens */
+    --headline: 222.2 84% 4.9%;
+    --byline: 215.4 16.3% 46.9%;
+    --reading-time: 215.4 16.3% 46.9%;
+    
+    /* Layout */
+    --radius: 0.75rem;
+    --header-height: 4rem;
+
+    /* Gradients */
+    --gradient-hero: linear-gradient(135deg, hsl(24.6 95% 53.1%), hsl(45 90% 75%));
+    --gradient-card: linear-gradient(145deg, hsl(0 0% 100%), hsl(210 40% 98%));
+    
+    /* Shadows */
+    --shadow-card: 0 2px 12px -2px hsl(222.2 84% 4.9% / 0.1);
+    --shadow-card-hover: 0 8px 32px -4px hsl(24.6 95% 53.1% / 0.2);
+    
+    /* Animations */
+    --transition-smooth: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    --transition-spring: all 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+
+    --sidebar-background: 0 0% 98%;
+    --sidebar-foreground: 240 5.3% 26.1%;
+    --sidebar-primary: 240 5.9% 10%;
+    --sidebar-primary-foreground: 0 0% 98%;
+    --sidebar-accent: 240 4.8% 95.9%;
+    --sidebar-accent-foreground: 240 5.9% 10%;
+    --sidebar-border: 220 13% 91%;
+    --sidebar-ring: 217.2 91.2% 59.8%;
+  }
+
+  .dark {
+    /* Pablo's Magazine - Dark Theme */
+    --background: 222.2 84% 4.9%;
+    --foreground: 210 40% 98%;
+
+    /* Magazine theme colors - Dark */
+    --primary: 24.6 95% 53.1%;
+    --primary-foreground: 210 40% 98%;
+    --primary-muted: 24.6 95% 23.1%;
+
+    /* Dark accents */
+    --accent: 217.2 32.6% 17.5%;
+    --accent-foreground: 210 40% 98%;
+    --accent-muted: 217.2 32.6% 10%;
+
+    /* Content cards */
+    --card: 222.2 84% 4.9%;
+    --card-foreground: 210 40% 98%;
+    --card-border: 217.2 32.6% 17.5%;
+
+    /* Text hierarchy */
+    --muted: 217.2 32.6% 17.5%;
+    --muted-foreground: 215 20.2% 65.1%;
+    
+    /* Interactive elements */
+    --border: 217.2 32.6% 17.5%;
+    --input: 217.2 32.6% 17.5%;
+    --ring: 24.6 95% 53.1%;
+
+    /* Magazine-specific tokens */
+    --headline: 210 40% 98%;
+    --byline: 215 20.2% 65.1%;
+    --reading-time: 215 20.2% 65.1%;
+    
+    /* Gradients */
+    --gradient-hero: linear-gradient(135deg, hsl(222.2 84% 4.9%), hsl(217.2 32.6% 17.5%));
+    --gradient-card: linear-gradient(145deg, hsl(222.2 84% 4.9%), hsl(217.2 32.6% 10%));
+    
+    /* Shadows */
+    --shadow-card: 0 2px 12px -2px hsl(222.2 84% 4.9% / 0.6);
+    --shadow-card-hover: 0 8px 32px -4px hsl(24.6 95% 53.1% / 0.2);
+
+    --popover: 222.2 84% 4.9%;
+    --popover-foreground: 210 40% 98%;
+    --secondary: 217.2 32.6% 17.5%;
+    --secondary-foreground: 210 40% 98%;
+    --destructive: 0 62.8% 30.6%;
+    --destructive-foreground: 210 40% 98%;
+    --sidebar-background: 240 5.9% 10%;
+    --sidebar-foreground: 240 4.8% 95.9%;
+    --sidebar-primary: 224.3 76.3% 48%;
+    --sidebar-primary-foreground: 0 0% 100%;
+    --sidebar-accent: 240 3.7% 15.9%;
+    --sidebar-accent-foreground: 240 4.8% 95.9%;
+    --sidebar-border: 240 3.7% 15.9%;
+    --sidebar-ring: 217.2 91.2% 59.8%;
+  }
+}
+
+@layer base {
+  * {
+    @apply border-border;
+  }
+
+  body {
+    @apply bg-background text-foreground font-inter;
+  }
+
+  /* Typography hierarchy */
+  .font-playfair {
+    font-family: 'Playfair Display', serif;
+  }
+
+  .font-inter {
+    font-family: 'Inter', sans-serif;
+  }
+}
+
+@layer components {
+  /* Magazine-specific components */
+  .magazine-header {
+    @apply sticky top-0 z-50 w-full border-b border-border/60 bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/90;
+  }
+
+  .article-card {
+    @apply relative overflow-hidden rounded-xl border border-card-border bg-gradient-card shadow-[var(--shadow-card)] transition-[var(--transition-smooth)] hover:shadow-[var(--shadow-card-hover)] hover:-translate-y-1;
+  }
+
+  .article-card-image {
+    @apply aspect-[16/10] w-full overflow-hidden rounded-t-xl bg-muted;
+  }
+
+  .article-card-content {
+    @apply p-6;
+  }
+
+  .article-title {
+    @apply font-playfair text-xl font-semibold leading-tight text-headline line-clamp-2 group-hover:text-primary transition-colors;
+  }
+
+  .article-excerpt {
+    @apply mt-3 text-sm leading-relaxed text-muted-foreground line-clamp-3;
+  }
+
+  /* Garantir que textos sejam visíveis no tema escuro */
+  .dark .article-title {
+    @apply text-gray-100;
+  }
+
+  .dark .article-excerpt {
+    @apply text-gray-300;
+  }
+
+  .article-meta {
+    @apply mt-4 flex items-center justify-between text-xs text-byline;
+  }
+
+  .gradient-text {
+    @apply bg-gradient-to-r from-primary to-accent bg-clip-text text-transparent drop-shadow-sm;
+  }
+
+  .hero-title {
+    @apply font-playfair text-5xl font-bold leading-tight sm:text-6xl lg:text-7xl;
+  }
+
+  /* Elegant decorative elements */
+  .magazine-badge {
+    @apply inline-flex items-center rounded-full border border-primary/30 bg-primary/10 px-3 py-1 text-xs font-medium text-primary backdrop-blur-sm;
+  }
+
+  .article-category {
+    @apply inline-flex items-center rounded-md bg-accent/20 px-2 py-1 text-xs font-medium text-accent backdrop-blur-sm;
+  }
+}
