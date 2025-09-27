@@ -25,3 +25,8 @@ dist-ssr
 *.njsproj
 *.sln
 *.sw?
+
+# Server configuration files
+nginx.conf
+feed.pablo.space.conf
+*.conf
