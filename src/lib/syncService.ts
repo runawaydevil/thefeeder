@@ -34,25 +34,64 @@ class SyncService {
   }
 
   private initializeSync() {
-    // Verificar se já existe um último sync
+    // Verificar se já existe um último sync local
     const lastSync = newsDatabase.getSetting('lastSync');
     if (lastSync) {
       this.lastSyncTime = parseInt(lastSync);
     }
 
-    // Fazer sync inicial se nunca foi feito ou se passou muito tempo
-    const now = Date.now();
-    const timeSinceLastSync = now - this.lastSyncTime;
-
-    if (this.lastSyncTime === 0 || timeSinceLastSync > this.SYNC_INTERVAL) {
+    // Verificar se precisa fazer sync global
+    if (this.shouldPerformGlobalSync()) {
       // Fazer sync inicial após um pequeno delay para não bloquear a inicialização
       setTimeout(() => {
         this.performSync();
       }, 1000);
+    } else {
+      // Se não precisa fazer sync, carregar dados existentes
+      console.log('🔄 Sync global recente encontrado, pulando sync inicial');
     }
 
     // Configurar sync automático
     this.startAutoSync();
+  }
+
+  // Verificar se precisa fazer sync global (compartilhado entre todos os usuários)
+  private shouldPerformGlobalSync(): boolean {
+    try {
+      const globalSyncKey = `global-last-sync-${window.location.hostname}`;
+      const lastGlobalSync = localStorage.getItem(globalSyncKey);
+      
+      if (!lastGlobalSync) {
+        console.log('🔄 Primeiro sync global, iniciando...');
+        return true;
+      }
+      
+      const lastSyncTime = parseInt(lastGlobalSync);
+      const now = Date.now();
+      const timeSinceLastSync = now - lastSyncTime;
+      
+      if (timeSinceLastSync > this.SYNC_INTERVAL) {
+        console.log(`🔄 Último sync global há ${Math.round(timeSinceLastSync / (1000 * 60))} minutos, iniciando novo sync...`);
+        return true;
+      }
+      
+      console.log(`⏰ Próximo sync global em ${Math.round((this.SYNC_INTERVAL - timeSinceLastSync) / (1000 * 60))} minutos`);
+      return false;
+    } catch (error) {
+      console.warn('Erro ao verificar sync global, permitindo sync:', error);
+      return true;
+    }
+  }
+
+  // Atualizar timestamp do último sync global
+  private updateGlobalSync(): void {
+    try {
+      const globalSyncKey = `global-last-sync-${window.location.hostname}`;
+      localStorage.setItem(globalSyncKey, Date.now().toString());
+      console.log('✅ Timestamp de sync global atualizado');
+    } catch (error) {
+      console.warn('Erro ao atualizar sync global:', error);
+    }
   }
 
   private startAutoSync() {
@@ -61,10 +100,13 @@ class SyncService {
     }
 
     this.syncInterval = setInterval(() => {
-      this.performSync();
+      // Verificar se precisa fazer sync antes de executar
+      if (this.shouldPerformGlobalSync()) {
+        this.performSync();
+      }
     }, this.SYNC_INTERVAL);
 
-    // Sync automático configurado
+    console.log(`⏰ Sync automático configurado para cada ${diversityConfig.syncIntervalHours} horas`);
   }
 
   private stopAutoSync() {
@@ -488,6 +530,9 @@ class SyncService {
         correlationId
       });
 
+      // Atualizar timestamp global de sync após sucesso
+      this.updateGlobalSync();
+
       return { 
         success: true, 
         newArticles: newArticlesCount, 
@@ -569,9 +614,9 @@ class SyncService {
     }
   }
 
-  // Forçar sync manual
+  // Forçar sync manual (ignora verificação global)
   async forceSync(): Promise<{ success: boolean; newArticles: number; error?: string }> {
-    console.log('Forçando sincronização manual...');
+    console.log('🔄 Forçando sincronização manual (ignorando verificação global)...');
     return this.performSync();
   }
 
