@@ -1,0 +1,97 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="stats">
+    <p class="small">{{ total_items }} articles • Page {{ current_page }} of {{ total_pages }}</p>
+</div>
+
+<form method="get" class="filters">
+    <label>
+        Feed:
+        <select name="feed_id" onchange="this.form.submit()">
+            <option value="">All feeds</option>
+            {% for feed in feeds %}
+            <option value="{{ feed.id }}" {{ 'selected' if feed.id == current_feed_id else '' }}>
+                {{ feed.name }}
+            </option>
+            {% endfor %}
+        </select>
+    </label>
+    
+    {% if current_feed_id %}
+    <a href="/" class="btn">Clear filter</a>
+    {% endif %}
+</form>
+
+{% if articles %}
+<ul class="list">
+    {% for article in articles %}
+    <li class="card">
+        <h3><a href="{{ article.link }}" target="_blank" rel="noopener">{{ article.title }}</a></h3>
+        
+        <div class="meta">
+            <span class="feed">{{ article.feed_name }}</span>
+            {% if article.published %}
+            <span class="date">{{ article.published.strftime('%m/%d/%Y %H:%M') }}</span>
+            {% endif %}
+            {% if article.author %}
+            <span class="author">{{ article.author }}</span>
+            {% endif %}
+        </div>
+        
+        {% if article.summary %}
+        <div class="summary">{{ article.summary[:200] }}{% if article.summary|length > 200 %}...{% endif %}</div>
+        {% endif %}
+        
+        {% if article.thumbnail %}
+        <div class="thumbnail">
+            <img src="{{ article.thumbnail }}" alt="Thumbnail" loading="lazy">
+        </div>
+        {% endif %}
+    </li>
+    {% endfor %}
+</ul>
+
+{% if total_pages > 1 %}
+<nav class="pager">
+    {% if prev_page %}
+    <a href="?page={{ prev_page }}{% if current_feed_id %}&feed_id={{ current_feed_id }}{% endif %}" class="btn">
+        ← Previous
+    </a>
+    {% else %}
+    <span></span>
+    {% endif %}
+    
+    <div class="page-numbers">
+        {% for page_num in page_numbers %}
+        {% if page_num == current_page %}
+        <span class="page-number current">{{ page_num }}</span>
+        {% else %}
+        <a href="?page={{ page_num }}{% if current_feed_id %}&feed_id={{ current_feed_id }}{% endif %}" class="page-number">
+            {{ page_num }}
+        </a>
+        {% endif %}
+        {% endfor %}
+    </div>
+    
+    {% if next_page %}
+    <a href="?page={{ next_page }}{% if current_feed_id %}&feed_id={{ current_feed_id }}{% endif %}" class="btn">
+        Next →
+    </a>
+    {% else %}
+    <span></span>
+    {% endif %}
+</nav>
+{% endif %}
+
+{% else %}
+<div class="empty">
+    <p>No articles found.</p>
+    {% if current_feed_id %}
+    <p><a href="/">View all feeds</a></p>
+    {% endif %}
+</div>
+{% endif %}
+{% endblock %}
+
+

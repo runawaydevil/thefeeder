@@ -1,0 +1,25 @@
+version: '3.8'
+
+services:
+  feeder:
+    build: .
+    ports:
+      - "7389:7389"
+    env_file: .env
+    restart: unless-stopped
+    volumes:
+      - feeder_db:/data
+    environment:
+      - DB_PATH=/data/feeder.sqlite
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:7389/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
+
+volumes:
+  feeder_db:
+    driver: local
+
+

@@ -1,291 +1,172 @@
-# The Feeder
+# Pablo Feeds - Minimalist RSS Aggregator
 
-![React](https://img.shields.io/badge/react-%2320232a.svg?style=for-the-badge&logo=react&logoColor=%2361DAFB)
-![TypeScript](https://img.shields.io/badge/typescript-%23007ACC.svg?style=for-the-badge&logo=typescript&logoColor=white)
-![Vite](https://img.shields.io/badge/vite-%23646CFF.svg?style=for-the-badge&logo=vite&logoColor=white)
-![TailwindCSS](https://img.shields.io/badge/tailwindcss-%2338B2AC.svg?style=for-the-badge&logo=tailwind-css&logoColor=white)
-![SQLite](https://img.shields.io/badge/sqlite-%2307405e.svg?style=for-the-badge&logo=sqlite&logoColor=white)
-![RSS](https://img.shields.io/badge/rss-FFA500?style=for-the-badge&logo=rss&logoColor=white)
+A minimalist, conservative RSS feed aggregator built with Python FastAPI and Jinja2 templates.
 
-A modern, responsive RSS magazine that automatically fetches and displays articles from FreshRSS feeds with intelligent feed diversity management and beautiful magazine-style layout.
+## Features
 
-## ✨ Features
+- **Minimalist Design**: Clean, "boxy" interface with system fonts
+- **Dark/Light Theme**: Automatic theme detection with manual toggle
+- **RSS/Atom Support**: Parses feeds with feedparser (supports RSS, Atom, JSON Feed)
+- **Smart Fetching**: ETag/Last-Modified caching, rate limiting, retry with backoff
+- **Per-Feed Intervals**: Custom update intervals per feed
+- **Feed Limit**: Maximum 1500 feeds supported
+- **Deduplication**: Prevents duplicate articles
+- **Numeric Pagination**: Classic page numbers (1, 2, 3...)
+- **Responsive**: Works on mobile and desktop
+- **Docker Ready**: Complete containerization setup
 
-- **🔄 Automatic RSS Synchronization**: Connects to FreshRSS via Fever API for seamless content fetching
-- **🎯 Feed Diversity Management**: Intelligent algorithms ensure balanced content from multiple feeds
-- **📱 Responsive Design**: Beautiful magazine-style layout that works on all devices
-- **🌙 Dark/Light Mode**: Toggle between themes with system preference detection
-- **⚡ Performance Optimized**: Smart caching and pagination for fast loading
-- **📊 Real-time Metrics**: Monitor feed health and diversity scores
-- **🔍 Smart Pagination**: Multiple pagination strategies (balanced, round-robin, weighted)
-- **💾 Local Storage**: Client-side database with automatic cleanup
-- **🎨 Modern UI**: Clean, magazine-inspired interface with smooth animations
-- **🔍 SEO Optimized**: Complete meta tags, Open Graph, and Twitter Cards support
-- **📱 Social Media Ready**: Rich previews when shared on Facebook, Twitter, LinkedIn
-- **🤖 Search Engine Friendly**: Structured data, sitemap, and robots.txt included
+## Quick Start
 
-## 🚀 Quick Start
-
-### Prerequisites
-
-- Node.js 18+ 
-- npm or yarn
-- FreshRSS instance with Fever API enabled
-
-### Installation
-
-1. **Clone the repository**
-   ```bash
-   git clone https://github.com/runawaydevil/pablos-rss-magazine.git
-   cd pablos-rss-magazine
-   ```
-
-2. **Install dependencies**
-   ```bash
-   npm install
-   ```
-
-3. **Configure environment variables**
+1. **Clone and configure**:
    ```bash
    cp .env.example .env
-   ```
-   
-   Edit `.env` with your FreshRSS configuration:
-   ```env
-   # FreshRSS Configuration
-   VITE_FRESHRSS_BASE_URL=https://your-freshrss-instance.com
-   VITE_FRESHRSS_USER=your-username
-   VITE_FRESHRSS_PASSWORD=your-password
-   VITE_FRESHRSS_TOKEN=your-fever-api-token
-   
-   # App Configuration
-   VITE_APP_NAME=Your Magazine Name
-   VITE_SYNC_INTERVAL_HOURS=2
-   
-   # SEO Configuration
-   VITE_SITE_URL=https://your-domain.com
-   VITE_SITE_TITLE=Your Magazine Name - Modern RSS Reader
-   VITE_SITE_DESCRIPTION=Your magazine description for SEO and social sharing
-   VITE_SITE_KEYWORDS=RSS, news, articles, magazine, your, keywords
-   VITE_SITE_AUTHOR=Your Name
-   VITE_SITE_IMAGE=https://your-domain.com/og-image.svg
-   VITE_TWITTER_HANDLE=@your-twitter
-   VITE_FACEBOOK_APP_ID=your-facebook-app-id
-   VITE_SITE_LOCALE=en_US
-   
-   # Development Server
-   VITE_DEV_PORT=8693
+   # Edit .env with your feeds and settings
    ```
 
-4. **Start development server**
+2. **Run with Docker**:
    ```bash
-   npm run dev
+   docker compose up --build
    ```
 
-5. **Build for production**
-   ```bash
-   npm run build
-   ```
+3. **Access**: http://localhost:7389
 
-## 🔧 Configuration
+## Configuration
 
-### FreshRSS Setup
+### Environment Variables
 
-1. Enable Fever API in your FreshRSS instance
-2. Generate an API token in FreshRSS settings
-3. Add your credentials to the `.env` file
+- `APP_NAME`: Application name (displayed in header)
+- `USER_AGENT_BASE`: User-Agent string (Reddit-compliant)
+- `FEEDS_YAML`: YAML string with feed configurations
+- `PER_HOST_RPS`: Requests per second per host (default: 0.5)
+- `DEFAULT_FETCH_INTERVAL_SECONDS`: Default update interval (default: 600)
+- `MAX_FEEDS`: Maximum number of feeds (default: 1500)
 
-### Feed Diversity Settings
+### Feed Configuration
 
-The application includes advanced feed diversity management with configurable parameters:
+Feeds are configured in the `FEEDS_YAML` environment variable:
 
-```env
-# Feed Diversity Configuration
-VITE_SYNC_ARTICLE_LIMIT=100
-VITE_MAX_ARTICLES_PER_FEED=15
-VITE_MIN_FEEDS_REQUIRED=3
-
-# Performance Optimization
-VITE_FEED_HEALTH_CACHE_TTL=300000
-VITE_MAX_CONCURRENT_STRATEGIES=2
-VITE_RETRY_MAX_ATTEMPTS=3
+```yaml
+- name: "Feed Name"
+  url: "https://example.com/feed.xml"
+  interval_seconds: 1200
 ```
 
-## 📦 Deployment
+## API Endpoints
 
-### Static Hosting (Recommended)
+- `GET /`: Main page with articles
+- `GET /admin/refresh?feed_id=X`: Manual feed refresh
+- `GET /admin/health`: System health status
+- `GET /admin/feeds`: List all feeds
+- `GET /health`: Simple health check
 
-The application is a static site that can be deployed to any static hosting service:
+## Architecture
 
-**Netlify:**
-```bash
-npm run build
-# Deploy the 'dist' folder to Netlify
+```
+app/
+├── core/
+│   ├── config.py      # Settings and YAML parser
+│   ├── fetcher.py     # HTTP client with caching
+│   ├── parser.py      # RSS/Atom parser with encoding detection
+│   ├── storage.py     # SQLite database
+│   ├── scheduler.py   # APScheduler jobs
+│   ├── rate_limit.py  # Rate limiting
+│   └── ua.py          # User-Agent policy
+├── web/
+│   ├── server.py      # FastAPI routes
+│   ├── templates/     # Jinja2 templates
+│   └── static/        # CSS, JS, and assets
+└── main.py           # Entry point
 ```
 
-**Vercel:**
-```bash
-npm run build
-# Deploy the 'dist' folder to Vercel
+## Best Practices Implemented
+
+- **Reddit Compliance**: Descriptive User-Agent with contact info
+- **Rate Limiting**: Token bucket per host + global concurrency
+- **Caching**: ETag/Last-Modified headers
+- **Retry Logic**: Exponential backoff with jitter
+- **Encoding Detection**: Automatic charset detection with chardet
+- **Feed Validation**: Supports RSS, Atom, RDF, and JSON Feed
+- **Deduplication**: GUID-based item deduplication
+- **Health Monitoring**: Feed status tracking
+- **Error Handling**: Graceful degradation
+- **Theme Support**: System preference detection with manual override
+
+## Supported Feed Types
+
+- **RSS 0.90, 0.91, 0.92, 1.0, 2.0**: Standard RSS feeds
+- **Atom 0.3, 1.0**: Atom feeds
+- **RDF**: RDF feeds
+- **JSON Feed**: JSON Feed format (https://jsonfeed.org/)
+
+## Feed Sources
+
+### Supported Sources
+
+- **RSS/Atom**: Standard feeds
+- **YouTube**: `https://www.youtube.com/feeds/videos.xml?channel_id=CHANNEL_ID`
+- **Reddit**: `https://www.reddit.com/r/SUBREDDIT/.rss`
+- **GitHub**: `https://github.com/USERNAME.atom`
+- **Dev.to**: `https://dev.to/feed`
+
+### RSSHub Integration
+
+For TikTok/Instagram feeds, use a self-hosted RSSHub instance:
+
+```yaml
+- name: "TikTok User"
+  url: "https://rsshub.your-domain.com/tiktok/user/username"
+  interval_seconds: 1800
 ```
 
-**GitHub Pages:**
-```bash
-npm run build
-# Push the 'dist' folder to gh-pages branch
-```
+## Development
 
-### Docker Deployment
-
-```dockerfile
-FROM node:18-alpine as builder
-WORKDIR /app
-COPY package*.json ./
-RUN npm ci
-COPY . .
-RUN npm run build
-
-FROM nginx:alpine
-COPY --from=builder /app/dist /usr/share/nginx/html
-EXPOSE 80
-CMD ["nginx", "-g", "daemon off;"]
-```
-
-### Environment Variables for Production
-
-Make sure to set these environment variables in your hosting platform:
-
-**Required:**
-- `VITE_FRESHRSS_BASE_URL`
-- `VITE_FRESHRSS_USER`
-- `VITE_FRESHRSS_PASSWORD`
-- `VITE_FRESHRSS_TOKEN`
-- `VITE_APP_NAME`
-
-**SEO & Social Media:**
-- `VITE_SITE_URL` - Your domain URL
-- `VITE_SITE_TITLE` - Page title for SEO
-- `VITE_SITE_DESCRIPTION` - Meta description
-- `VITE_SITE_KEYWORDS` - SEO keywords
-- `VITE_SITE_AUTHOR` - Author name
-- `VITE_SITE_IMAGE` - Social sharing image URL
-- `VITE_TWITTER_HANDLE` - Twitter handle for cards
-- `VITE_FACEBOOK_APP_ID` - Facebook App ID (optional)
-- `VITE_SITE_LOCALE` - Site locale (default: en_US)
-
-## 🏗️ Architecture
-
-### Core Components
-
-- **Feed Diversity Manager**: Orchestrates multiple retrieval strategies
-- **Retrieval Engine**: Handles different article fetching strategies
-- **Feed Balancer**: Ensures balanced distribution across feeds
-- **Diversity Validator**: Validates and scores content diversity
-- **Performance Cache**: Optimizes repeated operations
-- **Error Manager**: Handles feed failures and recovery
-
-### Data Flow
-
-1. **Initialization**: App starts with empty local database
-2. **Auto-Sync**: Automatic synchronization every 2 hours (configurable)
-3. **Feed Fetching**: Multiple strategies ensure diverse content
-4. **Local Storage**: Articles stored in browser's localStorage
-5. **Smart Pagination**: Balanced content display across pages
-6. **Health Monitoring**: Continuous feed health assessment
-
-## 🧪 Testing
-
-Run the included test scripts to validate your setup:
+### Local Development
 
 ```bash
-# Test feed diversity components
-npm run test:diversity-all
+# Install dependencies
+pip install -r requirements.txt
 
-# Test individual components
-npm run test:feed-balancer
-npm run test:diversity-validator
-npm run test:feed-error-manager
+# Run locally
+python -m app.main
 ```
 
-## 🎨 Customization
+### Docker Development
 
-### Themes
+```bash
+# Build and run
+docker compose up --build
 
-The application supports custom themes through CSS variables. Edit `src/index.css` to customize:
+# View logs
+docker compose logs -f feeder
 
-```css
-:root {
-  --primary-color: #f97316;
-  --secondary-color: #1f2937;
-  /* Add your custom colors */
-}
+# Clean rebuild
+docker compose down -v
+docker compose up --build
 ```
 
-### Layout
+## Monitoring
 
-Modify the magazine layout in `src/components/magazine/` directory:
-- `MagazineHeader.tsx` - Header and navigation
-- `MagazineGrid.tsx` - Article grid and pagination
-- `ArticleCard.tsx` - Individual article cards
+- **Health Check**: `/health` endpoint
+- **Feed Status**: `/admin/health` for detailed status
+- **Manual Refresh**: `/admin/refresh?feed_id=X`
+- **Logs**: Docker logs show fetch operations
 
-## 📊 Monitoring
+## Security
 
-The application includes comprehensive monitoring features:
+- User-Agent compliance with major platforms
+- Rate limiting to prevent abuse
+- Input validation and sanitization
+- No external dependencies for core functionality
+- Environment variables for sensitive configuration
 
-- **Feed Health Dashboard**: Monitor individual feed status
-- **Diversity Metrics**: Track content distribution
-- **Performance Analytics**: Cache hit rates and response times
-- **Error Tracking**: Detailed error logs and recovery attempts
+## Theme Customization
 
-## 🔍 Troubleshooting
+The application supports automatic theme detection based on system preferences and manual toggle via the button in the header. Themes are stored in browser localStorage.
 
-### Common Issues
+## Credits
 
-**No articles appearing:**
-- Check FreshRSS credentials in `.env`
-- Verify Fever API is enabled
-- Check browser console for errors
+Developed by [runawaydevil](https://github.com/runawaydevil) - 2025
 
-**Poor feed diversity:**
-- Adjust `VITE_MIN_FEEDS_REQUIRED` setting
-- Check if feeds are active in FreshRSS
-- Review diversity validation logs
+## License
 
-**Performance issues:**
-- Increase cache TTL values
-- Reduce `VITE_SYNC_ARTICLE_LIMIT`
-- Check network connectivity to FreshRSS
-
-**SEO/Social Media Issues:**
-- Verify `VITE_SITE_URL` matches your domain
-- Test social previews with [Facebook Debugger](https://developers.facebook.com/tools/debug/)
-- Validate Twitter Cards with [Twitter Card Validator](https://cards-dev.twitter.com/validator)
-- Check structured data with [Google Rich Results Test](https://search.google.com/test/rich-results)
-
-## 🤝 Contributing
-
-1. Fork the repository
-2. Create a feature branch (`git checkout -b feature/amazing-feature`)
-3. Commit your changes (`git commit -m 'Add amazing feature'`)
-4. Push to the branch (`git push origin feature/amazing-feature`)
-5. Open a Pull Request
-
-## 📄 License
-
-This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
-
-## 👨‍💻 Author
-
-**Pablo Murad** ([@runawaydevil](https://github.com/runawaydevil))
-
-*Created with ❤️ for the RSS community*
-
----
-
-## 🙏 Acknowledgments
-
-*In memory of **Aaron Swartz** (1986-2013), whose pioneering work on RSS and commitment to open information helped shape the web as we know it. His vision of free and accessible information continues to inspire developers and activists worldwide. Aaron's legacy in RSS technology and digital rights will never be forgotten.*
-
----
-
-*September 2025*
+MIT License - Pablo Murad, 2025

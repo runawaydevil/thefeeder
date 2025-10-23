@@ -1,0 +1,45 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="stats">
+    <h2>System Status</h2>
+    <p class="small">Health check and feed statistics</p>
+</div>
+
+<div class="card">
+    <h3>Application</h3>
+    <p><strong>Status:</strong> <span style="color: green;">Healthy</span></p>
+    <p><strong>Name:</strong> {{ app_name }}</p>
+    <p><strong>Version:</strong> 2025.1.0</p>
+</div>
+
+<div class="card">
+    <h3>Feeds</h3>
+    <p><strong>Total Feeds:</strong> {{ feeds|length }}</p>
+    <p><strong>Active Feeds:</strong> {{ active_feeds }}</p>
+</div>
+
+{% if feeds %}
+<div class="card">
+    <h3>Feed Details</h3>
+    <ul style="list-style: none; padding: 0;">
+        {% for feed in feeds %}
+        <li style="padding: 8px 0; border-bottom: 1px solid var(--border);">
+            <strong>{{ feed.name }}</strong><br>
+            <small style="color: var(--muted);">
+                Status: {{ feed.last_fetch_status or 'Pending' }}<br>
+                Last fetch: {{ feed.last_fetch_time.strftime('%m/%d/%Y %H:%M') if feed.last_fetch_time else 'Never' }}<br>
+                Interval: {{ feed.interval_seconds }}s
+            </small>
+        </li>
+        {% endfor %}
+    </ul>
+</div>
+{% endif %}
+
+<div class="actions">
+    <a href="/admin/refresh" class="btn secondary">Refresh All Feeds</a>
+    <a href="/" class="btn">Back to Home</a>
+</div>
+{% endblock %}
+
