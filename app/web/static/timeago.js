@@ -2,15 +2,15 @@
 (function() {
     'use strict';
     
-    // Portuguese translations
+    // English translations
     const LOCALE = {
-        justNow: 'agora',
-        minutesAgo: (n) => n === 1 ? 'há 1 minuto' : `há ${n} minutos`,
-        hoursAgo: (n) => n === 1 ? 'há 1 hora' : `há ${n} horas`,
-        daysAgo: (n) => n === 1 ? 'há 1 dia' : `há ${n} dias`,
-        weeksAgo: (n) => n === 1 ? 'há 1 semana' : `há ${n} semanas`,
-        monthsAgo: (n) => n === 1 ? 'há 1 mês' : `há ${n} meses`,
-        yearsAgo: (n) => n === 1 ? 'há 1 ano' : `há ${n} anos`
+        justNow: 'just now',
+        minutesAgo: (n) => n === 1 ? '1 minute ago' : `${n} minutes ago`,
+        hoursAgo: (n) => n === 1 ? '1 hour ago' : `${n} hours ago`,
+        daysAgo: (n) => n === 1 ? '1 day ago' : `${n} days ago`,
+        weeksAgo: (n) => n === 1 ? '1 week ago' : `${n} weeks ago`,
+        monthsAgo: (n) => n === 1 ? '1 month ago' : `${n} months ago`,
+        yearsAgo: (n) => n === 1 ? '1 year ago' : `${n} years ago`
     };
     
     function timeAgo(date) {

@@ -8,17 +8,17 @@
 <div class="stats">
     <p class="small">
         {% if search_query %}
-        {{ total_items }} resultado{{ 's' if total_items != 1 else '' }} para "{{ search_query }}" • Página {{ current_page }} de {{ total_pages }}
+        {{ total_items }} result{{ 's' if total_items != 1 else '' }} for "{{ search_query }}" • Page {{ current_page }} of {{ total_pages }}
         {% else %}
-        {{ total_items }} artigos • Página {{ current_page }} de {{ total_pages }}
+        {{ total_items }} articles • Page {{ current_page }} of {{ total_pages }}
         {% endif %}
     </p>
 </div>
 
 <form method="get" class="filters">
     <label>
-        Buscar:
-        <input type="search" name="search" value="{{ search_query or '' }}" placeholder="Buscar artigos..." class="search-input">
+        Search:
+        <input type="search" name="search" value="{{ search_query or '' }}" placeholder="Search articles..." class="search-input">
     </label>
     
     <label>
@@ -34,17 +34,17 @@
     </label>
     
     <label>
-        Ordenar:
+        Sort:
         <select name="sort" onchange="this.form.submit()">
-            <option value="recent" {{ 'selected' if sort_by == 'recent' else '' }}>Mais recentes</option>
-            <option value="oldest" {{ 'selected' if sort_by == 'oldest' else '' }}>Mais antigos</option>
-            <option value="title" {{ 'selected' if sort_by == 'title' else '' }}>Título (A-Z)</option>
-            <option value="feed" {{ 'selected' if sort_by == 'feed' else '' }}>Por feed</option>
+            <option value="recent" {{ 'selected' if sort_by == 'recent' else '' }}>Most recent</option>
+            <option value="oldest" {{ 'selected' if sort_by == 'oldest' else '' }}>Oldest</option>
+            <option value="title" {{ 'selected' if sort_by == 'title' else '' }}>Title (A-Z)</option>
+            <option value="feed" {{ 'selected' if sort_by == 'feed' else '' }}>By feed</option>
         </select>
     </label>
     
     {% if current_feed_id or search_query or (sort_by and sort_by != 'recent') %}
-    <a href="/" class="btn">Limpar filtros</a>
+    <a href="/" class="btn">Clear filters</a>
     {% endif %}
 </form>
 
@@ -60,13 +60,13 @@
                 {% if feed_statuses and feed_statuses.get(article.feed_id) %}
                 {% set status = feed_statuses[article.feed_id] %}
                 {% if status.status == 'success' %}
-                <span class="feed-status feed-status-success" title="Feed funcionando normalmente">●</span>
+                <span class="feed-status feed-status-success" title="Feed working normally">●</span>
                 {% elif status.status == 'error' %}
-                <span class="feed-status feed-status-error" title="Erro ao atualizar feed">●</span>
+                <span class="feed-status feed-status-error" title="Error updating feed">●</span>
                 {% elif status.status == 'not_modified' %}
-                <span class="feed-status feed-status-warning" title="Sem atualizações recentes">●</span>
+                <span class="feed-status feed-status-warning" title="No recent updates">●</span>
                 {% else %}
-                <span class="feed-status feed-status-pending" title="Aguardando atualização">●</span>
+                <span class="feed-status feed-status-pending" title="Waiting for update">●</span>
                 {% endif %}
                 {% endif %}
             </span>
@@ -147,17 +147,17 @@
 
 {% else %}
 <div class="empty">
-    <h2>Nenhum artigo encontrado</h2>
+    <h2>No articles found</h2>
     {% if current_feed_id %}
-    <p>Não há artigos neste feed ainda. Os artigos aparecerão aqui quando o feed for atualizado.</p>
+    <p>No articles in this feed yet. Articles will appear here when the feed is updated.</p>
     <div class="empty-actions">
-        <a href="/" class="btn">Ver todos os feeds</a>
-        <a href="/admin/refresh?feed_id={{ current_feed_id }}" class="btn secondary">Atualizar feed</a>
+        <a href="/" class="btn">View all feeds</a>
+        <a href="/admin/refresh?feed_id={{ current_feed_id }}" class="btn secondary">Refresh feed</a>
     </div>
     {% else %}
-    <p>Não há artigos disponíveis no momento. Verifique se os feeds estão sendo atualizados corretamente.</p>
+    <p>No articles available at the moment. Check if feeds are being updated correctly.</p>
     <div class="empty-actions">
-        <a href="/admin/health" class="btn">Ver status dos feeds</a>
+        <a href="/admin/health" class="btn">View feed status</a>
     </div>
     {% endif %}
 </div>
