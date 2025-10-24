@@ -76,9 +76,6 @@ def parse_feed_content(feed_id: int, content: bytes) -> List[ParsedItem]:
         return []
     
     try:
-        # Detect encoding
-        encoding = detect_encoding(content)
-        
         # Parse with feedparser (it handles encoding internally)
         feed = feedparser.parse(content)
         

@@ -3,11 +3,8 @@ Main entry point for Pablo Feeds application.
 Initializes database, scheduler, and starts the web server.
 """
 
-import asyncio
 import uvicorn
 from app.core.config import settings
-from app.core.storage import storage
-from app.core.scheduler import scheduler
 
 
 def main():

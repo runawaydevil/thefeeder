@@ -6,7 +6,6 @@ Includes deduplication, pagination, and statistics.
 from sqlmodel import SQLModel, Field, create_engine, Session, select
 from typing import List, Optional, Dict, Any
 from datetime import datetime
-import os
 from app.core.config import settings
 
 
@@ -101,7 +100,7 @@ class Storage:
         with self.get_session() as session:
             query = select(Feed)
             if enabled_only:
-                query = query.where(Feed.enabled == True)
+                query = query.where(Feed.enabled)
             return session.exec(query).all()
     
     def get_feed_status_dict(self) -> Dict[int, Dict[str, Any]]:

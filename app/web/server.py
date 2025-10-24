@@ -8,8 +8,7 @@ from fastapi.templating import Jinja2Templates
 from fastapi.staticfiles import StaticFiles
 from fastapi.responses import HTMLResponse, JSONResponse
 from starlette.middleware.base import BaseHTTPMiddleware
-from typing import Optional, List
-import os
+from typing import Optional
 
 from app.core.config import settings
 from app.core.storage import storage

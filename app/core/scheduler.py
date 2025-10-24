@@ -3,10 +3,8 @@ APScheduler for feed fetching with custom intervals per feed,
 jitter to avoid synchronization, and health monitoring.
 """
 
-import asyncio
 import random
 import time
-from datetime import datetime
 from apscheduler.schedulers.asyncio import AsyncIOScheduler
 from apscheduler.triggers.interval import IntervalTrigger
 from typing import Dict, Any

@@ -4,10 +4,8 @@ exponential backoff with jitter, and per-host rate limiting.
 """
 
 import asyncio
-import time
 import random
 import httpx
-from typing import Dict, Optional, Tuple
 from backoff import on_exception, expo
 from app.core.config import settings
 from app.core.ua import get_headers
