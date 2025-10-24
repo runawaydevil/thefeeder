@@ -2,12 +2,15 @@
 (function() {
     'use strict';
     
+    console.log('[ViewToggle] Script loaded');
+    
     const VIEW_KEY = 'pablo_feeds_view';
     const VIEW_CARDS = 'cards';
     const VIEW_LIST = 'list';
     
     // Get current view from localStorage or default to cards
     let currentView = localStorage.getItem(VIEW_KEY) || VIEW_CARDS;
+    console.log('[ViewToggle] Current view:', currentView);
     
     // Icon mapping for feeds
     const feedIcons = {
@@ -49,16 +52,19 @@
     
     // Apply view
     function applyView(view) {
+        console.log('[ViewToggle] Applying view:', view);
         const body = document.body;
-        const listContainer = document.querySelector('.list');
         
         if (view === VIEW_LIST) {
             body.classList.add('list-view');
+            console.log('[ViewToggle] Added list-view class');
             addIconsToListView();
         } else {
             body.classList.remove('list-view');
+            console.log('[ViewToggle] Removed list-view class');
         }
         
+        console.log('[ViewToggle] Body classes:', body.classList.toString());
         currentView = view;
         localStorage.setItem(VIEW_KEY, view);
     }
@@ -66,11 +72,11 @@
     // Create view toggle button
     function createViewToggle() {
         const headerRight = document.querySelector('.header-right');
+        console.log('[ViewToggle] Header found:', headerRight ? 'yes' : 'no');
         if (!headerRight) return;
         
         const buttonsContainer = document.createElement('div');
-        buttonsContainer.style.display = 'flex';
-        buttonsContainer.style.gap = '8px';
+        buttonsContainer.className = 'view-toggle-container';
         
         const cardsBtn = document.createElement('button');
         cardsBtn.className = 'view-toggle';

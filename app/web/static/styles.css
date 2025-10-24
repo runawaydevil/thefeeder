@@ -101,7 +101,7 @@ h1 {
     border-radius: 4px;
     cursor: pointer;
     font-size: 14px;
-    transition: background-color 0.2s, border-color 0.2s;
+    transition: all 0.2s;
     display: flex;
     align-items: center;
     gap: 4px;
@@ -227,53 +227,64 @@ select:focus {
     gap: 16px;
 }
 
-/* List View Mode */
-.list-view .list {
+/* View Toggle Container */
+.view-toggle-container {
+    display: flex;
+    gap: 8px;
+    align-items: center;
+}
+
+/* List View Mode - Use body.list-view for higher specificity */
+body.list-view .list {
+    display: flex !important;
+    flex-direction: column !important;
+    grid-template-columns: none !important;
     gap: 8px;
 }
 
-.list-view .card {
+body.list-view .card {
     padding: 12px 16px;
-    display: flex;
+    display: flex !important;
+    flex-direction: row !important;
     align-items: center;
     gap: 12px;
     flex-wrap: wrap;
 }
 
-.list-view .card h3 {
+body.list-view .card h3 {
     margin: 0;
     font-size: 15px;
     flex: 1;
     min-width: 200px;
 }
 
-.list-view .card h3 a {
+body.list-view .card h3 a {
     display: flex;
     align-items: center;
     gap: 8px;
 }
 
-.list-view .card-icon {
-    font-size: 20px;
+body.list-view .card-icon {
+    font-size: 24px;
     line-height: 1;
     flex-shrink: 0;
 }
 
-.list-view .card .meta {
+body.list-view .card .meta {
     margin: 0;
     font-size: 12px;
     gap: 6px;
 }
 
-.list-view .card .summary {
-    display: none;
+body.list-view .card .summary {
+    display: none !important;
 }
 
-.list-view .card .thumbnail {
-    display: none;
+body.list-view .card .thumbnail {
+    display: none !important;
 }
 
-.list-view .card.read::after {
+body.list-view .card.read::after {
     top: 50%;
     transform: translateY(-50%);
     right: 8px;
@@ -748,6 +759,17 @@ footer a:hover {
     }
     
     .theme-toggle {
+        width: 100%;
+        padding: 8px;
+    }
+    
+    .view-toggle-container {
+        width: 100%;
+        flex-direction: column;
+        gap: 8px;
+    }
+    
+    .view-toggle {
         width: 100%;
         padding: 8px;
     }
