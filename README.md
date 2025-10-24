@@ -16,7 +16,8 @@ A minimalist, conservative RSS feed aggregator built with Python FastAPI and Jin
 - **RSS/Atom Support**: Parses feeds with feedparser (supports RSS, Atom, JSON Feed)
 - **Smart Fetching**: ETag/Last-Modified caching, rate limiting, retry with backoff
 - **Per-Feed Intervals**: Custom update intervals per feed
-- **Feed Limit**: Maximum 1500 feeds supported
+- **Feed Limit**: Maximum 150 feeds supported
+- **Item Limit**: Maximum 1500 articles stored (older items auto-deleted)
 - **Deduplication**: Prevents duplicate articles
 - **Responsive**: Works on mobile and desktop
 - **Docker Ready**: Complete containerization setup

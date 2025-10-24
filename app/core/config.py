@@ -34,7 +34,10 @@ class Settings(BaseSettings):
     FEEDS_YAML: str = ""
     
     # Feed Limits
-    MAX_FEEDS: int = 1500
+    MAX_FEEDS: int = 150
+    
+    # Item Limits
+    MAX_ITEMS: int = 1500
     
     # Database
     DB_PATH: str = "feeder.sqlite"

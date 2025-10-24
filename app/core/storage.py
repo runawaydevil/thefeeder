@@ -154,7 +154,24 @@ class Storage:
                     new_count += 1
             
             session.commit()
-            return new_count
+            
+            # Automatic cleanup: remove oldest items if exceeding MAX_ITEMS
+            total_count = len(session.exec(select(Item)).all())
+            if total_count > settings.MAX_ITEMS:
+                excess = total_count - settings.MAX_ITEMS
+                # Get oldest items by publication date
+                oldest_items = session.exec(
+                    select(Item)
+                    .order_by(Item.published.asc())
+                    .limit(excess)
+                ).all()
+                
+                # Delete oldest items
+                for item in oldest_items:
+                    session.delete(item)
+                session.commit()
+        
+        return new_count
     
     def get_items(self, page: int = 1, limit: int = 20, 
                  feed_id: Optional[int] = None,
