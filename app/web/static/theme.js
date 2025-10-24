@@ -17,8 +17,8 @@
         if (theme === 'dark') {
             document.documentElement.setAttribute('data-theme', 'dark');
         } else {
-            // Default to light (white theme)
-            document.documentElement.setAttribute('data-theme', 'light');
+            // Remove attribute to use default :root styles (white)
+            document.documentElement.removeAttribute('data-theme');
         }
     }
     
