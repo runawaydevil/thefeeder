@@ -43,7 +43,7 @@ export default function Feed() {
       </div>
 
       <div className="space-y-4">
-        {itemsData?.items.map((item) => (
+        {itemsData?.items.map((item: any) => (
           <div
             key={item.id}
             className="bg-card rounded border border-border p-6 hover:shadow-card transition-shadow"

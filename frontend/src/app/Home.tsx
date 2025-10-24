@@ -56,7 +56,7 @@ export default function Home() {
         Timeline
       </h1>
       
-      {data.items.map((item) => (
+      {data.items.map((item: any) => (
         <div
           key={item.id}
           className="bg-card rounded border border-border p-6 hover:shadow-card transition-shadow"
