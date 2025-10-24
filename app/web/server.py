@@ -17,14 +17,22 @@ from app.core.scheduler import scheduler
 from app import __version__
 
 
-# Middleware to set cache headers for static files
-class StaticCacheMiddleware(BaseHTTPMiddleware):
+# Middleware for security headers
+class SecurityHeadersMiddleware(BaseHTTPMiddleware):
     async def dispatch(self, request: Request, call_next):
         response = await call_next(request)
-        # Add no-cache headers for static files to prevent caching issues
+        
+        # Security headers
+        response.headers["X-Content-Type-Options"] = "nosniff"
+        response.headers["X-Frame-Options"] = "DENY"
+        response.headers["X-XSS-Protection"] = "1; mode=block"
+        response.headers["Referrer-Policy"] = "strict-origin-when-cross-origin"
+        response.headers["Permissions-Policy"] = "geolocation=(), microphone=(), camera=()"
+        
+        # Static files caching
         if request.url.path.startswith("/static/"):
             response.headers["Cache-Control"] = "public, max-age=3600"
-            response.headers["X-Content-Type-Options"] = "nosniff"
+        
         return response
 
 
@@ -36,7 +44,7 @@ app = FastAPI(
 )
 
 # Add middleware
-app.add_middleware(StaticCacheMiddleware)
+app.add_middleware(SecurityHeadersMiddleware)
 
 # Setup templates and static files
 templates = Jinja2Templates(directory="app/web/templates")
@@ -62,21 +70,30 @@ async def index(request: Request, page: int = Query(1, ge=1),
                 sort: Optional[str] = Query("recent")):
     """Main page with paginated articles."""
     
-    # Convert feed_id to int if provided
+    # Convert feed_id to int if provided (with validation)
     feed_id_int = None
     if feed_id and feed_id.strip():
         try:
             feed_id_int = int(feed_id)
-        except ValueError:
+            # Validate range to prevent negative values
+            if feed_id_int < 1:
+                feed_id_int = None
+        except (ValueError, TypeError):
             feed_id_int = None
     
-    # Validate sort parameter
+    # Validate sort parameter (white-list approach)
     valid_sorts = ["recent", "oldest", "title", "feed"]
     sort_param = sort if sort in valid_sorts else "recent"
     
+    # Sanitize search query (prevent SQL injection via parameterized queries)
+    search_sanitized = None
+    if search and search.strip():
+        # Remove potentially dangerous characters
+        search_sanitized = search.strip()[:200]  # Limit length
+    
     # Get articles with optional search and sorting
-    articles = storage.get_items(page=page, limit=20, feed_id=feed_id_int, search_query=search, sort_by=sort_param)
-    total_items = storage.get_items_count(feed_id_int, search_query=search)
+    articles = storage.get_items(page=page, limit=20, feed_id=feed_id_int, search_query=search_sanitized, sort_by=sort_param)
+    total_items = storage.get_items_count(feed_id_int, search_query=search_sanitized)
     total_pages = (total_items + 19) // 20  # Ceiling division
     
     # Get feeds for filter dropdown
@@ -116,7 +133,7 @@ async def index(request: Request, page: int = Query(1, ge=1),
         "next_page": next_page,
         "total_items": total_items,
         "page_numbers": page_numbers,
-        "search_query": search,
+        "search_query": search_sanitized,
         "sort_by": sort_param
     })
 
@@ -124,7 +141,15 @@ async def index(request: Request, page: int = Query(1, ge=1),
 @app.get("/admin/refresh")
 async def refresh_feed(feed_id: Optional[int] = Query(None)):
     """Manually refresh a feed."""
+    # Validate feed_id to prevent injection
     if feed_id:
+        # Ensure feed_id is positive integer
+        if feed_id < 1:
+            raise HTTPException(status_code=400, detail="Invalid feed ID")
+        # Check if feed exists
+        feed = storage.get_feed(feed_id)
+        if not feed:
+            raise HTTPException(status_code=404, detail="Feed not found")
         scheduler.refresh_feed(feed_id)
         return JSONResponse({"message": f"Refresh triggered for feed {feed_id}"})
     else:
