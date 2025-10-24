@@ -48,3 +48,47 @@
 - name: "World's Cinema"
   url: "https://worldscinema.org/feed/"
   interval_seconds: 1800
+
+- name: "The Verge"
+  url: "https://www.theverge.com/rss/index.xml"
+  interval_seconds: 1800
+
+- name: "Ars Technica"
+  url: "https://feeds.arstechnica.com/arstechnica/index"
+  interval_seconds: 1800
+
+- name: "TechCrunch"
+  url: "https://techcrunch.com/feed/"
+  interval_seconds: 1800
+
+- name: "Engadget"
+  url: "https://www.engadget.com/rss.xml"
+  interval_seconds: 1800
+
+- name: "Gizmodo"
+  url: "https://gizmodo.com/rss"
+  interval_seconds: 1800
+
+- name: "Lifehacker"
+  url: "https://lifehacker.com/rss"
+  interval_seconds: 1800
+
+- name: "Slashdot"
+  url: "https://rss.slashdot.org/Slashdot/slashdotMain"
+  interval_seconds: 1800
+
+- name: "Hacker News"
+  url: "https://hnrss.org/frontpage"
+  interval_seconds: 1800
+
+- name: "Open Source Blog - GitHub"
+  url: "https://github.blog/open-source-feed.xml"
+  interval_seconds: 3600
+
+- name: "Kubernetes Blog"
+  url: "https://kubernetes.io/feed.xml"
+  interval_seconds: 3600
+
+- name: "Docker Blog"
+  url: "https://www.docker.com/blog/feed/"
+  interval_seconds: 3600
