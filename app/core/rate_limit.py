@@ -43,9 +43,21 @@ class RateLimiter:
             lambda: TokenBucket(settings.PER_HOST_RPS)
         )
         self.semaphore = asyncio.Semaphore(settings.GLOBAL_CONCURRENCY)
+        # Store Retry-After delays per host
+        self.retry_after_delays: Dict[str, float] = {}
+        # Track error rates per host for backpressure
+        self.error_counts: Dict[str, int] = defaultdict(int)
+        self.request_counts: Dict[str, int] = defaultdict(int)
     
     async def acquire(self, host: str) -> bool:
         """Acquire permission to make request to host."""
+        # Check if host has Retry-After delay
+        if host in self.retry_after_delays:
+            delay = self.retry_after_delays[host]
+            if delay > 0:
+                await asyncio.sleep(delay)
+                del self.retry_after_delays[host]
+        
         # Global concurrency limit
         await self.semaphore.acquire()
         
@@ -56,6 +68,27 @@ class RateLimiter:
         else:
             self.semaphore.release()
             return False
+    
+    def set_retry_after(self, host: str, delay: float):
+        """Set Retry-After delay for a host."""
+        self.retry_after_delays[host] = delay
+    
+    def record_request(self, host: str, success: bool):
+        """Record request result for backpressure."""
+        self.request_counts[host] += 1
+        if not success:
+            self.error_counts[host] += 1
+    
+    def get_error_rate(self, host: str) -> float:
+        """Get error rate for a host."""
+        total = self.request_counts[host]
+        if total == 0:
+            return 0.0
+        return self.error_counts[host] / total
+    
+    def should_backpressure(self, host: str, threshold: float = 0.5) -> bool:
+        """Check if backpressure should be applied to host."""
+        return self.get_error_rate(host) > threshold
     
     def release(self):
         """Release global semaphore."""
@@ -97,3 +130,14 @@ def get_retry_after_delay(response: httpx.Response) -> Optional[float]:
             except (ValueError, TypeError):
                 pass
     return None
+
+
+def apply_retry_after(url: str, delay: float):
+    """Apply Retry-After delay to a host."""
+    try:
+        parsed_url = httpx.URL(url)
+        host = parsed_url.host
+        if host:
+            rate_limiter.set_retry_after(host, delay)
+    except Exception:
+        pass

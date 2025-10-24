@@ -11,10 +11,10 @@ class Settings(BaseSettings):
     # App Configuration
     APP_NAME: str = "Pablo Feeds"
     APP_PORT: int = 7389
-    APP_BASE_URL: str = "https://pablomurad.com"
+    APP_BASE_URL: str = "https://feeder.1208.pro"
     
     # User Agent Policy
-    USER_AGENT_BASE: str = "Feeder/2025 (+https://pablomurad.com; contato: pablo@pablomurad.com)"
+    USER_AGENT_BASE: str = "Feeder/2025 (+https://feeder.1208.pro; contato: pablo@pablomurad.com)"
     
     # Network Configuration
     GLOBAL_CONCURRENCY: int = 5
@@ -47,11 +47,18 @@ class Settings(BaseSettings):
     
     @property
     def feeds(self) -> List[Dict[str, Any]]:
-        """Parse FEEDS_YAML string into list of feed configurations."""
-        if not self.FEEDS_YAML:
-            return []
+        """Load feeds from feeds.yaml file."""
+        feeds_file = os.path.join(os.path.dirname(os.path.dirname(os.path.dirname(__file__))), 'feeds.yaml')
+        
         try:
-            parsed_feeds = yaml.safe_load(self.FEEDS_YAML) or []
+            if os.path.exists(feeds_file):
+                with open(feeds_file, 'r', encoding='utf-8') as f:
+                    parsed_feeds = yaml.safe_load(f) or []
+            else:
+                # Fallback to FEEDS_YAML env var
+                if not self.FEEDS_YAML:
+                    return []
+                parsed_feeds = yaml.safe_load(self.FEEDS_YAML) or []
             
             # Limit to MAX_FEEDS
             if len(parsed_feeds) > self.MAX_FEEDS:
@@ -60,7 +67,10 @@ class Settings(BaseSettings):
             
             return parsed_feeds
         except yaml.YAMLError as e:
-            print(f"Error parsing FEEDS_YAML: {e}")
+            logger.error(f"Error parsing feeds: {e}")
+            return []
+        except Exception as e:
+            logger.error(f"Error loading feeds.yaml: {e}")
             return []
     
     class Config:

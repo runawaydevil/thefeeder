@@ -14,6 +14,9 @@ from app.core.config import settings
 from app.core.storage import storage
 from app.core.fetcher import fetch_feed
 from app.core.parser import parse_feed_content
+from app.core.metrics import record_fetch_metrics
+from app.core.maintenance import run_maintenance
+import httpx
 
 
 # Configure logging
@@ -36,9 +39,27 @@ class FeedScheduler:
         # Initialize feeds from config
         self._initialize_feeds()
         
+        # Schedule maintenance job (daily)
+        self.scheduler.add_job(
+            func=self._maintenance_job,
+            trigger=IntervalTrigger(hours=24),
+            id="maintenance",
+            name="Database Maintenance",
+            replace_existing=True
+        )
+        
+        # Schedule TTL degradation check (hourly)
+        self.scheduler.add_job(
+            func=self._degradation_check_job,
+            trigger=IntervalTrigger(hours=1),
+            id="degradation_check",
+            name="Feed Degradation Check",
+            replace_existing=True
+        )
+        
         # Start scheduler
         self.scheduler.start()
-        logger.info(f"Scheduler started with {len(self.feed_jobs)} jobs")
+        logger.info(f"Scheduler started with {len(self.feed_jobs)} feed jobs")
     
     def stop(self):
         """Stop the scheduler."""
@@ -104,6 +125,11 @@ class FeedScheduler:
         """Job function to fetch a specific feed."""
         start_time = time.time()
         
+        # Try to acquire lock
+        if not storage.acquire_feed_lock(feed_id):
+            logger.warning(f"Feed {feed_id} is already being fetched, skipping")
+            return
+        
         try:
             feed = storage.get_feed(feed_id)
             if not feed or not feed.enabled:
@@ -111,6 +137,11 @@ class FeedScheduler:
                 return
             
             logger.info(f"Fetching feed: {feed.name}")
+            
+            # Apply adaptive backoff to interval
+            effective_interval = int(feed.interval_seconds * feed.backoff_multiplier)
+            if effective_interval != feed.interval_seconds:
+                logger.info(f"Feed {feed.name}: Using adaptive backoff multiplier {feed.backoff_multiplier}x")
             
             # Fetch feed content
             result = await fetch_feed(
@@ -121,10 +152,19 @@ class FeedScheduler:
             
             duration_ms = int((time.time() - start_time) * 1000)
             
+            # Extract host for metrics
+            try:
+                parsed_url = httpx.URL(feed.url)
+                host = parsed_url.host or "unknown"
+            except Exception:
+                host = "unknown"
+            
             if result.is_not_modified:
                 # No new content
                 storage.update_feed_status(feed_id, "not_modified")
                 storage.log_fetch(feed_id, 304, duration_ms=duration_ms)
+                record_fetch_metrics(feed_id, host, 304, duration_ms, 0, 0)
+                storage.update_adaptive_backoff(feed_id, success=True)
                 logger.info(f"Feed {feed.name}: No new content (304)")
                 
             elif result.is_success:
@@ -135,6 +175,11 @@ class FeedScheduler:
                     # Save items to database
                     items_data = [item.to_dict() for item in items]
                     new_count = storage.add_items(items_data)
+                    
+                    # Track latest published time for TTL
+                    latest_published = max([item.published for item in items if item.published])
+                    if latest_published:
+                        storage.update_feed_published_time(feed_id, latest_published)
                     
                     # Update feed status
                     storage.update_feed_status(
@@ -153,10 +198,16 @@ class FeedScheduler:
                         duration_ms=duration_ms
                     )
                     
+                    # Record metrics
+                    record_fetch_metrics(feed_id, host, result.status, duration_ms, len(items), new_count)
+                    storage.update_adaptive_backoff(feed_id, success=True)
+                    
                     logger.info(f"Feed {feed.name}: {len(items)} items, {new_count} new")
                 else:
                     storage.update_feed_status(feed_id, "no_items")
                     storage.log_fetch(feed_id, result.status, duration_ms=duration_ms)
+                    record_fetch_metrics(feed_id, host, result.status, duration_ms, 0, 0)
+                    storage.update_adaptive_backoff(feed_id, success=True)
                     logger.warning(f"Feed {feed.name}: No items found")
             
             else:
@@ -168,13 +219,33 @@ class FeedScheduler:
                     error_message=result.error,
                     duration_ms=duration_ms
                 )
+                record_fetch_metrics(feed_id, host, result.status, duration_ms, 0, 0)
+                storage.update_adaptive_backoff(feed_id, success=False)
                 logger.error(f"Feed {feed.name}: Error {result.status} - {result.error}")
         
         except Exception as e:
             duration_ms = int((time.time() - start_time) * 1000)
             storage.update_feed_status(feed_id, "error")
             storage.log_fetch(feed_id, 0, error_message=str(e), duration_ms=duration_ms)
+            storage.update_adaptive_backoff(feed_id, success=False)
+            
+            # Record error metric
+            try:
+                feed = storage.get_feed(feed_id)
+                if feed:
+                    parsed_url = httpx.URL(feed.url)
+                    host = parsed_url.host or "unknown"
+                else:
+                    host = "unknown"
+            except Exception:
+                host = "unknown"
+            record_fetch_metrics(feed_id, host, 0, duration_ms, 0, 0)
+            
             logger.error(f"Error fetching feed {feed_id}: {e}")
+        
+        finally:
+            # Always release lock
+            storage.release_feed_lock(feed_id)
     
     def refresh_feed(self, feed_id: int):
         """Manually trigger a feed refresh."""
@@ -187,6 +258,27 @@ class FeedScheduler:
                 replace_existing=True
             )
             logger.info(f"Manual refresh triggered for feed {feed_id}")
+    
+    def _maintenance_job(self):
+        """Periodic maintenance job."""
+        logger.info("Running periodic maintenance...")
+        try:
+            run_maintenance()
+            # Mark old items as not new
+            storage.mark_old_items_as_read(age_hours=1)
+            logger.info("Maintenance completed successfully")
+        except Exception as e:
+            logger.error(f"Error during maintenance: {e}")
+    
+    def _degradation_check_job(self):
+        """Check and degrade feeds that haven't published recently."""
+        logger.info("Checking feed degradation...")
+        try:
+            degraded_count = storage.check_and_degrade_feeds(ttl_hours=24)
+            if degraded_count > 0:
+                logger.info(f"Degraded {degraded_count} feeds")
+        except Exception as e:
+            logger.error(f"Error during degradation check: {e}")
     
     def get_scheduler_status(self) -> Dict[str, Any]:
         """Get scheduler status and statistics."""

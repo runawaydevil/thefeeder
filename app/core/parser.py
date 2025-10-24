@@ -90,6 +90,11 @@ def parse_feed_content(feed_id: int, content: bytes) -> List[ParsedItem]:
                 title = getattr(entry, 'title', 'No title')
                 link = getattr(entry, 'link', '')
                 
+                # Clean Reddit metadata from title
+                if 'reddit.com' in link.lower():
+                    title = re.sub(r'\s*\[link\]\s*\[comments\]', '', title, flags=re.IGNORECASE)
+                    title = title.strip()
+                
                 # Extract GUID
                 guid = getattr(entry, 'id', '') or getattr(entry, 'guid', '')
                 
@@ -99,6 +104,12 @@ def parse_feed_content(feed_id: int, content: bytes) -> List[ParsedItem]:
                 # Extract summary/description
                 summary = getattr(entry, 'summary', '') or getattr(entry, 'description', '')
                 summary = clean_html(summary)
+                
+                # Filter out Reddit metadata text
+                if summary:
+                    # Remove Reddit's "submitted by" metadata (flexible pattern)
+                    summary = re.sub(r'submitted by.*?\[.*?\]\s*\[.*?\]', '', summary, flags=re.IGNORECASE | re.DOTALL)
+                    summary = summary.strip()
                 
                 # Extract published date
                 published = None

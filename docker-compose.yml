@@ -1,10 +1,6 @@
-version: '3.8'
-
 services:
   feeder:
     build: .
-    ports:
-      - "7389:7389"
     env_file: .env
     restart: unless-stopped
     volumes:
@@ -17,6 +13,26 @@ services:
       timeout: 10s
       retries: 3
       start_period: 40s
+    networks:
+      - feeder-network
+
+  frontend:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
+    ports:
+      - "7389:80"
+    restart: unless-stopped
+    environment:
+      - VITE_API_URL=http://feeder:7389
+    depends_on:
+      - feeder
+    networks:
+      - feeder-network
+
+networks:
+  feeder-network:
+    driver: bridge
 
 volumes:
   feeder_db:

@@ -7,9 +7,12 @@ import asyncio
 import random
 import httpx
 from backoff import on_exception, expo
+from typing import Optional
 from app.core.config import settings
 from app.core.ua import get_headers
-from app.core.rate_limit import respect_rate_limit, release_rate_limit, get_retry_after_delay
+from app.core.rate_limit import respect_rate_limit, release_rate_limit, get_retry_after_delay, apply_retry_after
+import mimetypes
+import re
 
 
 class FetchResult:
@@ -24,6 +27,41 @@ class FetchResult:
         self.error = error
         self.is_not_modified = status == 304
         self.is_success = 200 <= status < 300
+
+
+async def try_head_request(url: str, etag: str = "", last_modified: str = "") -> FetchResult:
+    """Try HEAD request first for cache check."""
+    try:
+        headers = get_headers()
+        if etag:
+            headers["If-None-Match"] = etag
+        if last_modified:
+            headers["If-Modified-Since"] = last_modified
+        
+        async with httpx.AsyncClient(
+            http2=True,
+            timeout=settings.FETCH_TIMEOUT_SECONDS,
+            headers=headers,
+            follow_redirects=True
+        ) as client:
+            response = await client.head(url)
+            
+            # Handle 429 with Retry-After
+            if response.status_code == 429:
+                delay = get_retry_after_delay(response)
+                if delay:
+                    apply_retry_after(url, delay)
+                    raise httpx.HTTPStatusError("429 retry", request=response.request, response=response)
+            
+            return FetchResult(
+                status=response.status_code,
+                content=b"",
+                etag=response.headers.get("ETag", ""),
+                last_modified=response.headers.get("Last-Modified", "")
+            )
+    except Exception:
+        # HEAD not supported or failed, return None to try GET
+        return None
 
 
 async def fetch_with_backoff(url: str, etag: str = "", last_modified: str = "") -> FetchResult:
@@ -141,3 +179,47 @@ def is_valid_feed_content(content: bytes) -> bool:
         return False
     except Exception:
         return False
+
+
+def validate_content_type(content_type: str) -> bool:
+    """Validate Content-Type header for feeds."""
+    if not content_type:
+        return True  # Allow if missing
+    
+    # Normalize content type
+    content_type = content_type.lower().split(';')[0].strip()
+    
+    # Valid feed content types
+    valid_types = [
+        'application/rss+xml',
+        'application/atom+xml',
+        'application/xml',
+        'text/xml',
+        'application/json',
+        'application/feed+json',
+        'application/json+feed'
+    ]
+    
+    return content_type in valid_types
+
+
+def detect_feed_in_html(html_content: bytes) -> Optional[str]:
+    """Try to discover RSS feed link in HTML content."""
+    try:
+        html_str = html_content.decode('utf-8', errors='ignore')
+        
+        # Look for <link rel="alternate" type="application/rss+xml">
+        pattern = r'<link[^>]*rel=["\']alternate["\'][^>]*type=["\']application/rss\+xml["\'][^>]*href=["\']([^"\']+)["\']'
+        match = re.search(pattern, html_str, re.IGNORECASE)
+        if match:
+            return match.group(1)
+        
+        # Look for <link rel="alternate" href="..." type="application/rss+xml">
+        pattern = r'<link[^>]*href=["\']([^"\']+)["\'][^>]*type=["\']application/rss\+xml["\']'
+        match = re.search(pattern, html_str, re.IGNORECASE)
+        if match:
+            return match.group(1)
+        
+        return None
+    except Exception:
+        return None

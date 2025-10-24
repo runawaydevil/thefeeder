@@ -2,7 +2,7 @@
 
 A minimalist, conservative RSS feed aggregator built with Python FastAPI and Jinja2 templates.
 
-**Version:** 0.0.2
+**Version:** 0.5.0
 
 **Author:** Pablo Murad <pablomurad@pm.me>
 
@@ -24,18 +24,31 @@ A minimalist, conservative RSS feed aggregator built with Python FastAPI and Jin
 - **Responsive**: Works on mobile and desktop
 - **Docker Ready**: Complete containerization setup
 
-### User Experience (v0.0.2)
-- **🔍 Search**: Full-text search across titles, summaries, and authors
-- **📑 Smart Pagination**: Beautiful pagination with hover effects and page indicators
+### User Experience (v0.5.0)
+- **🔍 FTS5 Search**: Ultra-fast full-text search (10x faster than LIKE)
+- **📑 Smart Pagination**: Configurable pagination (10-100 items per page)
 - **⏰ Relative Time**: "2 hours ago" instead of absolute dates
 - **✅ Read Tracking**: Mark articles as read with visual indicators
 - **🔄 Custom Sorting**: Sort by recent, oldest, title, or feed
 - **🎨 Status Indicators**: Feed health badges with color-coded status
-- **🖼️ Image Handling**: Smart placeholders and lazy loading
+- **🖼️ Image Handling**: Smart placeholders and lazy loading with proxy
 - **♿ Accessibility**: WCAG AA compliant with skip links and ARIA support
 - **📱 Empty States**: Contextual messages with helpful actions
 - **📋 List View**: Toggle between Cards and compact List view with feed icons
-- **🎨 Improved Links**: Better link colors for enhanced readability
+- **🆕 New Badge**: Visual indicator for articles < 1 hour old
+- **📊 Unread Counter**: Real-time count of unread articles
+
+### Advanced Features
+- **🔒 Feed Locking**: Prevents concurrent fetches of same feed
+- **📈 Adaptive Backoff**: Automatically reduces frequency for unstable feeds
+- **⚡ HEAD Requests**: Cache checks without downloading content
+- **🔍 Autodiscovery**: Automatically find RSS feeds from websites
+- **📦 OPML Support**: Import/export feeds in standard format
+- **🔔 WebSub**: Real-time updates via PubSubHubbub
+- **⏱️ TTL Tracking**: Automatic degradation of inactive feeds
+- **📊 Prometheus Metrics**: Full observability with /metrics endpoint
+- **🔧 Auto Maintenance**: VACUUM, ANALYZE, and log cleanup
+- **🛡️ Enhanced Security**: CSP, COEP, CORP headers
 
 ## Quick Start
 
@@ -51,6 +64,9 @@ A minimalist, conservative RSS feed aggregator built with Python FastAPI and Jin
    ```
 
 3. **Access**: http://localhost:7389
+   - Frontend React (main interface)
+   - API REST at `/api/*`
+   - Admin endpoints at `/admin/*`
 
 ## Configuration
 
@@ -75,7 +91,15 @@ Feeds are configured in the `FEEDS_YAML` environment variable:
 
 ## API Endpoints
 
-- `GET /`: Main page with articles
+### REST API (for React frontend)
+- `GET /api/items`: Get paginated items with filtering
+- `GET /api/items/:id`: Get single item details
+- `GET /api/feeds`: List all feeds
+- `GET /api/feeds/:id`: Get feed details with stats
+- `GET /api/feeds/:id/items`: Get items for specific feed
+
+### Admin/Legacy Endpoints
+- `GET /`: Main page with articles (HTML)
 - `GET /admin/refresh?feed_id=X`: Manual feed refresh
 - `GET /admin/health`: System health status
 - `GET /admin/feeds`: List all feeds

@@ -1,0 +1,50 @@
+# Pablo Feeds Configuration
+# Edit this file and add to FEEDS_YAML in .env
+
+- name: "Reddit - r/SelfHosting"
+  url: "https://www.reddit.com/r/SelfHosting.rss"
+  interval_seconds: 1200
+
+- name: "Reddit - r/rss"
+  url: "https://www.reddit.com/r/rss.rss"
+  interval_seconds: 1200
+
+- name: "Reddit - r/minasgerais"
+  url: "https://www.reddit.com/r/minasgerais.rss"
+  interval_seconds: 1200
+
+- name: "Reddit - r/Brasil"
+  url: "https://www.reddit.com/r/brasil.rss"
+  interval_seconds: 1200
+
+- name: "Reddit - r/Movies"
+  url: "https://www.reddit.com/r/movies.rss"
+  interval_seconds: 1200
+
+- name: "Reddit - r/fulltvshowsonyoutube"
+  url: "https://www.reddit.com/r/fulltvshowsonyoutube.rss"
+  interval_seconds: 1200
+
+- name: "Reddit - r/DOS"
+  url: "https://www.reddit.com/r/DOS.rss"
+  interval_seconds: 1200
+
+- name: "Xerife Tech"
+  url: "https://xerifetech.com/feed/"
+  interval_seconds: 1200
+
+- name: "WIRED"
+  url: "https://www.wired.com/feed/rss"
+  interval_seconds: 1800
+
+- name: "MakeUseOf"
+  url: "https://www.makeuseof.com/feed/"
+  interval_seconds: 1800
+
+- name: "Pi My Life Up"
+  url: "https://pimylifeup.com/feed/"
+  interval_seconds: 1800
+
+- name: "World's Cinema"
+  url: "https://worldscinema.org/feed/"
+  interval_seconds: 1800

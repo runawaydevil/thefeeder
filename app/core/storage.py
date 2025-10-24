@@ -3,10 +3,13 @@ SQLModel + SQLite storage with tables for feeds, items, and fetch logs.
 Includes deduplication, pagination, and statistics.
 """
 
-from sqlmodel import SQLModel, Field, create_engine, Session, select
+from sqlmodel import SQLModel, Field, create_engine, Session, select, text
 from typing import List, Optional, Dict, Any
 from datetime import datetime
 from app.core.config import settings
+import logging
+
+logger = logging.getLogger(__name__)
 
 
 class Feed(SQLModel, table=True):
@@ -22,6 +25,15 @@ class Feed(SQLModel, table=True):
     last_fetch_status: str = Field(default="pending")
     last_fetch_time: Optional[datetime] = Field(default=None)
     created_at: datetime = Field(default_factory=datetime.utcnow)
+    
+    # Concurrency and adaptive backoff
+    is_fetching: bool = Field(default=False)
+    consecutive_errors: int = Field(default=0)
+    backoff_multiplier: float = Field(default=1.0)
+    
+    # TTL and degradation
+    last_published_time: Optional[datetime] = Field(default=None)
+    degraded: bool = Field(default=False)
 
 
 class Item(SQLModel, table=True):
@@ -37,6 +49,7 @@ class Item(SQLModel, table=True):
     guid: str = Field(index=True)  # For deduplication
     thumbnail: str = Field(default="")
     created_at: datetime = Field(default_factory=datetime.utcnow)
+    is_new: bool = Field(default=True)  # Mark as new (< 1 hour)
 
 
 class FetchLog(SQLModel, table=True):
@@ -58,11 +71,79 @@ class Storage:
     def __init__(self, db_path: str = None):
         self.db_path = db_path or settings.DB_PATH
         self.engine = create_engine(f"sqlite:///{self.db_path}")
+        self._configure_sqlite()
         self._create_tables()
+    
+    def _configure_sqlite(self):
+        """Configure SQLite pragmas for optimal performance."""
+        with self.engine.connect() as conn:
+            # Enable WAL mode for better concurrency
+            conn.execute(text("PRAGMA journal_mode=WAL"))
+            # Normal synchronous mode (balance between safety and performance)
+            conn.execute(text("PRAGMA synchronous=NORMAL"))
+            # Enable foreign keys
+            conn.execute(text("PRAGMA foreign_keys=ON"))
+            # Store temporary tables in memory
+            conn.execute(text("PRAGMA temp_store=MEMORY"))
+            conn.commit()
+            logger.info("SQLite pragmas configured: WAL, synchronous=NORMAL, foreign_keys=ON, temp_store=MEMORY")
     
     def _create_tables(self):
         """Create database tables."""
         SQLModel.metadata.create_all(self.engine)
+        self._create_fts5_index()
+    
+    def _create_fts5_index(self):
+        """Create FTS5 virtual table for full-text search."""
+        with self.engine.connect() as conn:
+            # Check if FTS5 table already exists
+            result = conn.execute(text("""
+                SELECT name FROM sqlite_master 
+                WHERE type='table' AND name='item_fts'
+            """))
+            
+            if result.fetchone() is None:
+                # Create FTS5 virtual table
+                conn.execute(text("""
+                    CREATE VIRTUAL TABLE item_fts USING fts5(
+                        title, summary, author, 
+                        content='item', 
+                        content_rowid='id'
+                    )
+                """))
+                
+                # Populate with existing data
+                conn.execute(text("""
+                    INSERT INTO item_fts(rowid, title, summary, author)
+                    SELECT id, title, summary, author FROM item
+                """))
+                
+                # Create triggers for automatic synchronization
+                conn.execute(text("""
+                    CREATE TRIGGER item_ai AFTER INSERT ON item BEGIN
+                        INSERT INTO item_fts(rowid, title, summary, author)
+                        VALUES(new.id, new.title, new.summary, new.author);
+                    END
+                """))
+                
+                conn.execute(text("""
+                    CREATE TRIGGER item_ad AFTER DELETE ON item BEGIN
+                        INSERT INTO item_fts(item_fts, rowid, title, summary, author)
+                        VALUES('delete', old.id, old.title, old.summary, old.author);
+                    END
+                """))
+                
+                conn.execute(text("""
+                    CREATE TRIGGER item_au AFTER UPDATE ON item BEGIN
+                        INSERT INTO item_fts(item_fts, rowid, title, summary, author)
+                        VALUES('delete', old.id, old.title, old.summary, old.author);
+                        INSERT INTO item_fts(rowid, title, summary, author)
+                        VALUES(new.id, new.title, new.summary, new.author);
+                    END
+                """))
+                
+                conn.commit()
+                logger.info("FTS5 index created successfully")
     
     def get_session(self) -> Session:
         """Get database session."""
@@ -136,6 +217,82 @@ class Storage:
                     feed.last_modified = last_modified
                 session.commit()
     
+    def acquire_feed_lock(self, feed_id: int) -> bool:
+        """Acquire lock for feed. Returns True if lock acquired."""
+        with self.get_session() as session:
+            feed = session.get(Feed, feed_id)
+            if feed and not feed.is_fetching:
+                feed.is_fetching = True
+                session.commit()
+                return True
+            return False
+    
+    def release_feed_lock(self, feed_id: int):
+        """Release lock for feed."""
+        with self.get_session() as session:
+            feed = session.get(Feed, feed_id)
+            if feed:
+                feed.is_fetching = False
+                session.commit()
+    
+    def update_adaptive_backoff(self, feed_id: int, success: bool):
+        """Update adaptive backoff based on fetch result."""
+        with self.get_session() as session:
+            feed = session.get(Feed, feed_id)
+            if feed:
+                if success:
+                    # Reset on success
+                    feed.consecutive_errors = 0
+                    feed.backoff_multiplier = 1.0
+                else:
+                    # Increase on error
+                    feed.consecutive_errors += 1
+                    # Cap at 4x multiplier
+                    feed.backoff_multiplier = min(4.0, 1.0 + (feed.consecutive_errors * 0.5))
+                session.commit()
+    
+    def update_feed_published_time(self, feed_id: int, published_time: Optional[datetime]):
+        """Update last published time for TTL tracking."""
+        with self.get_session() as session:
+            feed = session.get(Feed, feed_id)
+            if feed and published_time:
+                feed.last_published_time = published_time
+                # Reset degraded if feed publishes again
+                if feed.degraded:
+                    feed.degraded = False
+                session.commit()
+    
+    def check_and_degrade_feeds(self, ttl_hours: int = 24):
+        """Check feeds that haven't published in TTL and degrade them."""
+        from datetime import timedelta
+        cutoff_time = datetime.utcnow() - timedelta(hours=ttl_hours)
+        
+        with self.get_session() as session:
+            feeds = session.exec(select(Feed)).all()
+            degraded_count = 0
+            
+            for feed in feeds:
+                if feed.last_published_time and feed.last_published_time < cutoff_time:
+                    if not feed.degraded:
+                        feed.degraded = True
+                        degraded_count += 1
+            
+            session.commit()
+            return degraded_count
+    
+    def mark_old_items_as_read(self, age_hours: int = 1):
+        """Mark items older than age_hours as not new."""
+        from datetime import timedelta
+        cutoff_time = datetime.utcnow() - timedelta(hours=age_hours)
+        
+        with self.get_session() as session:
+            updated = session.exec(
+                text("UPDATE item SET is_new = 0 WHERE created_at < :cutoff AND is_new = 1"),
+                {"cutoff": cutoff_time.isoformat()}
+            )
+            session.commit()
+            return updated.rowcount if hasattr(updated, 'rowcount') else 0
+    
     # Item operations
     def add_items(self, items: List[Dict[str, Any]]) -> int:
         """Add items with deduplication. Returns count of new items."""
@@ -186,14 +343,33 @@ class Storage:
             if feed_id:
                 query = query.where(Item.feed_id == feed_id)
             
-            # Simple search in title, summary, and author
+            # Full-text search using FTS5
             if search_query and search_query.strip():
-                search_term = f"%{search_query.strip()}%"
-                query = query.where(
-                    (Item.title.like(search_term)) |
-                    (Item.summary.like(search_term)) |
-                    (Item.author.like(search_term))
-                )
+                search_term = search_query.strip()
+                # Use FTS5 if available, fallback to LIKE
+                try:
+                    # Query FTS5 virtual table
+                    fts_query = text("""
+                        SELECT rowid FROM item_fts 
+                        WHERE item_fts MATCH :search_term
+                    """)
+                    fts_results = session.exec(fts_query, {"search_term": search_term})
+                    item_ids = [row[0] for row in fts_results]
+                    
+                    if item_ids:
+                        query = query.where(Item.id.in_(item_ids))
+                    else:
+                        # No matches found, return empty query
+                        query = query.where(Item.id == -1)
+                except Exception as e:
+                    # Fallback to LIKE if FTS5 not available
+                    logger.warning(f"FTS5 search failed, using LIKE fallback: {e}")
+                    search_term = f"%{search_term}%"
+                    query = query.where(
+                        (Item.title.like(search_term)) |
+                        (Item.summary.like(search_term)) |
+                        (Item.author.like(search_term))
+                    )
             
             # Apply sorting
             if sort_by == "oldest":
@@ -220,7 +396,8 @@ class Storage:
                     'summary': item.summary,
                     'thumbnail': item.thumbnail,
                     'feed_name': feed_name,
-                    'feed_id': item.feed_id
+                    'feed_id': item.feed_id,
+                    'is_new': item.is_new
                 })
             
             return items
@@ -232,14 +409,33 @@ class Storage:
             if feed_id:
                 query = query.where(Item.feed_id == feed_id)
             
-            # Simple search in title, summary, and author
+            # Full-text search using FTS5
             if search_query and search_query.strip():
-                search_term = f"%{search_query.strip()}%"
-                query = query.where(
-                    (Item.title.like(search_term)) |
-                    (Item.summary.like(search_term)) |
-                    (Item.author.like(search_term))
-                )
+                search_term = search_query.strip()
+                # Use FTS5 if available, fallback to LIKE
+                try:
+                    # Query FTS5 virtual table
+                    fts_query = text("""
+                        SELECT rowid FROM item_fts 
+                        WHERE item_fts MATCH :search_term
+                    """)
+                    fts_results = session.exec(fts_query, {"search_term": search_term})
+                    item_ids = [row[0] for row in fts_results]
+                    
+                    if item_ids:
+                        query = query.where(Item.id.in_(item_ids))
+                    else:
+                        # No matches found
+                        return 0
+                except Exception as e:
+                    # Fallback to LIKE if FTS5 not available
+                    logger.warning(f"FTS5 search failed, using LIKE fallback: {e}")
+                    search_term = f"%{search_term}%"
+                    query = query.where(
+                        (Item.title.like(search_term)) |
+                        (Item.summary.like(search_term)) |
+                        (Item.author.like(search_term))
+                    )
             
             return len(session.exec(query).all())
     

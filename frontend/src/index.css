@@ -1,0 +1,93 @@
+@import "tailwindcss";
+
+@layer base {
+  :root {
+    /* Base */
+    --fg: 220 15% 18%;
+    --fg-muted: 0 0% 40%;
+    --bg: 0 0% 100%;
+    --border: 0 0% 86%;
+
+    /* Superfícies */
+    --card-bg: 0 0% 100%;
+    --filter-bg: 210 17% 97%;
+    --meta-bg: 0 0% 94%;
+    --summary: 0 0% 27%;
+
+    /* Ação - Blue (principal) */
+    --accent: 210 100% 40%;
+    --accent-hover: 210 100% 34%;
+    --accent-fg: 0 0% 100%;
+    
+    /* Accent Alt - Orange (RSS) */
+    --accent-alt: 24 95% 53%;
+    --accent-alt-hover: 24 95% 47%;
+
+    /* Feedback */
+    --success: 140 100% 20%;
+    --error: 0 100% 40%;
+    --warn: 36 100% 50%;
+    --pending: 0 0% 60%;
+
+    /* Badges específicas */
+    --badge-feed-bg: 210 100% 94%;
+    --badge-feed-fg: 210 79% 46%;
+    --badge-date-bg: 290 52% 95%;
+    --badge-date-fg: 289 38% 36%;
+    --badge-author-bg: 120 30% 94%;
+    --badge-author-fg: 134 46% 39%;
+    
+    /* Utilitários */
+    --ring: var(--accent);
+    --shadow: 0 10% 0% / 0.06;
+    --hover-bg: 210 100% 97%;
+  }
+  
+  [data-theme="dark"] {
+    /* Base */
+    --fg: 0 0% 88%;
+    --fg-muted: 0 0% 60%;
+    --bg: 0 0% 10%;
+    --border: 0 0% 20%;
+
+    /* Superfícies */
+    --card-bg: 0 0% 14%;
+    --filter-bg: 0 0% 16%;
+    --meta-bg: 0 0% 16%;
+    --summary: 0 0% 80%;
+
+    /* Ação */
+    --accent: 210 100% 70%;
+    --accent-hover: 210 100% 64%;
+    --accent-fg: 230 35% 12%;
+
+    /* Accent Alt */
+    --accent-alt: 24 95% 53%;
+    --accent-alt-hover: 24 95% 47%;
+
+    /* Feedback */
+    --success: 140 60% 55%;
+    --error: 0 100% 70%;
+    --warn: 48 100% 50%;
+    --pending: 0 0% 65%;
+
+    /* Badges específicas (escurecidas) */
+    --badge-feed-bg: 216 50% 19%;
+    --badge-feed-fg: 210 100% 70%;
+    --badge-date-bg: 283 25% 22%;
+    --badge-date-fg: 270 100% 72%;
+    --badge-author-bg: 120 18% 22%;
+    --badge-author-fg: 140 60% 55%;
+    
+    /* Utilitários */
+    --ring: var(--accent);
+    --shadow: 0 0% 0% / 0.35;
+    --hover-bg: 0 0% 20%;
+  }
+
+  body {
+    background-color: hsl(var(--bg));
+    color: hsl(var(--fg));
+    font-feature-settings: "rlig" 1, "calt" 1;
+  }
+}

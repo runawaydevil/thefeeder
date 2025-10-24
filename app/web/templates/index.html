@@ -51,8 +51,14 @@
 {% if articles %}
 <ul class="list">
     {% for article in articles %}
-    <li class="card" data-article-id="{{ article.id }}">
-        <h3><a href="{{ article.link }}" target="_blank" rel="noopener">{{ article.title }}</a></h3>
+    <li class="card {% if article.is_new %}new{% endif %}" data-article-id="{{ article.id }}" data-source-url="{{ article.link }}">
+        {% if article.is_new %}
+        <span class="new-badge">Novo</span>
+        {% endif %}
+        <div class="card-head">
+            <span class="source-icon"></span>
+            <h3><a href="{{ article.link }}" target="_blank" rel="noopener">{{ article.title }}</a></h3>
+        </div>
         
         <div class="meta">
             <span class="feed">

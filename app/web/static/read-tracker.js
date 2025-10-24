@@ -33,6 +33,27 @@
         readSet.add(articleId);
         saveReadArticles(readSet);
         updateVisualState(articleId);
+        updateUnreadCounter();
+    }
+    
+    // Update unread counter
+    function updateUnreadCounter() {
+        const cards = document.querySelectorAll('[data-article-id]');
+        const readSet = getReadArticles();
+        let unreadCount = 0;
+        
+        cards.forEach(card => {
+            const articleId = card.getAttribute('data-article-id');
+            if (!readSet.has(articleId)) {
+                unreadCount++;
+            }
+        });
+        
+        const counter = document.getElementById('unread-counter');
+        if (counter) {
+            counter.textContent = unreadCount;
+            counter.style.display = unreadCount > 0 ? 'inline' : 'none';
+        }
     }
     
     // Check if article is read
@@ -52,13 +73,23 @@
     function initializeReadStates() {
         const cards = document.querySelectorAll('[data-article-id]');
         const readSet = getReadArticles();
+        let unreadCount = 0;
         
         cards.forEach(card => {
             const articleId = card.getAttribute('data-article-id');
             if (readSet.has(articleId)) {
                 card.classList.add('read');
+            } else {
+                unreadCount++;
             }
         });
+        
+        // Update unread counter if element exists
+        const counter = document.getElementById('unread-counter');
+        if (counter) {
+            counter.textContent = unreadCount;
+            counter.style.display = unreadCount > 0 ? 'inline' : 'none';
+        }
     }
     
     // Track clicks on article links

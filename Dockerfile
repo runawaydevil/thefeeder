@@ -32,6 +32,11 @@ RUN pip install --no-cache-dir \
 
 # Copy application code
 COPY app /app/app
+COPY requirements.txt /app/
+COPY feeds.yaml /app/
+
+# Verify feeds.yaml is present
+RUN test -f /app/feeds.yaml || (echo "ERROR: feeds.yaml not found" && exit 1)
 
 # Create data directory
 RUN mkdir -p /data

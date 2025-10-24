@@ -35,4 +35,11 @@ jobs:
     - name: Build Docker image
       run: |
         docker build -t thefeeder:test .
+    
+    - name: Test Docker image
+      run: |
+        docker run -d --name test-feeder -p 7389:7389 -e DB_PATH=/tmp/test.sqlite thefeeder:test
+        sleep 10
+        curl -f http://localhost:7389/health || exit 1
+        docker stop test-feeder
 
