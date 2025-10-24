@@ -62,7 +62,7 @@ body {
 /* Skip link for accessibility */
 .skip-link {
     position: absolute;
-    top: -40px;
+    top: -100px;
     left: 0;
     background: var(--accent);
     color: white;
@@ -70,10 +70,14 @@ body {
     text-decoration: none;
     z-index: 100;
     border-radius: 0 0 4px 0;
+    opacity: 0;
+    pointer-events: none;
 }
 
 .skip-link:focus {
     top: 0;
+    opacity: 1;
+    pointer-events: auto;
 }
 
 .wrap {
