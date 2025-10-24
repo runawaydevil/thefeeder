@@ -2,7 +2,7 @@
 
 A minimalist, conservative RSS feed aggregator built with Python FastAPI and Jinja2 templates.
 
-**Version:** 0.0.1
+**Version:** 0.0.2
 
 **Repositories:**
 - [GitHub](https://github.com/runawaydevil/thefeeder)
@@ -22,7 +22,7 @@ A minimalist, conservative RSS feed aggregator built with Python FastAPI and Jin
 - **Responsive**: Works on mobile and desktop
 - **Docker Ready**: Complete containerization setup
 
-### User Experience (v0.0.1)
+### User Experience (v0.0.2)
 - **🔍 Search**: Full-text search across titles, summaries, and authors
 - **📑 Smart Pagination**: Beautiful pagination with hover effects and page indicators
 - **⏰ Relative Time**: "2 hours ago" instead of absolute dates
@@ -32,6 +32,8 @@ A minimalist, conservative RSS feed aggregator built with Python FastAPI and Jin
 - **🖼️ Image Handling**: Smart placeholders and lazy loading
 - **♿ Accessibility**: WCAG AA compliant with skip links and ARIA support
 - **📱 Empty States**: Contextual messages with helpful actions
+- **📋 List View**: Toggle between Cards and compact List view with feed icons
+- **🎨 Improved Links**: Better link colors for enhanced readability
 
 ## Quick Start
 

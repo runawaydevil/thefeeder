@@ -1,113 +1,86 @@
-# Changelog - Melhorias de UX Implementadas
+# CHANGELOG - Pablo Feeds
 
-## Versão 2025.1.1 - 01/2025
+All notable changes to this project will be documented in this file.
 
-### 🎨 Melhorias Visuais
+The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
+and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
-#### Paginação Nova
-- Botões Previous/Next redesenhados com hover effects e animações
-- Números de página maiores (40x40px) com bordas e sombras
-- Reticências (...) para páginas omitidas
-- Design responsivo que se adapta a mobile
-- Indicadores de primeira e última página
-- Animações suaves em todas as interações
+---
 
-#### Tempo Relativo
-- Adicionado sistema de tempo relativo em português
-- Mostra "há 2 horas", "há 3 dias" ao invés de data absoluta
-- Tooltip com data completa ao passar o mouse
-- Atualização automática a cada minuto
+## [0.0.2] - 2025-01-15
 
-#### Feed Status Indicators
-- Badges coloridos ao lado do nome do feed
-- Verde (success) - Feed funcionando normalmente
-- Vermelho (error) - Erro ao atualizar feed
-- Amarelo (warning) - Sem atualizações recentes
-- Cinza (pending) - Aguardando atualização
-- Tooltips informativos em cada badge
+### Added
+- **List View Toggle**: Switch between Cards and compact List view with feed icons
+- **Feed Icons**: Automatic icon detection for popular feeds (YouTube 📺, GitHub 💻, Reddit 🔴, Dev.to 💜, Hacker News 🍊)
+- **Improved Link Colors**: Better color scheme for links throughout the application
+- **View Persistence**: List view preference saved in localStorage
 
-### 🔍 Funcionalidades Novas
+### Changed
+- Updated link colors from default blue to slate blue (#2c5282) for better aesthetics
+- Dark mode links use light blue (#5dade2) for better contrast
+- Footer links match new color scheme
 
-#### Sistema de Busca
-- Campo de busca no formulário de filtros
-- Busca em título, resumo e autor dos artigos
-- Contador de resultados com destaque
-- Busca preservada na paginação
-- Mensagens contextuais para resultados
+### Files Modified
+- `app/__init__.py` - Version updated to 0.0.2
+- `app/web/templates/base.html` - Added view-toggle.js script
+- `app/web/static/styles.css` - Updated link colors and added list view styles
+- `app/web/static/view-toggle.js` - New file for view toggle functionality
+- `README.md` - Updated version and features
+- `CHANGELOG.md` - Reformatted changelog
 
-#### Ordenação Customizável
-- Opção "Mais recentes" (padrão)
-- Opção "Mais antigos"
-- Opção "Título (A-Z)"
-- Opção "Por feed"
-- Preferência mantida na paginação
+---
 
-#### Marcação de Artigos Lidos
-- Sistema de rastreamento com localStorage
-- Marcação automática ao clicar em um artigo
-- Ícone ✓ verde para artigos lidos
-- Opacidade reduzida para artigos lidos
-- Persistência local (até 10.000 artigos)
+## [0.0.1] - 2025-01-10
 
-### 🖼️ Melhorias de Imagens
+### Added
+- **UX Improvements (Phase 1 & 2):**
+    - Enhanced visual pagination with interactive buttons, hover effects, and page indicators
+    - Full-text search functionality across article titles, summaries, and authors
+    - Customizable sorting options: "Most recent", "Oldest", "Title (A-Z)", "By feed"
+    - Relative time display ("X minutes ago") for article publication dates
+    - Article read tracking using browser `localStorage` with visual indicators (checkmark, opacity)
+    - Contextual empty states with helpful messages and suggested actions
+    - Improved image handling with lazy loading, error placeholders, and a default camera emoji
+    - Comprehensive accessibility (WCAG AA) features: skip link, ARIA roles, improved focus states, language attribute
+    - Visual status indicators (badges) for feed health (success, error, warning, pending) with tooltips
+- **CI/CD:**
+    - GitHub Actions workflow (`.github/workflows/build.yml`) for automated linting and build checks
+    - GitHub Actions workflow (`.github/workflows/docker-publish.yml`) for automated Docker image building and publishing to Docker Hub and GitHub Container Registry
+- **Security:**
+    - Input validation and sanitization for query parameters (`feed_id`, `search`, `sort`)
+    - Implementation of HTTP security headers via middleware (`X-Content-Type-Options`, `X-Frame-Options`, `X-XSS-Protection`, `Referrer-Policy`, `Permissions-Policy`)
+    - Enhanced validation for admin endpoints (`/admin/refresh`)
+    - `SECURITY.md` document detailing security measures
+    - `PRODUCTION.md` document with production deployment guidelines
+- **Project Management:**
+    - `VERSION.md` to centralize version information
+    - `RELEASE.md` with a step-by-step guide for creating new releases
+    - `.gitconfig.example` for configuring multiple Git remotes
+    - `app/__init__.py` to define `__version__`
+- **Internationalization:**
+    - Default language set to English
+    - All user-facing texts in templates and JavaScript translated to English
+- **Docker:**
+    - Added `curl` to `Dockerfile` for robust health checks
+- **Limits:**
+    - Maximum 150 feeds supported
+    - Maximum 1500 articles stored with automatic cleanup of oldest items
+    - View toggle functionality
 
-#### Tratamento Inteligente
-- Placeholder para imagens quebradas
-- Estados loading/loaded/error
-- Emoji de placeholder quando imagem não carrega
-- Transições suaves entre estados
-- Lazy loading nativo do navegador
+### Changed
+- `README.md`: Updated with version, repository links (GitHub and Forgejo), and detailed UX features
+- `app/web/server.py`: Integrated `__version__` and added security middleware, input validation, and search/sort logic
+- `app/core/storage.py`: Modified `get_items` and `get_items_count` to support search and sorting. Added `get_feed_status_dict`. Added automatic cleanup of oldest articles
+- `app/core/config.py`: Updated `MAX_FEEDS` to 150, added `MAX_ITEMS` for article limits
+- `app/web/static/styles.css`: Updated CSS for pagination, search input, read articles, empty states, image handling, accessibility, feed status badges, mobile responsiveness
+- `app/web/templates/index.html`: Updated for search, sort, pagination, timeago, read tracking, empty states, image handling, and feed status
+- `app/web/templates/base.html`: Updated for accessibility (lang, ARIA roles) and script inclusions
+- `app/web/static/theme.js`: Modified to default to 'light' theme and removed system preference detection
+- `Dockerfile`: Added `curl` to system dependencies
+- `.gitignore`: Added new documentation files and temporary files
 
-### ♿ Acessibilidade
-
-#### Melhorias WCAG
-- Skip link para conteúdo principal
-- ARIA roles apropriados (banner, main, contentinfo)
-- Contraste WCAG AA em todos os elementos
-- Focus indicators visíveis (outline 3px)
-- Linguagem pt-BR definida no HTML
-- Atributos aria-label em botões e links
-- Support para navegação por teclado
-
-### 💬 Empty States
-
-#### Mensagens Contextuais
-- Mensagens diferentes para cada situação
-- Feed filtrado vs todos os feeds
-- Sugestões de ação apropriadas
-- Botões de ação úteis
-- Links para resolver problemas
-
-### 📦 Arquivos Novos
-
-- `app/web/static/timeago.js` - Sistema de tempo relativo
-- `app/web/static/read-tracker.js` - Rastreamento de artigos lidos
-
-### 🔧 Arquivos Modificados
-
-- `app/web/static/styles.css` - Estilos completos das novas features
-- `app/web/templates/index.html` - Templates com novas funcionalidades
-- `app/web/templates/base.html` - ARIA roles e skip link
-- `app/web/server.py` - Endpoints de busca e ordenação
-- `app/core/storage.py` - Métodos de busca, ordenação e status
-- `Dockerfile` - Adicionado curl para healthcheck
-
-### 🐛 Correções
-
-- Corrigido bug de tema compartilhado usando chave namespaced
-- Adicionado logs de debug para tema
-- Headers de cache apropriados para arquivos estáticos
-- Dockerfile atualizado com curl instalado
-
-### 📊 Estatísticas
-
-- 9 features principais implementadas
-- 100% do plano executado
-- 0 erros de lint
-- Build Docker testada e aprovada
-- Compatível com dark mode em todas as features
-
-### 🚀 Deploy Ready
-
-Todas as funcionalidades foram testadas e estão prontas para produção. O sistema mantém a filosofia minimalista enquanto adiciona poderosas funcionalidades de UX.
-
+### Removed
+- `@media (prefers-color-scheme: dark)` rule from `styles.css` to enforce light theme by default
+- System theme preference detection from `theme.js`
+- Skip link from interface (accessibility link removed per user request)
+- Unused imports across several Python files (`app/core/fetcher.py`, `app/core/parser.py`, `app/core/scheduler.py`, `app/core/storage.py`, `app/main.py`, `app/web/server.py`)

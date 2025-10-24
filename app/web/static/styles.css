@@ -92,6 +92,31 @@ h1 {
     background: var(--filter-bg);
 }
 
+/* View Toggle */
+.view-toggle {
+    background: none;
+    border: 1px solid var(--border);
+    color: var(--fg);
+    padding: 6px 12px;
+    border-radius: 4px;
+    cursor: pointer;
+    font-size: 14px;
+    transition: background-color 0.2s, border-color 0.2s;
+    display: flex;
+    align-items: center;
+    gap: 4px;
+}
+
+.view-toggle:hover {
+    background: var(--filter-bg);
+}
+
+.view-toggle.active {
+    background: var(--accent);
+    color: white;
+    border-color: var(--accent);
+}
+
 /* Typography */
 .small {
     font-size: 14px;
@@ -202,6 +227,58 @@ select:focus {
     gap: 16px;
 }
 
+/* List View Mode */
+.list-view .list {
+    gap: 8px;
+}
+
+.list-view .card {
+    padding: 12px 16px;
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    flex-wrap: wrap;
+}
+
+.list-view .card h3 {
+    margin: 0;
+    font-size: 15px;
+    flex: 1;
+    min-width: 200px;
+}
+
+.list-view .card h3 a {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.list-view .card-icon {
+    font-size: 20px;
+    line-height: 1;
+    flex-shrink: 0;
+}
+
+.list-view .card .meta {
+    margin: 0;
+    font-size: 12px;
+    gap: 6px;
+}
+
+.list-view .card .summary {
+    display: none;
+}
+
+.list-view .card .thumbnail {
+    display: none;
+}
+
+.list-view .card.read::after {
+    top: 50%;
+    transform: translateY(-50%);
+    right: 8px;
+}
+
 .card {
     border: 1px solid var(--border);
     padding: 16px;
@@ -248,13 +325,22 @@ select:focus {
 }
 
 .card h3 a {
-    color: var(--fg);
+    color: #2c5282;
     text-decoration: none;
     font-weight: 600;
+    transition: color 0.2s;
 }
 
 .card h3 a:hover {
-    color: var(--accent);
+    color: #1a365d;
+}
+
+[data-theme="dark"] .card h3 a {
+    color: #5dade2;
+}
+
+[data-theme="dark"] .card h3 a:hover {
+    color: #85c1e9;
 }
 
 .meta {
@@ -557,13 +643,22 @@ footer {
 }
 
 footer a {
-    color: var(--accent);
+    color: #2c5282;
     text-decoration: none;
+    transition: color 0.2s;
 }
 
 footer a:hover {
-    color: var(--accent-hover);
+    color: #1a365d;
     text-decoration: underline;
+}
+
+[data-theme="dark"] footer a {
+    color: #5dade2;
+}
+
+[data-theme="dark"] footer a:hover {
+    color: #85c1e9;
 }
 
 /* Responsive - Mobile First */
