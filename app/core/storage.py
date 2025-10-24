@@ -104,6 +104,20 @@ class Storage:
                 query = query.where(Feed.enabled == True)
             return session.exec(query).all()
     
+    def get_feed_status_dict(self) -> Dict[int, Dict[str, Any]]:
+        """Get feed status dictionary for quick lookup."""
+        with self.get_session() as session:
+            feeds = session.exec(select(Feed)).all()
+            status_dict = {}
+            for feed in feeds:
+                status_dict[feed.id] = {
+                    'name': feed.name,
+                    'status': feed.last_fetch_status,
+                    'last_fetch': feed.last_fetch_time,
+                    'enabled': feed.enabled
+                }
+            return status_dict
+    
     def get_feed(self, feed_id: int) -> Optional[Feed]:
         """Get feed by ID."""
         with self.get_session() as session:
@@ -144,7 +158,9 @@ class Storage:
             return new_count
     
     def get_items(self, page: int = 1, limit: int = 20, 
-                 feed_id: Optional[int] = None) -> List[Dict[str, Any]]:
+                 feed_id: Optional[int] = None,
+                 search_query: Optional[str] = None,
+                 sort_by: str = "recent") -> List[Dict[str, Any]]:
         """Get paginated items with feed info."""
         offset = (page - 1) * limit
         
@@ -154,7 +170,26 @@ class Storage:
             if feed_id:
                 query = query.where(Item.feed_id == feed_id)
             
-            query = query.order_by(Item.published.desc()).offset(offset).limit(limit)
+            # Simple search in title, summary, and author
+            if search_query and search_query.strip():
+                search_term = f"%{search_query.strip()}%"
+                query = query.where(
+                    (Item.title.like(search_term)) |
+                    (Item.summary.like(search_term)) |
+                    (Item.author.like(search_term))
+                )
+            
+            # Apply sorting
+            if sort_by == "oldest":
+                query = query.order_by(Item.published.asc())
+            elif sort_by == "title":
+                query = query.order_by(Item.title.asc())
+            elif sort_by == "feed":
+                query = query.order_by(Feed.name.asc(), Item.published.desc())
+            else:  # recent (default)
+                query = query.order_by(Item.published.desc())
+            
+            query = query.offset(offset).limit(limit)
             
             results = session.exec(query).all()
             
@@ -174,12 +209,22 @@ class Storage:
             
             return items
     
-    def get_items_count(self, feed_id: Optional[int] = None) -> int:
+    def get_items_count(self, feed_id: Optional[int] = None, search_query: Optional[str] = None) -> int:
         """Get total count of items."""
         with self.get_session() as session:
             query = select(Item)
             if feed_id:
                 query = query.where(Item.feed_id == feed_id)
+            
+            # Simple search in title, summary, and author
+            if search_query and search_query.strip():
+                search_term = f"%{search_query.strip()}%"
+                query = query.where(
+                    (Item.title.like(search_term)) |
+                    (Item.summary.like(search_term)) |
+                    (Item.author.like(search_term))
+                )
+            
             return len(session.exec(query).all())
     
     # Statistics

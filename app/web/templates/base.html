@@ -1,16 +1,19 @@
 <!doctype html>
-<html lang="en">
+<html lang="pt-BR">
 <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width,initial-scale=1" />
     <title>{{ app_name }}</title>
     <link rel="icon" type="image/png" href="/static/logo.png">
     <link rel="stylesheet" href="/static/styles.css">
-    <meta name="description" content="Minimalist RSS feed aggregator">
+    <meta name="description" content="Agregador RSS minimalista">
     <script src="/static/theme.js" defer></script>
+    <script src="/static/timeago.js" defer></script>
+    <script src="/static/read-tracker.js" defer></script>
 </head>
 <body>
-    <header class="wrap">
+    <a href="#main-content" class="skip-link">Pular para o conteúdo principal</a>
+    <header class="wrap" role="banner">
         <div class="header-content">
             <img src="/static/logo.png" alt="{{ app_name }}" class="logo" style="width: 72px; height: 72px; max-width: 72px; max-height: 72px;">
             <h1>{{ app_name }}</h1>
@@ -18,12 +21,12 @@
         <div class="header-right"></div>
     </header>
     
-    <main class="wrap">
+    <main class="wrap" id="main-content" role="main">
         {% block content %}{% endblock %}
     </main>
     
-    <footer class="wrap small">
-        Developed by <a href="https://github.com/runawaydevil" target="_blank" rel="noopener">runawaydevil</a> - 2025
+    <footer class="wrap small" role="contentinfo">
+        Desenvolvido por <a href="https://github.com/runawaydevil" target="_blank" rel="noopener">runawaydevil</a> - 2025
     </footer>
 </body>
 </html>

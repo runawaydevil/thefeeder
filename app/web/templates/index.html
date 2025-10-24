@@ -1,11 +1,26 @@
 {% extends "base.html" %}
 
+{% macro pagination_url(page) -%}
+?page={{ page }}{% if current_feed_id %}&feed_id={{ current_feed_id }}{% endif %}{% if search_query %}&search={{ search_query }}{% endif %}{% if sort_by and sort_by != 'recent' %}&sort={{ sort_by }}{% endif %}
+{%- endmacro %}
+
 {% block content %}
 <div class="stats">
-    <p class="small">{{ total_items }} articles • Page {{ current_page }} of {{ total_pages }}</p>
+    <p class="small">
+        {% if search_query %}
+        {{ total_items }} resultado{{ 's' if total_items != 1 else '' }} para "{{ search_query }}" • Página {{ current_page }} de {{ total_pages }}
+        {% else %}
+        {{ total_items }} artigos • Página {{ current_page }} de {{ total_pages }}
+        {% endif %}
+    </p>
 </div>
 
 <form method="get" class="filters">
+    <label>
+        Buscar:
+        <input type="search" name="search" value="{{ search_query or '' }}" placeholder="Buscar artigos..." class="search-input">
+    </label>
+    
     <label>
         Feed:
         <select name="feed_id" onchange="this.form.submit()">
@@ -18,21 +33,45 @@
         </select>
     </label>
     
-    {% if current_feed_id %}
-    <a href="/" class="btn">Clear filter</a>
+    <label>
+        Ordenar:
+        <select name="sort" onchange="this.form.submit()">
+            <option value="recent" {{ 'selected' if sort_by == 'recent' else '' }}>Mais recentes</option>
+            <option value="oldest" {{ 'selected' if sort_by == 'oldest' else '' }}>Mais antigos</option>
+            <option value="title" {{ 'selected' if sort_by == 'title' else '' }}>Título (A-Z)</option>
+            <option value="feed" {{ 'selected' if sort_by == 'feed' else '' }}>Por feed</option>
+        </select>
+    </label>
+    
+    {% if current_feed_id or search_query or (sort_by and sort_by != 'recent') %}
+    <a href="/" class="btn">Limpar filtros</a>
     {% endif %}
 </form>
 
 {% if articles %}
 <ul class="list">
     {% for article in articles %}
-    <li class="card">
+    <li class="card" data-article-id="{{ article.id }}">
         <h3><a href="{{ article.link }}" target="_blank" rel="noopener">{{ article.title }}</a></h3>
         
         <div class="meta">
-            <span class="feed">{{ article.feed_name }}</span>
+            <span class="feed">
+                {{ article.feed_name }}
+                {% if feed_statuses and feed_statuses.get(article.feed_id) %}
+                {% set status = feed_statuses[article.feed_id] %}
+                {% if status.status == 'success' %}
+                <span class="feed-status feed-status-success" title="Feed funcionando normalmente">●</span>
+                {% elif status.status == 'error' %}
+                <span class="feed-status feed-status-error" title="Erro ao atualizar feed">●</span>
+                {% elif status.status == 'not_modified' %}
+                <span class="feed-status feed-status-warning" title="Sem atualizações recentes">●</span>
+                {% else %}
+                <span class="feed-status feed-status-pending" title="Aguardando atualização">●</span>
+                {% endif %}
+                {% endif %}
+            </span>
             {% if article.published %}
-            <span class="date">{{ article.published.strftime('%m/%d/%Y %H:%M') }}</span>
+            <span class="date" data-timeago="{{ article.published.isoformat() }}" data-full-date="{{ article.published.strftime('%d/%m/%Y às %H:%M') }}">{{ article.published.strftime('%d/%m/%Y %H:%M') }}</span>
             {% endif %}
             {% if article.author %}
             <span class="author">{{ article.author }}</span>
@@ -45,7 +84,7 @@
         
         {% if article.thumbnail %}
         <div class="thumbnail">
-            <img src="{{ article.thumbnail }}" alt="Thumbnail" loading="lazy">
+            <img src="{{ article.thumbnail }}" alt="Thumbnail" loading="lazy" class="loading" onload="this.classList.remove('loading'); this.classList.add('loaded');" onerror="this.classList.remove('loading'); this.classList.add('error');">
         </div>
         {% endif %}
     </li>
@@ -53,42 +92,73 @@
 </ul>
 
 {% if total_pages > 1 %}
-<nav class="pager">
-    {% if prev_page %}
-    <a href="?page={{ prev_page }}{% if current_feed_id %}&feed_id={{ current_feed_id }}{% endif %}" class="btn">
-        ← Previous
-    </a>
-    {% else %}
-    <span></span>
-    {% endif %}
+<nav class="pager" aria-label="Pagination">
+    <div class="pager-nav">
+        {% if prev_page %}
+        <a href="{{ pagination_url(prev_page) }}" class="pager-btn" aria-label="Go to previous page">
+            <span>←</span> <span>Previous</span>
+        </a>
+        {% else %}
+        <span class="pager-btn" disabled aria-disabled="true">
+            <span>←</span> <span>Previous</span>
+        </span>
+        {% endif %}
+    </div>
     
     <div class="page-numbers">
+        {% if page_numbers[0] > 1 %}
+        <a href="{{ pagination_url(1) }}" class="page-number" aria-label="Go to page 1">1</a>
+        {% if page_numbers[0] > 2 %}
+        <span class="page-number ellipsis" aria-hidden="true">...</span>
+        {% endif %}
+        {% endif %}
+        
         {% for page_num in page_numbers %}
         {% if page_num == current_page %}
-        <span class="page-number current">{{ page_num }}</span>
+        <span class="page-number current" aria-current="page" aria-label="Current page, page {{ page_num }}">{{ page_num }}</span>
         {% else %}
-        <a href="?page={{ page_num }}{% if current_feed_id %}&feed_id={{ current_feed_id }}{% endif %}" class="page-number">
+        <a href="{{ pagination_url(page_num) }}" class="page-number" aria-label="Go to page {{ page_num }}">
             {{ page_num }}
         </a>
         {% endif %}
         {% endfor %}
+        
+        {% if page_numbers[-1] < total_pages %}
+        {% if page_numbers[-1] < total_pages - 1 %}
+        <span class="page-number ellipsis" aria-hidden="true">...</span>
+        {% endif %}
+        <a href="{{ pagination_url(total_pages) }}" class="page-number" aria-label="Go to page {{ total_pages }}">{{ total_pages }}</a>
+        {% endif %}
     </div>
     
-    {% if next_page %}
-    <a href="?page={{ next_page }}{% if current_feed_id %}&feed_id={{ current_feed_id }}{% endif %}" class="btn">
-        Next →
-    </a>
-    {% else %}
-    <span></span>
-    {% endif %}
+    <div class="pager-nav">
+        {% if next_page %}
+        <a href="{{ pagination_url(next_page) }}" class="pager-btn" aria-label="Go to next page">
+            <span>Next</span> <span>→</span>
+        </a>
+        {% else %}
+        <span class="pager-btn" disabled aria-disabled="true">
+            <span>Next</span> <span>→</span>
+        </span>
+        {% endif %}
+    </div>
 </nav>
 {% endif %}
 
 {% else %}
 <div class="empty">
-    <p>No articles found.</p>
+    <h2>Nenhum artigo encontrado</h2>
     {% if current_feed_id %}
-    <p><a href="/">View all feeds</a></p>
+    <p>Não há artigos neste feed ainda. Os artigos aparecerão aqui quando o feed for atualizado.</p>
+    <div class="empty-actions">
+        <a href="/" class="btn">Ver todos os feeds</a>
+        <a href="/admin/refresh?feed_id={{ current_feed_id }}" class="btn secondary">Atualizar feed</a>
+    </div>
+    {% else %}
+    <p>Não há artigos disponíveis no momento. Verifique se os feeds estão sendo atualizados corretamente.</p>
+    <div class="empty-actions">
+        <a href="/admin/health" class="btn">Ver status dos feeds</a>
+    </div>
     {% endif %}
 </div>
 {% endif %}

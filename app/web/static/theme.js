@@ -1,10 +1,19 @@
 // Theme toggle functionality
+// Theme preference is stored in browser localStorage (per-user, per-browser)
+// Using namespaced key 'pablo_feeds_theme' to avoid conflicts with other apps
 (function() {
+    // Use a namespaced key to avoid conflicts
+    const THEME_KEY = 'pablo_feeds_theme';
+    
     // Get current theme from localStorage or default to system preference
-    const currentTheme = localStorage.getItem('theme') || 'system';
+    const currentTheme = localStorage.getItem(THEME_KEY) || 'system';
+    
+    // Debug logging (can be removed in production)
+    console.log('[Theme] Current theme from localStorage:', currentTheme);
     
     // Apply theme
     function applyTheme(theme) {
+        console.log('[Theme] Applying theme:', theme);
         if (theme === 'dark') {
             document.documentElement.setAttribute('data-theme', 'dark');
         } else if (theme === 'light') {
@@ -28,7 +37,7 @@
         
         // Set initial icon based on current theme
         function updateIcon() {
-            const theme = localStorage.getItem('theme') || 'system';
+            const theme = localStorage.getItem(THEME_KEY) || 'system';
             if (theme === 'dark' || (theme === 'system' && window.matchMedia('(prefers-color-scheme: dark)').matches)) {
                 toggle.textContent = '☀️';
                 toggle.title = 'Switch to light mode';
@@ -42,7 +51,7 @@
         
         // Toggle theme on click
         toggle.addEventListener('click', function() {
-            const theme = localStorage.getItem('theme') || 'system';
+            const theme = localStorage.getItem(THEME_KEY) || 'system';
             let newTheme;
             
             if (theme === 'system') {
@@ -53,14 +62,15 @@
                 newTheme = 'dark';
             }
             
-            localStorage.setItem('theme', newTheme);
+            console.log('[Theme] User toggled theme from', theme, 'to', newTheme);
+            localStorage.setItem(THEME_KEY, newTheme);
             applyTheme(newTheme);
             updateIcon();
         });
         
         // Listen for system theme changes
         window.matchMedia('(prefers-color-scheme: dark)').addEventListener('change', function() {
-            if (localStorage.getItem('theme') === 'system') {
+            if (localStorage.getItem(THEME_KEY) === 'system') {
                 applyTheme('system');
                 updateIcon();
             }

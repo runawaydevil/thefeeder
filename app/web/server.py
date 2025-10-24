@@ -7,6 +7,7 @@ from fastapi import FastAPI, Request, Query, HTTPException
 from fastapi.templating import Jinja2Templates
 from fastapi.staticfiles import StaticFiles
 from fastapi.responses import HTMLResponse, JSONResponse
+from starlette.middleware.base import BaseHTTPMiddleware
 from typing import Optional, List
 import os
 
@@ -15,12 +16,26 @@ from app.core.storage import storage
 from app.core.scheduler import scheduler
 
 
+# Middleware to set cache headers for static files
+class StaticCacheMiddleware(BaseHTTPMiddleware):
+    async def dispatch(self, request: Request, call_next):
+        response = await call_next(request)
+        # Add no-cache headers for static files to prevent caching issues
+        if request.url.path.startswith("/static/"):
+            response.headers["Cache-Control"] = "public, max-age=3600"
+            response.headers["X-Content-Type-Options"] = "nosniff"
+        return response
+
+
 # Initialize FastAPI app
 app = FastAPI(
     title=settings.APP_NAME,
     description="Minimalist RSS feed aggregator",
     version="2025.1.0"
 )
+
+# Add middleware
+app.add_middleware(StaticCacheMiddleware)
 
 # Setup templates and static files
 templates = Jinja2Templates(directory="app/web/templates")
@@ -41,7 +56,9 @@ async def shutdown_event():
 
 @app.get("/", response_class=HTMLResponse)
 async def index(request: Request, page: int = Query(1, ge=1), 
-                feed_id: Optional[str] = Query(None)):
+                feed_id: Optional[str] = Query(None),
+                search: Optional[str] = Query(None),
+                sort: Optional[str] = Query("recent")):
     """Main page with paginated articles."""
     
     # Convert feed_id to int if provided
@@ -52,13 +69,18 @@ async def index(request: Request, page: int = Query(1, ge=1),
         except ValueError:
             feed_id_int = None
     
-    # Get articles
-    articles = storage.get_items(page=page, limit=20, feed_id=feed_id_int)
-    total_items = storage.get_items_count(feed_id_int)
+    # Validate sort parameter
+    valid_sorts = ["recent", "oldest", "title", "feed"]
+    sort_param = sort if sort in valid_sorts else "recent"
+    
+    # Get articles with optional search and sorting
+    articles = storage.get_items(page=page, limit=20, feed_id=feed_id_int, search_query=search, sort_by=sort_param)
+    total_items = storage.get_items_count(feed_id_int, search_query=search)
     total_pages = (total_items + 19) // 20  # Ceiling division
     
     # Get feeds for filter dropdown
     feeds = storage.get_feeds()
+    feed_statuses = storage.get_feed_status_dict()
     
     # Calculate pagination
     prev_page = page - 1 if page > 1 else None
@@ -85,13 +107,16 @@ async def index(request: Request, page: int = Query(1, ge=1),
         "app_name": settings.APP_NAME,
         "articles": articles,
         "feeds": feeds,
+        "feed_statuses": feed_statuses,
         "current_feed_id": feed_id_int,
         "current_page": page,
         "total_pages": total_pages,
         "prev_page": prev_page,
         "next_page": next_page,
         "total_items": total_items,
-        "page_numbers": page_numbers
+        "page_numbers": page_numbers,
+        "search_query": search,
+        "sort_by": sort_param
     })
 
 
