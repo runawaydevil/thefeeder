@@ -4,6 +4,8 @@ A minimalist, conservative RSS feed aggregator built with Python FastAPI and Jin
 
 **Version:** 0.0.2
 
+**Author:** Pablo Murad <pablomurad@pm.me>
+
 **Repositories:**
 - [GitHub](https://github.com/runawaydevil/thefeeder)
 - [Forgejo](https://git.teu.cool/pablo/thefeeder)
