@@ -14,6 +14,7 @@ import os
 from app.core.config import settings
 from app.core.storage import storage
 from app.core.scheduler import scheduler
+from app import __version__
 
 
 # Middleware to set cache headers for static files
@@ -31,7 +32,7 @@ class StaticCacheMiddleware(BaseHTTPMiddleware):
 app = FastAPI(
     title=settings.APP_NAME,
     description="Minimalist RSS feed aggregator",
-    version="2025.1.0"
+    version=__version__
 )
 
 # Add middleware
@@ -154,7 +155,7 @@ async def health_check():
     return JSONResponse({
         "status": "healthy",
         "app_name": settings.APP_NAME,
-        "version": "2025.1.0"
+        "version": __version__
     })
 
 

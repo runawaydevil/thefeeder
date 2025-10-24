@@ -61,3 +61,7 @@ Thumbs.db
 
 # Assets
 logo-test.png
+
+# Changelog and docs (uncomment if you don't want to commit)
+# CHANGELOG.md
+# THEME_ISOLATION_TEST.md

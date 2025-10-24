@@ -2,8 +2,15 @@
 
 A minimalist, conservative RSS feed aggregator built with Python FastAPI and Jinja2 templates.
 
+**Version:** 0.0.1
+
+**Repositories:**
+- [GitHub](https://github.com/runawaydevil/thefeeder)
+- [Forgejo](https://git.teu.cool/pablo/thefeeder)
+
 ## Features
 
+### Core Features
 - **Minimalist Design**: Clean, "boxy" interface with system fonts
 - **Dark/Light Theme**: Automatic theme detection with manual toggle
 - **RSS/Atom Support**: Parses feeds with feedparser (supports RSS, Atom, JSON Feed)
@@ -11,9 +18,19 @@ A minimalist, conservative RSS feed aggregator built with Python FastAPI and Jin
 - **Per-Feed Intervals**: Custom update intervals per feed
 - **Feed Limit**: Maximum 1500 feeds supported
 - **Deduplication**: Prevents duplicate articles
-- **Numeric Pagination**: Classic page numbers (1, 2, 3...)
 - **Responsive**: Works on mobile and desktop
 - **Docker Ready**: Complete containerization setup
+
+### User Experience (v0.0.1)
+- **🔍 Search**: Full-text search across titles, summaries, and authors
+- **📑 Smart Pagination**: Beautiful pagination with hover effects and page indicators
+- **⏰ Relative Time**: "2 hours ago" instead of absolute dates
+- **✅ Read Tracking**: Mark articles as read with visual indicators
+- **🔄 Custom Sorting**: Sort by recent, oldest, title, or feed
+- **🎨 Status Indicators**: Feed health badges with color-coded status
+- **🖼️ Image Handling**: Smart placeholders and lazy loading
+- **♿ Accessibility**: WCAG AA compliant with skip links and ARIA support
+- **📱 Empty States**: Contextual messages with helpful actions
 
 ## Quick Start
 

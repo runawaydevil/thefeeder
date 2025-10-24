@@ -1,0 +1,18 @@
+# Example Git configuration for dual remotes
+# Add these to your .git/config or use these commands:
+
+[remote "origin"]
+    url = https://github.com/runawaydevil/thefeeder.git
+    fetch = +refs/heads/*:refs/remotes/origin/*
+
+[remote "forgejo"]
+    url = https://git.teu.cool/pablo/thefeeder.git
+    fetch = +refs/heads/*:refs/remotes/forgejo/*
+
+# To push to both remotes:
+# git push origin main
+# git push forgejo main
+
+# Or create an alias to push to both:
+# git config alias.pushall '!git push origin && git push forgejo'
+
