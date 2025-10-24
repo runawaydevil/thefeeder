@@ -30,22 +30,8 @@
     --summary-color: #ccc;
 }
 
-@media (prefers-color-scheme: dark) {
-    :root:not([data-theme="light"]) {
-        --fg: #e0e0e0;
-        --bg: #1a1a1a;
-        --muted: #999;
-        --border: #333;
-        --accent: #4da6ff;
-        --accent-hover: #66b3ff;
-        --error: #ff6666;
-        --success: #66cc66;
-        --card-bg: #242424;
-        --filter-bg: #2a2a2a;
-        --meta-bg: #2a2a2a;
-        --summary-color: #ccc;
-    }
-}
+/* Dark mode only activates when explicitly set by user, not by system preference */
+/* Removed @media prefers-color-scheme to make white the default */
 
 * {
     box-sizing: border-box;
@@ -276,12 +262,6 @@ select:focus {
     background: #66cc66;
 }
 
-@media (prefers-color-scheme: dark) {
-    :root:not([data-theme="light"]) .card.read::after {
-        background: #66cc66;
-    }
-}
-
 .card h3 {
     margin: 0 0 8px 0;
     font-size: 18px;
@@ -327,13 +307,6 @@ select:focus {
     color: #4da6ff;
 }
 
-@media (prefers-color-scheme: dark) {
-    :root:not([data-theme="light"]) .meta .feed {
-        background: #1e3a5f;
-        color: #4da6ff;
-    }
-}
-
 .feed-status {
     font-size: 12px;
     vertical-align: middle;
@@ -367,20 +340,6 @@ select:focus {
     color: #ffcc00;
 }
 
-@media (prefers-color-scheme: dark) {
-    :root:not([data-theme="light"]) .feed-status-success {
-        color: #66cc66;
-    }
-    
-    :root:not([data-theme="light"]) .feed-status-error {
-        color: #ff6666;
-    }
-    
-    :root:not([data-theme="light"]) .feed-status-warning {
-        color: #ffcc00;
-    }
-}
-
 .meta .date {
     background: #f3e5f5;
     color: #7b1fa2;
@@ -391,13 +350,6 @@ select:focus {
     color: #b366ff;
 }
 
-@media (prefers-color-scheme: dark) {
-    :root:not([data-theme="light"]) .meta .date {
-        background: #3d2a4d;
-        color: #b366ff;
-    }
-}
-
 .meta .author {
     background: #e8f5e8;
     color: #388e3c;
@@ -406,13 +358,6 @@ select:focus {
 [data-theme="dark"] .meta .author {
     background: #2d402d;
     color: #66cc66;
-}
-
-@media (prefers-color-scheme: dark) {
-    :root:not([data-theme="light"]) .meta .author {
-        background: #2d402d;
-        color: #66cc66;
-    }
 }
 
 .summary {
@@ -569,12 +514,6 @@ select:focus {
 
 [data-theme="dark"] .page-number.current {
     box-shadow: 0 4px 12px rgba(77, 166, 255, 0.4);
-}
-
-@media (prefers-color-scheme: dark) {
-    :root:not([data-theme="light"]) .page-number.current {
-        box-shadow: 0 4px 12px rgba(77, 166, 255, 0.4);
-    }
 }
 
 .page-info {
