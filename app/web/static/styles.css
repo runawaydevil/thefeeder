@@ -45,23 +45,6 @@ body {
     transition: background-color 0.2s, color 0.2s;
 }
 
-/* Skip link for accessibility */
-.skip-link {
-    position: absolute;
-    left: -9999px;
-    z-index: 100;
-    background: var(--accent);
-    color: white;
-    padding: 8px 16px;
-    text-decoration: none;
-    border-radius: 0 0 4px 0;
-}
-
-.skip-link:focus {
-    left: 0;
-    top: 0;
-}
-
 .wrap {
     max-width: 900px;
     margin: 0 auto;
