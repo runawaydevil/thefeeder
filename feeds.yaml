@@ -13,10 +13,6 @@
   url: "https://www.reddit.com/r/minasgerais.rss"
   interval_seconds: 1200
 
-- name: "Reddit - r/Brasil"
-  url: "https://www.reddit.com/r/brasil.rss"
-  interval_seconds: 1200
-
 - name: "Reddit - r/Movies"
   url: "https://www.reddit.com/r/movies.rss"
   interval_seconds: 1200
@@ -27,10 +23,6 @@
 
 - name: "Reddit - r/DOS"
   url: "https://www.reddit.com/r/DOS.rss"
-  interval_seconds: 1200
-
-- name: "Xerife Tech"
-  url: "https://xerifetech.com/feed/"
   interval_seconds: 1200
 
 - name: "WIRED"
@@ -92,3 +84,130 @@
 - name: "Docker Blog"
   url: "https://www.docker.com/blog/feed/"
   interval_seconds: 3600
+
+# Technology
+- name: "Mashable"
+  url: "https://mashable.com/feeds/rss/all"
+  interval_seconds: 1800
+
+- name: "CNET"
+  url: "https://www.cnet.com/rss/all/"
+  interval_seconds: 1800
+
+- name: "ZDNet"
+  url: "https://www.zdnet.com/news/rss.xml"
+  interval_seconds: 1800
+
+- name: "TechRadar"
+  url: "https://www.techradar.com/rss"
+  interval_seconds: 1800
+
+- name: "9to5Mac"
+  url: "https://9to5mac.com/feed/"
+  interval_seconds: 1800
+
+- name: "Android Authority"
+  url: "https://www.androidauthority.com/feed/"
+  interval_seconds: 1800
+
+- name: "The Next Web"
+  url: "https://thenextweb.com/feed"
+  interval_seconds: 1800
+
+- name: "Recode"
+  url: "https://www.vox.com/rss/recode/index.xml"
+  interval_seconds: 1800
+
+- name: "Bloomberg Technology"
+  url: "https://www.bloomberg.com/feeds/sites/2/technology/feed.rss"
+  interval_seconds: 1800
+
+- name: "VentureBeat"
+  url: "https://venturebeat.com/feed/"
+  interval_seconds: 1800
+
+- name: "The Information"
+  url: "https://www.theinformation.com/feed"
+  interval_seconds: 1800
+
+- name: "Fast Company"
+  url: "https://www.fastcompany.com/rss.xml"
+  interval_seconds: 1800
+
+- name: "MIT Technology Review"
+  url: "https://www.technologyreview.com/feed/"
+  interval_seconds: 1800
+
+- name: "IEEE Spectrum"
+  url: "https://spectrum.ieee.org/rss"
+  interval_seconds: 1800
+
+- name: "ACM TechNews"
+  url: "https://technews.acm.org/rss"
+  interval_seconds: 1800
+
+# Movies & Entertainment
+- name: "Variety"
+  url: "https://variety.com/feed/"
+  interval_seconds: 1800
+
+- name: "The Hollywood Reporter"
+  url: "https://www.hollywoodreporter.com/feed/"
+  interval_seconds: 1800
+
+- name: "Empire Magazine"
+  url: "https://www.empireonline.com/feed/"
+  interval_seconds: 1800
+
+- name: "IndieWire"
+  url: "https://www.indiewire.com/feed/"
+  interval_seconds: 1800
+
+- name: "Deadline"
+  url: "https://deadline.com/feed/"
+  interval_seconds: 1800
+
+- name: "Screen Rant"
+  url: "https://screenrant.com/feed/"
+  interval_seconds: 1800
+
+- name: "Collider"
+  url: "https://collider.com/feed/"
+  interval_seconds: 1800
+
+- name: "Entertainment Weekly"
+  url: "https://ew.com/feed/"
+  interval_seconds: 1800
+
+# Business & Finance
+- name: "Wall Street Journal"
+  url: "https://feeds.a.dj.com/rss/RSSMarketsMain.xml"
+  interval_seconds: 1800
+
+- name: "Financial Times"
+  url: "https://www.ft.com/rss/home"
+  interval_seconds: 1800
+
+- name: "Bloomberg"
+  url: "https://www.bloomberg.com/feeds/index.xml"
+  interval_seconds: 1800
+
+- name: "Forbes"
+  url: "https://www.forbes.com/real-time/feed2/"
+  interval_seconds: 1800
+
+- name: "Harvard Business Review"
+  url: "https://feeds.hbr.org/harvardbusiness"
+  interval_seconds: 3600
+
+- name: "Business Insider"
+  url: "https://www.businessinsider.com/rss"
+  interval_seconds: 1800
+
+- name: "Fortune"
+  url: "https://fortune.com/feed/"
+  interval_seconds: 1800
+
+- name: "TechCrunch Startups"
+  url: "https://techcrunch.com/tag/startups/feed/"
+  interval_seconds: 1800
