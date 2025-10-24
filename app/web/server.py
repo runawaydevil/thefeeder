@@ -122,6 +122,7 @@ async def index(request: Request, page: int = Query(1, ge=1),
     return templates.TemplateResponse("index.html", {
         "request": request,
         "app_name": settings.APP_NAME,
+        "version": __version__,
         "articles": articles,
         "feeds": feeds,
         "feed_statuses": feed_statuses,
@@ -168,6 +169,7 @@ async def health_status(request: Request):
     return templates.TemplateResponse("health.html", {
         "request": request,
         "app_name": settings.APP_NAME,
+        "version": __version__,
         "feeds": feeds,
         "active_feeds": active_feeds
     })
@@ -204,7 +206,8 @@ async def not_found_handler(request: Request, exc: HTTPException):
     """Custom 404 page."""
     return templates.TemplateResponse("404.html", {
         "request": request,
-        "app_name": settings.APP_NAME
+        "app_name": settings.APP_NAME,
+        "version": __version__
     }, status_code=404)
 
 
@@ -213,5 +216,6 @@ async def internal_error_handler(request: Request, exc: HTTPException):
     """Custom 500 page."""
     return templates.TemplateResponse("500.html", {
         "request": request,
-        "app_name": settings.APP_NAME
+        "app_name": settings.APP_NAME,
+        "version": __version__
     }, status_code=500)
