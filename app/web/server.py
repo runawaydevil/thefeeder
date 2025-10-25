@@ -12,6 +12,7 @@ from starlette.middleware.base import BaseHTTPMiddleware
 from typing import Optional
 import httpx
 from datetime import datetime
+from zoneinfo import ZoneInfo
 import logging
 
 logger = logging.getLogger(__name__)
@@ -236,7 +237,7 @@ async def get_stats():
         return JSONResponse({
             "database": db_stats,
             "scheduler": scheduler_status,
-            "timestamp": datetime.utcnow().isoformat()
+            "timestamp": datetime.now(ZoneInfo('UTC')).isoformat()
         })
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Error getting stats: {str(e)}")

@@ -3,6 +3,7 @@ import yaml
 import os
 from typing import List, Dict, Any
 import logging
+from zoneinfo import ZoneInfo
 
 logger = logging.getLogger(__name__)
 
@@ -44,6 +45,18 @@ class Settings(BaseSettings):
     
     # Security
     ALLOWED_HOSTS: str = "*"
+    
+    # Timezone Configuration
+    TIMEZONE: str = "UTC"
+    
+    @property
+    def tz(self) -> ZoneInfo:
+        """Get configured timezone as ZoneInfo object."""
+        try:
+            return ZoneInfo(self.TIMEZONE)
+        except Exception as e:
+            logger.warning(f"Invalid timezone '{self.TIMEZONE}', falling back to UTC: {e}")
+            return ZoneInfo("UTC")
     
     @property
     def feeds(self) -> List[Dict[str, Any]]:

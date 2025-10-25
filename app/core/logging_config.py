@@ -5,6 +5,7 @@ Structured logging configuration with JSON format.
 import logging
 import json
 from datetime import datetime
+from zoneinfo import ZoneInfo
 from typing import Any, Dict
 
 
@@ -13,7 +14,7 @@ class JSONFormatter(logging.Formatter):
     
     def format(self, record: logging.LogRecord) -> str:
         log_data = {
-            'timestamp': datetime.utcnow().isoformat(),
+            'timestamp': datetime.now(ZoneInfo('UTC')).isoformat(),
             'level': record.levelname,
             'logger': record.name,
             'message': record.getMessage(),

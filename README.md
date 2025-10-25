@@ -78,6 +78,7 @@ A minimalist, conservative RSS feed aggregator built with Python FastAPI and Jin
 - `PER_HOST_RPS`: Requests per second per host (default: 0.5)
 - `DEFAULT_FETCH_INTERVAL_SECONDS`: Default update interval (default: 600)
 - `MAX_FEEDS`: Maximum number of feeds (default: 1500)
+- `TIMEZONE`: Timezone for displaying article timestamps (default: UTC)
 
 ### Feed Configuration
 
@@ -88,6 +89,20 @@ Feeds are configured in the `FEEDS_YAML` environment variable:
   url: "https://example.com/feed.xml"
   interval_seconds: 1200
 ```
+
+### Timezone Configuration
+
+Set the `TIMEZONE` environment variable to display article timestamps in your local timezone:
+
+```bash
+# Examples
+TIMEZONE=America/Sao_Paulo    # Brazil (UTC-3)
+TIMEZONE=America/New_York     # US East (UTC-5/-4)
+TIMEZONE=Europe/London        # UK (UTC+0/+1)
+TIMEZONE=Asia/Tokyo           # Japan (UTC+9)
+```
+
+The system uses IANA timezone names. If an invalid timezone is provided, it falls back to UTC.
 
 ## API Endpoints
 

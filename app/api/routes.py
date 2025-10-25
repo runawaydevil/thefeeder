@@ -8,8 +8,10 @@ from fastapi.responses import JSONResponse
 from typing import Optional, List, Dict, Any
 from datetime import datetime
 import logging
+from zoneinfo import ZoneInfo
 
 from app.core.storage import storage
+from app.core.config import settings
 from app.core.maintenance import clean_reddit_summaries
 
 logger = logging.getLogger(__name__)
@@ -32,7 +34,11 @@ def serialize_item(item: Dict[str, Any]) -> Dict[str, Any]:
     published = item.get("published")
     if published:
         if isinstance(published, datetime):
-            published = published.isoformat()
+            # Convert from UTC to configured timezone
+            if published.tzinfo is None:
+                # Handle naive datetime (shouldn't happen with new code)
+                published = published.replace(tzinfo=ZoneInfo('UTC'))
+            published = published.astimezone(settings.tz).isoformat()
         elif isinstance(published, str):
             published = published
     else:
@@ -56,6 +62,23 @@ def serialize_item(item: Dict[str, Any]) -> Dict[str, Any]:
 
 def serialize_feed(feed) -> Dict[str, Any]:
     """Serialize feed object to API response format."""
+    # Convert datetime fields to configured timezone
+    last_fetch_time = None
+    if feed.last_fetch_time:
+        if feed.last_fetch_time.tzinfo is None:
+            last_fetch_time = feed.last_fetch_time.replace(tzinfo=ZoneInfo('UTC'))
+        else:
+            last_fetch_time = feed.last_fetch_time
+        last_fetch_time = last_fetch_time.astimezone(settings.tz).isoformat()
+    
+    created_at = None
+    if feed.created_at:
+        if feed.created_at.tzinfo is None:
+            created_at = feed.created_at.replace(tzinfo=ZoneInfo('UTC'))
+        else:
+            created_at = feed.created_at
+        created_at = created_at.astimezone(settings.tz).isoformat()
+    
     return {
         "id": feed.id,
         "name": feed.name,
@@ -63,10 +86,10 @@ def serialize_feed(feed) -> Dict[str, Any]:
         "enabled": feed.enabled,
         "interval_seconds": feed.interval_seconds,
         "last_fetch_status": feed.last_fetch_status,
-        "last_fetch_time": feed.last_fetch_time.isoformat() if feed.last_fetch_time else None,
+        "last_fetch_time": last_fetch_time,
         "consecutive_errors": feed.consecutive_errors,
         "degraded": feed.degraded,
-        "created_at": feed.created_at.isoformat() if feed.created_at else None,
+        "created_at": created_at,
     }
 
 
@@ -209,9 +232,20 @@ async def get_feed(feed_id: int):
         total_items = storage.get_items_count(feed_id)
         
         feed_data = serialize_feed(feed)
+        # Convert last item time to configured timezone
+        last_item_time = None
+        if items and items[0].get("published"):
+            published = items[0].get("published")
+            if isinstance(published, datetime):
+                if published.tzinfo is None:
+                    published = published.replace(tzinfo=ZoneInfo('UTC'))
+                last_item_time = published.astimezone(settings.tz).isoformat()
+            elif isinstance(published, str):
+                last_item_time = published
+        
         feed_data["stats"] = {
             "total_items": total_items,
-            "last_item_time": items[0].get("published").isoformat() if items and items[0].get("published") else None,
+            "last_item_time": last_item_time,
         }
         
         return JSONResponse(feed_data)

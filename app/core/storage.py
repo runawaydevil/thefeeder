@@ -6,6 +6,7 @@ Includes deduplication, pagination, and statistics.
 from sqlmodel import SQLModel, Field, create_engine, Session, select, text
 from typing import List, Optional, Dict, Any
 from datetime import datetime
+from zoneinfo import ZoneInfo
 from app.core.config import settings
 import logging
 
@@ -24,7 +25,7 @@ class Feed(SQLModel, table=True):
     last_modified: str = Field(default="")
     last_fetch_status: str = Field(default="pending")
     last_fetch_time: Optional[datetime] = Field(default=None)
-    created_at: datetime = Field(default_factory=datetime.utcnow)
+    created_at: datetime = Field(default_factory=lambda: datetime.now(ZoneInfo('UTC')))
     
     # Concurrency and adaptive backoff
     is_fetching: bool = Field(default=False)
@@ -48,7 +49,7 @@ class Item(SQLModel, table=True):
     summary: str = Field(default="")
     guid: str = Field(index=True)  # For deduplication
     thumbnail: str = Field(default="")
-    created_at: datetime = Field(default_factory=datetime.utcnow)
+    created_at: datetime = Field(default_factory=lambda: datetime.now(ZoneInfo('UTC')))
     is_new: bool = Field(default=True)  # Mark as new (< 1 hour)
 
 
@@ -61,7 +62,7 @@ class FetchLog(SQLModel, table=True):
     items_found: int = Field(default=0)
     items_new: int = Field(default=0)
     error_message: str = Field(default="")
-    fetch_time: datetime = Field(default_factory=datetime.utcnow)
+    fetch_time: datetime = Field(default_factory=lambda: datetime.now(ZoneInfo('UTC')))
     duration_ms: int = Field(default=0)
 
 
@@ -210,7 +211,7 @@ class Storage:
             feed = session.get(Feed, feed_id)
             if feed:
                 feed.last_fetch_status = status
-                feed.last_fetch_time = datetime.utcnow()
+                feed.last_fetch_time = datetime.now(ZoneInfo('UTC'))
                 if etag:
                     feed.last_etag = etag
                 if last_modified:
@@ -265,7 +266,7 @@ class Storage:
     def check_and_degrade_feeds(self, ttl_hours: int = 24):
         """Check feeds that haven't published in TTL and degrade them."""
         from datetime import timedelta
-        cutoff_time = datetime.utcnow() - timedelta(hours=ttl_hours)
+        cutoff_time = datetime.now(ZoneInfo('UTC')) - timedelta(hours=ttl_hours)
         
         with self.get_session() as session:
             feeds = session.exec(select(Feed)).all()
@@ -283,7 +284,7 @@ class Storage:
     def mark_old_items_as_read(self, age_hours: int = 1):
         """Mark items older than age_hours as not new."""
         from datetime import timedelta
-        cutoff_time = datetime.utcnow() - timedelta(hours=age_hours)
+        cutoff_time = datetime.now(ZoneInfo('UTC')) - timedelta(hours=age_hours)
         
         with self.get_session() as session:
             updated = session.exec(

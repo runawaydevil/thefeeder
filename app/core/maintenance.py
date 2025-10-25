@@ -4,6 +4,7 @@ Database maintenance routines.
 
 import logging
 from datetime import datetime, timedelta
+from zoneinfo import ZoneInfo
 from sqlmodel import text
 from app.core.storage import storage
 
@@ -28,7 +29,7 @@ def run_maintenance():
             
             # Clean old fetch logs (older than 30 days)
             logger.info("Cleaning old fetch logs...")
-            cutoff_date = datetime.utcnow() - timedelta(days=30)
+            cutoff_date = datetime.now(ZoneInfo('UTC')) - timedelta(days=30)
             session.execute(
                 text("DELETE FROM fetchlog WHERE fetch_time < :cutoff"),
                 {"cutoff": cutoff_date.isoformat()}

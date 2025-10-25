@@ -5,6 +5,7 @@ OPML (Outline Processor Markup Language) import/export functionality.
 import xml.etree.ElementTree as ET
 from typing import List, Dict, Any
 from datetime import datetime
+from zoneinfo import ZoneInfo
 
 
 def parse_opml(opml_content: str) -> List[Dict[str, Any]]:
@@ -57,7 +58,7 @@ def generate_opml(feeds: List[Dict[str, Any]]) -> str:
     title = ET.SubElement(head, 'title')
     title.text = 'Pablo Feeds Export'
     date_created = ET.SubElement(head, 'dateCreated')
-    date_created.text = datetime.utcnow().isoformat()
+    date_created.text = datetime.now(ZoneInfo('UTC')).isoformat()
     
     body = ET.SubElement(root, 'body')
     

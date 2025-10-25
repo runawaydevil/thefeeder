@@ -9,6 +9,8 @@ from typing import List, Dict, Any, Optional
 from datetime import datetime
 import re
 import chardet
+from zoneinfo import ZoneInfo
+from app.core.config import settings
 
 
 def detect_encoding(content: bytes) -> str:
@@ -115,7 +117,8 @@ def parse_feed_content(feed_id: int, content: bytes) -> List[ParsedItem]:
                 published = None
                 if hasattr(entry, 'published_parsed') and entry.published_parsed:
                     try:
-                        published = datetime(*entry.published_parsed[:6])
+                        # RSS feeds typically publish in UTC, mark as timezone-aware
+                        published = datetime(*entry.published_parsed[:6], tzinfo=ZoneInfo('UTC'))
                     except (ValueError, TypeError):
                         pass
                 
