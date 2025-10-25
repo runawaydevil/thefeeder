@@ -12,6 +12,7 @@
   "dependencies": {
     "@tanstack/react-query": "^5.90.5",
     "@tanstack/react-router": "^1.133.27",
+    "@tanstack/react-virtual": "^3.13.12",
     "date-fns": "^4.1.0",
     "lucide-react": "^0.547.0",
     "react": "^19.1.1",

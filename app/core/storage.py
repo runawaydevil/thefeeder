@@ -3,7 +3,7 @@ SQLModel + SQLite storage with tables for feeds, items, and fetch logs.
 Includes deduplication, pagination, and statistics.
 """
 
-from sqlmodel import SQLModel, Field, create_engine, Session, select, text
+from sqlmodel import SQLModel, Field, create_engine, Session, select, text, Index
 from typing import List, Optional, Dict, Any
 from datetime import datetime
 from zoneinfo import ZoneInfo
@@ -11,6 +11,9 @@ from app.core.config import settings
 import logging
 
 logger = logging.getLogger(__name__)
+
+# Import multi-user models
+from app.core.models import User, Theme, Subscription, ReadState, Collection, CollectionItem
 
 
 class Feed(SQLModel, table=True):
@@ -35,6 +38,11 @@ class Feed(SQLModel, table=True):
     # TTL and degradation
     last_published_time: Optional[datetime] = Field(default=None)
     degraded: bool = Field(default=False)
+    
+    # Multi-user extensions
+    tags: str = Field(default="[]")  # JSON array: ["tech", "video", "br"]
+    is_discoverable: bool = Field(default=True)  # Appears in public search
+    creator_user_id: Optional[int] = Field(default=None, foreign_key="user.id")
 
 
 class Item(SQLModel, table=True):
@@ -494,6 +502,299 @@ class Storage:
             )
             session.add(log)
             session.commit()
+
+
+    # ========== Multi-user methods ==========
+    
+    # User operations
+    def create_user(self, email: str, password_hash: str, display_name: str, 
+                   handle: str, avatar_url: str = None, bio: str = None, 
+                   role: str = "user", timezone: str = "UTC") -> User:
+        """Create a new user."""
+        from app.core.models import User
+        with self.get_session() as session:
+            user = User(
+                email=email,
+                password_hash=password_hash,
+                display_name=display_name,
+                handle=handle,
+                avatar_url=avatar_url,
+                bio=bio,
+                role=role,
+                timezone=timezone
+            )
+            session.add(user)
+            session.commit()
+            session.refresh(user)
+            return user
+    
+    def get_user(self, user_id: int) -> Optional[User]:
+        """Get user by ID."""
+        from app.core.models import User
+        with self.get_session() as session:
+            return session.get(User, user_id)
+    
+    def get_user_by_email(self, email: str) -> Optional[User]:
+        """Get user by email."""
+        from app.core.models import User
+        with self.get_session() as session:
+            return session.exec(select(User).where(User.email == email)).first()
+    
+    def get_user_by_handle(self, handle: str) -> Optional[User]:
+        """Get user by handle."""
+        from app.core.models import User
+        with self.get_session() as session:
+            return session.exec(select(User).where(User.handle == handle)).first()
+    
+    def update_user(self, user_id: int, data: dict):
+        """Update user fields."""
+        from app.core.models import User
+        with self.get_session() as session:
+            user = session.get(User, user_id)
+            if user:
+                for key, value in data.items():
+                    if hasattr(user, key):
+                        setattr(user, key, value)
+                session.commit()
+    
+    def get_users(self, page: int = 1, limit: int = 50) -> List[User]:
+        """Get paginated users."""
+        from app.core.models import User
+        with self.get_session() as session:
+            offset = (page - 1) * limit
+            return session.exec(select(User).offset(offset).limit(limit)).all()
+    
+    # Theme operations
+    def get_user_theme(self, user_id: int) -> Optional[dict]:
+        """Get user theme, return None if not found."""
+        from app.core.models import Theme
+        with self.get_session() as session:
+            theme = session.exec(select(Theme).where(Theme.user_id == user_id)).first()
+            return theme if theme else None
+    
+    def save_user_theme(self, user_id: int, tokens: dict):
+        """Save user theme tokens as JSON."""
+        import json
+        from app.core.models import Theme
+        with self.get_session() as session:
+            theme = session.exec(select(Theme).where(Theme.user_id == user_id)).first()
+            if theme:
+                theme.css_vars = json.dumps(tokens)
+            else:
+                theme = Theme(user_id=user_id, css_vars=json.dumps(tokens))
+                session.add(theme)
+            session.commit()
+    
+    # Subscription operations  
+    def create_subscription(self, user_id: int, feed_id: int, is_public: bool = True, 
+                           priority: int = 0) -> dict:
+        """Create a new subscription."""
+        from app.core.models import Subscription
+        with self.get_session() as session:
+            sub = Subscription(
+                user_id=user_id,
+                feed_id=feed_id,
+                is_public=is_public,
+                priority=priority
+            )
+            session.add(sub)
+            session.commit()
+            session.refresh(sub)
+            return {
+                'id': sub.id,
+                'user_id': sub.user_id,
+                'feed_id': sub.feed_id,
+                'is_public': sub.is_public,
+                'priority': sub.priority
+            }
+    
+    def get_user_subscriptions(self, user_id: int) -> List[dict]:
+        """Get all subscriptions for a user."""
+        from app.core.models import Subscription
+        with self.get_session() as session:
+            subs = session.exec(
+                select(Subscription).where(Subscription.user_id == user_id)
+            ).all()
+            return [{
+                'id': sub.id,
+                'feed_id': sub.feed_id,
+                'is_public': sub.is_public,
+                'priority': sub.priority
+            } for sub in subs]
+    
+    def get_public_subscriptions(self, user_id: int) -> List[dict]:
+        """Get public subscriptions only."""
+        from app.core.models import Subscription
+        with self.get_session() as session:
+            subs = session.exec(
+                select(Subscription)
+                .where(Subscription.user_id == user_id, Subscription.is_public == True)
+            ).all()
+            return [{'feed_id': sub.feed_id} for sub in subs]
+    
+    def update_subscription(self, sub_id: int, user_id: int, data: dict):
+        """Update subscription fields."""
+        from app.core.models import Subscription
+        with self.get_session() as session:
+            sub = session.exec(
+                select(Subscription)
+                .where(Subscription.id == sub_id, Subscription.user_id == user_id)
+            ).first()
+            if sub:
+                for key, value in data.items():
+                    if hasattr(sub, key) and value is not None:
+                        setattr(sub, key, value)
+                session.commit()
+    
+    def delete_subscription(self, sub_id: int, user_id: int):
+        """Delete a subscription."""
+        from app.core.models import Subscription
+        with self.get_session() as session:
+            sub = session.exec(
+                select(Subscription)
+                .where(Subscription.id == sub_id, Subscription.user_id == user_id)
+            ).first()
+            if sub:
+                session.delete(sub)
+                session.commit()
+    
+    # ReadState operations
+    def mark_item_read(self, user_id: int, item_id: int):
+        """Mark item as read for user."""
+        from app.core.models import ReadState
+        with self.get_session() as session:
+            read_state = session.exec(
+                select(ReadState).where(ReadState.user_id == user_id, ReadState.item_id == item_id)
+            ).first()
+            if read_state:
+                read_state.is_read = True
+            else:
+                read_state = ReadState(user_id=user_id, item_id=item_id, is_read=True)
+                session.add(read_state)
+            session.commit()
+    
+    def mark_item_starred(self, user_id: int, item_id: int, starred: bool = True):
+        """Star/unstar item for user."""
+        from app.core.models import ReadState
+        with self.get_session() as session:
+            read_state = session.exec(
+                select(ReadState).where(ReadState.user_id == user_id, ReadState.item_id == item_id)
+            ).first()
+            if read_state:
+                read_state.starred = starred
+            else:
+                read_state = ReadState(user_id=user_id, item_id=item_id, starred=starred)
+                session.add(read_state)
+            session.commit()
+    
+    def get_user_read_state(self, user_id: int, item_ids: List[int]) -> dict:
+        """Get read/starred state for items."""
+        from app.core.models import ReadState
+        with self.get_session() as session:
+            states = session.exec(
+                select(ReadState).where(ReadState.user_id == user_id, ReadState.item_id.in_(item_ids))
+            ).all()
+            return {state.item_id: {'is_read': state.is_read, 'starred': state.starred} for state in states}
+    
+    # Collection operations
+    def create_collection(self, user_id: int, title: str, slug: str, description: Optional[str] = None, 
+                         is_public: bool = True) -> dict:
+        """Create a new collection."""
+        from app.core.models import Collection
+        with self.get_session() as session:
+            collection = Collection(
+                user_id=user_id,
+                title=title,
+                slug=slug,
+                description=description,
+                is_public=is_public
+            )
+            session.add(collection)
+            session.commit()
+            session.refresh(collection)
+            return {'id': collection.id, 'title': collection.title, 'slug': collection.slug}
+    
+    def get_user_collections(self, user_id: int) -> List[dict]:
+        """Get all collections for a user."""
+        from app.core.models import Collection
+        with self.get_session() as session:
+            collections = session.exec(
+                select(Collection).where(Collection.user_id == user_id)
+            ).all()
+            return [{'id': c.id, 'title': c.title, 'slug': c.slug, 'is_public': c.is_public} for c in collections]
+    
+    def get_public_collections(self, user_id: int) -> List[dict]:
+        """Get public collections only."""
+        from app.core.models import Collection
+        with self.get_session() as session:
+            collections = session.exec(
+                select(Collection).where(Collection.user_id == user_id, Collection.is_public == True)
+            ).all()
+            return [{'title': c.title, 'slug': c.slug, 'description': c.description} for c in collections]
+    
+    def get_public_collection(self, user_id: int, slug: str):
+        """Get a specific public collection."""
+        from app.core.models import Collection
+        with self.get_session() as session:
+            collection = session.exec(
+                select(Collection).where(Collection.user_id == user_id, Collection.slug == slug, Collection.is_public == True)
+            ).first()
+            return collection
+    
+    def add_item_to_collection(self, user_id: int, slug: str, item_id: int):
+        """Add item to collection."""
+        from app.core.models import Collection, CollectionItem
+        with self.get_session() as session:
+            collection = session.exec(
+                select(Collection).where(Collection.user_id == user_id, Collection.slug == slug)
+            ).first()
+            if collection:
+                item = CollectionItem(collection_id=collection.id, item_id=item_id)
+                session.add(item)
+                session.commit()
+    
+    def get_collection_items(self, collection_id: int) -> List[dict]:
+        """Get items in a collection."""
+        from app.core.models import CollectionItem
+        with self.get_session() as session:
+            items = session.exec(
+                select(CollectionItem).where(CollectionItem.collection_id == collection_id)
+            ).all()
+            # Get actual item data
+            item_ids = [item.item_id for item in items]
+            if item_ids:
+                items_data = session.exec(select(Item).where(Item.id.in_(item_ids))).all()
+                return [{'id': i.id, 'title': i.title, 'link': i.link} for i in items_data]
+            return []
+    
+    # Public profile operations
+    def get_public_user_items(self, user_id: int, limit: int = 20) -> List[dict]:
+        """Get recent items from user's public subscriptions."""
+        from app.core.models import Subscription
+        with self.get_session() as session:
+            # Get public subscription feed_ids
+            subs = session.exec(
+                select(Subscription).where(Subscription.user_id == user_id, Subscription.is_public == True)
+            ).all()
+            feed_ids = [sub.feed_id for sub in subs]
+            
+            if not feed_ids:
+                return []
+            
+            # Get items from those feeds, ordered by published DESC, limit
+            items = session.exec(
+                select(Item)
+                .where(Item.feed_id.in_(feed_ids))
+                .order_by(Item.published.desc())
+                .limit(limit)
+            ).all()
+            
+            return [{'id': i.id, 'title': i.title, 'link': i.link, 'published': i.published} for i in items]
+    
+    def get_feed_by_url(self, url: str):
+        """Get feed by URL."""
+        with self.get_session() as session:
+            return session.exec(select(Feed).where(Feed.url == url)).first()
 
 
 # Global storage instance

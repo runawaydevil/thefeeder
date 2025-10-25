@@ -1,6 +1,7 @@
 import type { ReactNode } from 'react';
 import Header from './Header';
 import Footer from './Footer';
+import OfflineIndicator from './OfflineIndicator';
 
 interface LayoutProps {
   children: ReactNode;
@@ -14,6 +15,7 @@ export default function Layout({ children }: LayoutProps) {
         {children}
       </main>
       <Footer />
+      <OfflineIndicator />
     </div>
   );
 }

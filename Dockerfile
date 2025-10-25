@@ -13,26 +13,14 @@ RUN apt-get update && apt-get install -y \
     curl \
     && rm -rf /var/lib/apt/lists/*
 
-# Install Python dependencies
-RUN pip install --no-cache-dir \
-    fastapi==0.104.1 \
-    uvicorn[standard]==0.24.0 \
-    httpx[http2]==0.25.2 \
-    feedparser==6.0.10 \
-    pydantic-settings==2.1.0 \
-    python-dotenv==1.0.0 \
-    sqlmodel==0.0.14 \
-    aiosqlite==0.19.0 \
-    apscheduler==3.10.4 \
-    backoff==2.2.1 \
-    pyyaml==6.0.1 \
-    jinja2==3.1.2 \
-    python-multipart==0.0.6 \
-    chardet==5.2.0
+# Copy requirements first for better caching
+COPY requirements.txt /app/
+
+# Install Python dependencies from requirements.txt
+RUN pip install --no-cache-dir -r requirements.txt
 
 # Copy application code
 COPY app /app/app
-COPY requirements.txt /app/
 COPY feeds.yaml /app/
 
 # Verify feeds.yaml is present

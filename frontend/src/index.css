@@ -84,10 +84,80 @@
     --shadow: 0 0% 0% / 0.35;
     --hover-bg: 0 0% 20%;
   }
+  
+  [data-theme="sepia"] {
+    /* Base */
+    --fg: 22 60% 28%;
+    --fg-muted: 22 30% 50%;
+    --bg: 42 40% 90%;
+    --border: 22 30% 70%;
+  }
+  
+  [data-theme="solarized"] {
+    /* Base */
+    --fg: 200 40% 30%;
+    --fg-muted: 200 25% 50%;
+    --bg: 44 87% 95%;
+    --border: 200 30% 70%;
+  }
+  
+  [data-theme="high-contrast"] {
+    /* Base */
+    --fg: 0 0% 0%;
+    --fg-muted: 0 0% 30%;
+    --bg: 0 0% 100%;
+    --border: 0 0% 0%;
+  }
 
   body {
     background-color: hsl(var(--bg));
     color: hsl(var(--fg));
     font-feature-settings: "rlig" 1, "calt" 1;
+  }
+
+  /* Reader Mode Styles */
+  .reader-mode {
+    font-family: Georgia, serif;
+    font-size: 1.125rem;
+    line-height: 1.75;
+    max-width: 42rem;
+    margin: 0 auto;
+  }
+
+  /* Font Sizes */
+  [data-font-size="small"] {
+    font-size: 0.875rem;
+  }
+  
+  [data-font-size="medium"] {
+    font-size: 1rem;
+  }
+  
+  [data-font-size="large"] {
+    font-size: 1.25rem;
+  }
+
+  /* Animations */
+  @keyframes slide-in {
+    from {
+      transform: translateX(100%);
+      opacity: 0;
+    }
+    to {
+      transform: translateX(0);
+      opacity: 1;
+    }
+  }
+
+  .animate-slide-in {
+    animation: slide-in 0.3s ease-out;
+  }
+
+  /* Reduced motion */
+  @media (prefers-reduced-motion: reduce) {
+    * {
+      animation-duration: 0.01ms !important;
+      transition-duration: 0.01ms !important;
+    }
   }
 }

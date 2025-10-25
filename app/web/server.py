@@ -28,6 +28,11 @@ from app.core.websub import verify_websub_challenge
 from app.core.auth import verify_admin
 from app import __version__
 from app.api import routes as api_routes
+from app.api import auth as auth_routes
+from app.api import subscriptions as subscriptions_routes
+from app.api import collections as collections_routes
+from app.api import public as public_routes
+from app.api import admin as admin_routes
 from fastapi import UploadFile, File, Form
 from fastapi import Request as FastAPIRequest
 
@@ -96,6 +101,11 @@ app.mount("/static", StaticFiles(directory="app/web/static"), name="static")
 
 # Register API routes
 app.include_router(api_routes.router, prefix="/api", tags=["api"])
+app.include_router(auth_routes.router, tags=["auth"])
+app.include_router(subscriptions_routes.router, tags=["subscriptions"])
+app.include_router(collections_routes.router, tags=["collections"])
+app.include_router(public_routes.router, tags=["public"])
+app.include_router(admin_routes.router)
 
 
 @app.on_event("startup")
@@ -215,6 +225,17 @@ async def prometheus_metrics():
         content=metrics.get_prometheus_format(),
         media_type="text/plain; version=0.0.4"
     )
+
+
+@app.post("/admin/migrate")
+async def run_migration(admin: str = Depends(verify_admin)):
+    """Run single-user to multi-user migration."""
+    try:
+        from app.core.migrations import migrate_to_multiuser
+        result = migrate_to_multiuser()
+        return JSONResponse(result)
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Migration failed: {str(e)}")
 
 
 @app.post("/admin/maintenance")
