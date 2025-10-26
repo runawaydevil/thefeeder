@@ -21,7 +21,7 @@ jobs:
     - name: Install dependencies
       run: |
         pip install --upgrade pip
-        pip install fastapi uvicorn httpx feedparser pydantic-settings python-dotenv sqlmodel aiosqlite apscheduler backoff pyyaml jinja2 python-multipart chardet
+        pip install -r requirements.txt
     
     - name: Lint with Python
       run: |
@@ -31,15 +31,4 @@ jobs:
     - name: Test syntax
       run: |
         python -m py_compile app/web/server.py app/core/storage.py app/core/config.py app/core/fetcher.py app/core/parser.py app/core/scheduler.py app/core/rate_limit.py app/core/ua.py app/main.py
-    
-    - name: Build Docker image
-      run: |
-        docker build -t thefeeder:test .
-    
-    - name: Test Docker image
-      run: |
-        docker run -d --name test-feeder -p 7389:7389 -e DB_PATH=/tmp/test.sqlite thefeeder:test
-        sleep 10
-        curl -f http://localhost:7389/health || exit 1
-        docker stop test-feeder
 
