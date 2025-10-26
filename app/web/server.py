@@ -8,7 +8,8 @@ from datetime import datetime
 from zoneinfo import ZoneInfo
 
 import httpx
-from fastapi import Depends, FastAPI, File, HTTPException, Query, Request, UploadFile
+from fastapi import Request
+from fastapi import Depends, FastAPI, File, HTTPException, Query, UploadFile
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import HTMLResponse, JSONResponse, Response
 from fastapi.staticfiles import StaticFiles
@@ -262,7 +263,7 @@ async def get_stats():
 
 
 @app.get("/websub/callback")
-async def websub_callback(request: FastAPIRequest):
+async def websub_callback(request: Request):
     """WebSub callback endpoint for real-time updates."""
     # Handle verification challenge
     mode = request.query_params.get('hub.mode')
@@ -294,7 +295,7 @@ async def websub_callback(request: FastAPIRequest):
 
 
 @app.post("/websub/callback")
-async def websub_notification(request: FastAPIRequest):
+async def websub_notification(request: Request):
     """Handle WebSub notification (feed update)."""
     try:
         # Get topic (feed URL) from headers
