@@ -16,8 +16,6 @@ from fastapi.staticfiles import StaticFiles
 from fastapi.templating import Jinja2Templates
 from starlette.middleware.base import BaseHTTPMiddleware
 
-logger = logging.getLogger(__name__)
-
 from app import __version__
 from app.api import admin as admin_routes
 from app.api import auth as auth_routes
@@ -34,6 +32,8 @@ from app.core.opml import generate_opml, parse_opml
 from app.core.scheduler import scheduler
 from app.core.storage import storage
 from app.core.websub import verify_websub_challenge
+
+logger = logging.getLogger(__name__)
 
 
 # Middleware for security headers
