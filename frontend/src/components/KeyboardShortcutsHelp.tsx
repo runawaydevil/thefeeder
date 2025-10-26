@@ -9,14 +9,14 @@ export default function KeyboardShortcutsHelp({ isOpen, onClose }: Props) {
   if (!isOpen) return null;
 
   const shortcuts = [
-    { key: 'J', description: 'Próximo artigo' },
-    { key: 'K', description: 'Artigo anterior' },
-    { key: 'O ou Enter', description: 'Abrir artigo selecionado' },
-    { key: 'M', description: 'Marcar como lido/não lido' },
-    { key: '/', description: 'Focar na busca' },
-    { key: 'G H', description: 'Ir para Home' },
-    { key: '?', description: 'Mostrar esta ajuda' },
-    { key: 'Esc', description: 'Fechar modais' },
+    { key: 'J', description: 'Next article' },
+    { key: 'K', description: 'Previous article' },
+    { key: 'O or Enter', description: 'Open selected article' },
+    { key: 'M', description: 'Toggle read/unread' },
+    { key: '/', description: 'Focus search' },
+    { key: 'G H', description: 'Go to Home' },
+    { key: '?', description: 'Show this help' },
+    { key: 'Esc', description: 'Close modals' },
   ];
 
   return (
@@ -25,12 +25,12 @@ export default function KeyboardShortcutsHelp({ isOpen, onClose }: Props) {
         <div className="flex items-center justify-between mb-4">
           <div className="flex items-center gap-2">
             <Keyboard className="w-5 h-5 text-accent" />
-            <h2 className="text-xl font-bold">Atalhos do teclado</h2>
+            <h2 className="text-xl font-bold">Keyboard Shortcuts</h2>
           </div>
           <button
             onClick={onClose}
             className="p-1 hover:bg-border rounded transition-colors"
-            aria-label="Fechar ajuda"
+            aria-label="Close help"
           >
             <X className="w-5 h-5" />
           </button>
@@ -48,7 +48,7 @@ export default function KeyboardShortcutsHelp({ isOpen, onClose }: Props) {
         </div>
 
         <div className="mt-4 pt-4 border-t border-border text-sm text-muted">
-          <p>Pressione <kbd className="px-1.5 py-0.5 bg-border rounded text-xs">?</kbd> para mostrar/ocultar esta ajuda.</p>
+          <p>Press <kbd className="px-1.5 py-0.5 bg-border rounded text-xs">?</kbd> to show/hide this help.</p>
         </div>
       </div>
     </div>

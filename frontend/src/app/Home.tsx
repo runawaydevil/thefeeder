@@ -81,7 +81,7 @@ export default function Home() {
       if (selectedItem) {
         const isNowRead = toggleRead(selectedItem.id);
         showToast(
-          isNowRead ? 'Marcado como lido' : 'Marcado como não lido',
+          isNowRead ? 'Marked as read' : 'Marked as unread',
           isNowRead ? 'success' : 'info'
         );
       }
@@ -112,9 +112,9 @@ export default function Home() {
     return (
       <EmptyState
         type="error"
-        message="Não foi possível carregar os artigos."
+        message="Unable to load articles."
         action={{
-          label: 'Tentar novamente',
+          label: 'Try again',
           onClick: () => window.location.reload(),
         }}
       />
@@ -125,11 +125,11 @@ export default function Home() {
     return (
       <EmptyState
         type="no-items"
-        message={filters.showUnreadOnly ? 'Nenhum artigo não lido.' : 'Nenhum artigo encontrado.'}
+        message={filters.showUnreadOnly ? 'No unread articles.' : 'No articles found.'}
         action={
           !filteredItems.length
             ? {
-                label: 'Explorar feeds',
+                label: 'Explore feeds',
                 onClick: () => navigate('/explore'),
               }
             : undefined
@@ -150,7 +150,7 @@ export default function Home() {
             onClick={() => setShowHelp(true)}
             className="px-3 py-1 text-sm text-muted hover:text-fg border border-border rounded hover:bg-card transition-colors"
           >
-            ? Atalhos
+            ? Shortcuts
           </button>
         </div>
 

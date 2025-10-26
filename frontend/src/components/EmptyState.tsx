@@ -17,23 +17,23 @@ export default function EmptyState({
   const config = {
     'no-items': {
       icon: BookOpen,
-      title: 'Nenhum artigo encontrado',
-      description: message || 'Não há artigos disponíveis no momento.',
+      title: 'No articles found',
+      description: message || 'No articles available at the moment.',
     },
     'no-results': {
       icon: SearchIcon,
-      title: 'Nenhum resultado',
-      description: message || 'Tente ajustar sua busca ou filtros.',
+      title: 'No results',
+      description: message || 'Try adjusting your search or filters.',
     },
     'filtered': {
       icon: Filter,
-      title: 'Tudo filtrado',
-      description: message || 'Nenhum artigo corresponde aos filtros ativos.',
+      title: 'Everything filtered',
+      description: message || 'No articles match the active filters.',
     },
     'error': {
       icon: Frown,
-      title: 'Ops! Algo deu errado',
-      description: message || 'Não foi possível carregar os artigos.',
+      title: 'Oops! Something went wrong',
+      description: message || 'Unable to load articles.',
     },
   };
 

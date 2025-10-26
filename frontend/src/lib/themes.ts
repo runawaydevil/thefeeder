@@ -3,17 +3,17 @@ export type FontSize = 'small' | 'medium' | 'large';
 
 export const themeConfig = {
   light: {
-    name: 'Claro',
+    name: 'Light',
     bg: 'white',
     fg: '#1a1a1a',
   },
   dark: {
-    name: 'Escuro',
+    name: 'Dark',
     bg: '#0f0f0f',
     fg: '#e0e0e0',
   },
   sepia: {
-    name: 'Sépia',
+    name: 'Sepia',
     bg: '#f4ecd8',
     fg: '#704214',
   },
@@ -23,7 +23,7 @@ export const themeConfig = {
     fg: '#657b83',
   },
   'high-contrast': {
-    name: 'Alto Contraste',
+    name: 'High Contrast',
     bg: '#ffffff',
     fg: '#000000',
   },

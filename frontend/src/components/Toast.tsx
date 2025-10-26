@@ -50,7 +50,7 @@ export function Toast({ toast, onClose }: Props) {
         <button
           onClick={onClose}
           className="flex-shrink-0 p-1 hover:bg-white/20 rounded transition-colors"
-          aria-label="Fechar notificação"
+          aria-label="Close notification"
         >
           <X className="w-4 h-4" />
         </button>

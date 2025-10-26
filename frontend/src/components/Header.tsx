@@ -13,8 +13,8 @@ export default function Header() {
   const { data: config } = useQuery({
     queryKey: ['config'],
     queryFn: fetchConfig,
-    staleTime: 30000, // Cache por 30 segundos
-    gcTime: 60000, // Garbage collection após 1 minuto
+    staleTime: 30000, // Cache for 30 seconds
+    gcTime: 60000, // Garbage collection after 1 minute
   });
 
   return (
