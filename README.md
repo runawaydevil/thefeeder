@@ -1,42 +1,62 @@
+<div align="center">
+
 # Pablo Feeds - Minimalist RSS Aggregator
+
+![Logo](app/assets/logo.png)
 
 A minimalist, conservative RSS feed aggregator built with Python FastAPI and Jinja2 templates.
 
-**Version:** 0.5.0
+</div>
 
-**Author:** Pablo Murad <pablomurad@pm.me>
+### Version: 1.0.0 - Multi-User Edition
 
-**Repositories:**
-- [GitHub](https://github.com/runawaydevil/thefeeder)
-- [Forgejo](https://git.teu.cool/pablo/thefeeder)
+**Author:** Pablo Murad <pablomurad@pm.me>  
+**Repositories:** [GitHub](https://github.com/runawaydevil/thefeeder) • [Forgejo](https://git.teu.cool/pablo/thefeeder)
+
+---
+
 
 ## Features
 
 ### Core Features
-- **Minimalist Design**: Clean, "boxy" interface with system fonts
+- **Multi-User System**: JWT authentication with role-based access control (RBAC)
+- **User Management**: Admin, Moderator, and User roles
+- **Minimalist Design**: Clean, responsive React frontend with Tailwind CSS
 - **Dark/Light Theme**: Automatic theme detection with manual toggle
+- **Custom Themes**: JSON-based theme system with CSS variables
 - **RSS/Atom Support**: Parses feeds with feedparser (supports RSS, Atom, JSON Feed)
 - **Smart Fetching**: ETag/Last-Modified caching, rate limiting, retry with backoff
 - **Per-Feed Intervals**: Custom update intervals per feed
 - **Feed Limit**: Maximum 150 feeds supported
 - **Item Limit**: Maximum 1500 articles stored (older items auto-deleted)
 - **Deduplication**: Prevents duplicate articles
-- **Responsive**: Works on mobile and desktop
+- **Timezone Support**: Display timestamps in any IANA timezone
 - **Docker Ready**: Complete containerization setup
 
-### User Experience (v0.5.0)
+### Multi-User Features (v1.0.0)
+- **🔐 JWT Authentication**: Secure login with access + refresh tokens
+- **👥 User Profiles**: Customizable profiles with @handle URLs
+- **🎨 Custom Themes**: JSON-based theming system per user
+- **📝 Collections**: Curated lists of articles (collections)
+- **🔔 Subscriptions**: User-specific feed subscriptions
+- **📊 Public Profiles**: Shareable user profiles with public feeds
+- **⚙️ Admin Panel**: RBAC-based administration interface
+- **🔒 Feed Privacy**: Public/private subscription controls
+
+### User Experience (v1.0.0)
 - **🔍 FTS5 Search**: Ultra-fast full-text search (10x faster than LIKE)
 - **📑 Smart Pagination**: Configurable pagination (10-100 items per page)
-- **⏰ Relative Time**: "2 hours ago" instead of absolute dates
+- **⏰ Relative Time**: "2 hours ago" with timezone support
 - **✅ Read Tracking**: Mark articles as read with visual indicators
 - **🔄 Custom Sorting**: Sort by recent, oldest, title, or feed
 - **🎨 Status Indicators**: Feed health badges with color-coded status
 - **🖼️ Image Handling**: Smart placeholders and lazy loading with proxy
 - **♿ Accessibility**: WCAG AA compliant with skip links and ARIA support
 - **📱 Empty States**: Contextual messages with helpful actions
-- **📋 List View**: Toggle between Cards and compact List view with feed icons
-- **🆕 New Badge**: Visual indicator for articles < 1 hour old
-- **📊 Unread Counter**: Real-time count of unread articles
+- **📋 List View**: Toggle between Cards and compact List view
+- **⌨️ Keyboard Shortcuts**: j/k navigation, o/Enter open, m mark read
+- **🎨 Multiple Themes**: Light, Dark, Sepia, Solarized, High Contrast
+- **📱 PWA Support**: Service Worker, offline support, manifest
 
 ### Advanced Features
 - **🔒 Feed Locking**: Prevents concurrent fetches of same feed
@@ -106,37 +126,86 @@ The system uses IANA timezone names. If an invalid timezone is provided, it fall
 
 ## API Endpoints
 
+### Authentication API
+- `POST /api/auth/register`: Register new user
+- `POST /api/auth/login`: Login with email/password
+- `POST /api/auth/refresh`: Refresh access token
+- `GET /api/auth/me`: Get current user info
+
+### User API
+- `GET /api/me/subscriptions`: Get user's subscriptions
+- `POST /api/me/subscriptions`: Add subscription
+- `DELETE /api/me/subscriptions/{id}`: Remove subscription
+- `GET /api/me/collections`: Get user's collections
+- `POST /api/me/collections`: Create collection
+- `POST /api/me/collections/{slug}/items`: Add item to collection
+
+### Public API
+- `GET /public/@{handle}`: Public user profile
+- `GET /public/@{handle}/feed.xml`: Public RSS feed
+- `GET /public/@{handle}/theme.css`: Custom theme CSS
+- `GET /public/@{handle}/collections/{slug}`: Public collection
+
 ### REST API (for React frontend)
 - `GET /api/items`: Get paginated items with filtering
-- `GET /api/items/:id`: Get single item details
+- `GET /api/items/{id}`: Get single item details
 - `GET /api/feeds`: List all feeds
-- `GET /api/feeds/:id`: Get feed details with stats
-- `GET /api/feeds/:id/items`: Get items for specific feed
+- `GET /api/feeds/{id}`: Get feed details with stats
+- `GET /api/feeds/{id}/items`: Get items for specific feed
 
-### Admin/Legacy Endpoints
-- `GET /`: Main page with articles (HTML)
-- `GET /admin/refresh?feed_id=X`: Manual feed refresh
+### Admin API (RBAC)
+- `GET /admin/users`: List all users (admin only)
+- `PATCH /admin/users/{id}`: Update user role (admin only)
+- `DELETE /admin/users/{id}`: Delete user (admin only)
 - `GET /admin/health`: System health status
-- `GET /admin/feeds`: List all feeds
+- `GET /admin/refresh?feed_id=X`: Manual feed refresh
 - `GET /health`: Simple health check
 
 ## Architecture
 
 ```
 app/
-├── core/
-│   ├── config.py      # Settings and YAML parser
-│   ├── fetcher.py     # HTTP client with caching
-│   ├── parser.py      # RSS/Atom parser with encoding detection
-│   ├── storage.py     # SQLite database
-│   ├── scheduler.py   # APScheduler jobs
-│   ├── rate_limit.py  # Rate limiting
-│   └── ua.py          # User-Agent policy
+├── api/                    # REST API endpoints
+│   ├── routes.py          # Main API routes
+│   ├── auth.py            # Authentication endpoints
+│   ├── admin.py           # Admin endpoints (RBAC)
+│   ├── subscriptions.py   # Subscription management
+│   ├── collections.py     # Collections API
+│   └── public.py          # Public profiles/RSS
+├── core/                   # Core modules
+│   ├── models.py          # Multi-user ORM models
+│   ├── storage.py         # SQLite database layer
+│   ├── auth_jwt.py        # JWT authentication
+│   ├── config.py          # Settings and YAML parser
+│   ├── fetcher.py         # HTTP client with caching
+│   ├── parser.py          # RSS/Atom parser
+│   ├── scheduler.py       # APScheduler jobs
+│   ├── rate_limit.py      # Rate limiting
+│   ├── theming.py         # Theme system
+│   ├── migrations.py      # Database migrations
+│   ├── maintenance.py     # Auto maintenance
+│   ├── metrics.py         # Prometheus metrics
+│   ├── opml.py            # OPML support
+│   ├── websub.py          # WebSub real-time
+│   └── ua.py              # User-Agent policy
 ├── web/
-│   ├── server.py      # FastAPI routes
-│   ├── templates/     # Jinja2 templates
-│   └── static/        # CSS, JS, and assets
-└── main.py           # Entry point
+│   ├── server.py          # FastAPI app & routes
+│   ├── templates/         # Jinja2 templates (legacy)
+│   └── static/            # Static assets
+├── assets/                # Logo and assets
+└── main.py                # Entry point
+
+frontend/                   # React frontend
+├── src/
+│   ├── app/              # Page components
+│   ├── components/       # UI components
+│   ├── lib/              # Utilities
+│   ├── hooks/            # Custom React hooks
+│   ├── contexts/         # React contexts
+│   └── types/            # TypeScript types
+└── public/
+    ├── manifest.json     # PWA manifest
+    └── sw.js             # Service Worker
 ```
 
 ## Best Practices Implemented
