@@ -2,7 +2,6 @@
 Subscription management endpoints for multi-user Pablo Feeds.
 """
 
-
 from fastapi import APIRouter, Depends, HTTPException, Query
 
 from app.core.auth_jwt import get_current_user

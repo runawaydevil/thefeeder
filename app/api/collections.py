@@ -2,7 +2,6 @@
 Collections management endpoints for Pablo Feeds.
 """
 
-
 from fastapi import APIRouter, Depends, HTTPException, Query
 
 from app.core.auth_jwt import get_current_user
