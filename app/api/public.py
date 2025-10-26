@@ -2,11 +2,11 @@
 Public profile endpoints for Pablo Feeds.
 """
 
-from fastapi import APIRouter, HTTPException, Query
-from fastapi.responses import Response, HTMLResponse
+from fastapi import APIRouter, HTTPException
+from fastapi.responses import Response
+
 from app.core.storage import storage
 from app.core.theming import get_user_theme_css
-import json
 
 router = APIRouter(tags=["public"])
 
@@ -17,16 +17,16 @@ async def public_profile(handle: str):
     user = storage.get_user_by_handle(handle)
     if not user:
         raise HTTPException(404, "User not found")
-    
+
     # Get public subscriptions
     subscriptions = storage.get_public_subscriptions(user.id)
-    
+
     # Get recent items from public feeds
     items = storage.get_public_user_items(user.id, limit=20)
-    
+
     # Get collections
     collections = storage.get_public_collections(user.id)
-    
+
     return {
         "user": {
             "handle": user.handle,
@@ -46,7 +46,7 @@ async def public_theme_css(handle: str):
     user = storage.get_user_by_handle(handle)
     if not user:
         raise HTTPException(404, "User not found")
-    
+
     css = get_user_theme_css(user.id)
     return Response(content=css, media_type="text/css")
 
@@ -57,9 +57,9 @@ async def public_user_rss(handle: str):
     user = storage.get_user_by_handle(handle)
     if not user:
         raise HTTPException(404, "User not found")
-    
+
     items = storage.get_public_user_items(user.id, limit=50)
-    
+
     # Generate RSS XML (simplified)
     rss_xml = f"""<?xml version="1.0" encoding="UTF-8"?>
 <rss version="2.0">
@@ -69,7 +69,7 @@ async def public_user_rss(handle: str):
   <description>{user.bio or 'Pablo Feeds user feed'}</description>
   <language>pt-BR</language>
 """
-    
+
     for item in items:
         pub_date = item['published'].strftime('%a, %d %b %Y %H:%M:%S +0000') if item.get('published') else ''
         rss_xml += f"""  <item>
@@ -79,9 +79,9 @@ async def public_user_rss(handle: str):
     <pubDate>{pub_date}</pubDate>
   </item>
 """
-    
+
     rss_xml += "</channel>\n</rss>"
-    
+
     return Response(content=rss_xml, media_type="application/rss+xml")
 
 
@@ -91,13 +91,13 @@ async def public_collection(handle: str, slug: str):
     user = storage.get_user_by_handle(handle)
     if not user:
         raise HTTPException(404, "User not found")
-    
+
     collection = storage.get_public_collection(user.id, slug)
     if not collection:
         raise HTTPException(404, "Collection not found")
-    
+
     items = storage.get_collection_items(collection.id)
-    
+
     return {
         "collection": {
             "title": collection.title,

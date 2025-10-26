@@ -3,52 +3,50 @@ FastAPI web server with Jinja2 templates.
 Routes for listing articles, filtering by feed, and admin functions.
 """
 
-from fastapi import FastAPI, Request, Query, HTTPException, Depends
-from fastapi.templating import Jinja2Templates
-from fastapi.staticfiles import StaticFiles
-from fastapi.responses import HTMLResponse, JSONResponse, Response
-from fastapi.middleware.cors import CORSMiddleware
-from starlette.middleware.base import BaseHTTPMiddleware
-from typing import Optional
-import httpx
+import logging
 from datetime import datetime
 from zoneinfo import ZoneInfo
-import logging
+
+import httpx
+from fastapi import Depends, FastAPI, File, HTTPException, Query, Request, UploadFile
+from fastapi.middleware.cors import CORSMiddleware
+from fastapi.responses import HTMLResponse, JSONResponse, Response
+from fastapi.staticfiles import StaticFiles
+from fastapi.templating import Jinja2Templates
+from starlette.middleware.base import BaseHTTPMiddleware
 
 logger = logging.getLogger(__name__)
 
-from app.core.config import settings
-from app.core.storage import storage
-from app.core.scheduler import scheduler
-from app.core.metrics import metrics
-from app.core.fetcher import detect_feed_in_html, fetch_with_backoff
-from app.core.opml import parse_opml, generate_opml
-from app.core.maintenance import get_db_stats, run_maintenance
-from app.core.websub import verify_websub_challenge
-from app.core.auth import verify_admin
 from app import __version__
-from app.api import routes as api_routes
+from app.api import admin as admin_routes
 from app.api import auth as auth_routes
-from app.api import subscriptions as subscriptions_routes
 from app.api import collections as collections_routes
 from app.api import public as public_routes
-from app.api import admin as admin_routes
-from fastapi import UploadFile, File, Form
-from fastapi import Request as FastAPIRequest
+from app.api import routes as api_routes
+from app.api import subscriptions as subscriptions_routes
+from app.core.auth import verify_admin
+from app.core.config import settings
+from app.core.fetcher import detect_feed_in_html, fetch_with_backoff
+from app.core.maintenance import get_db_stats, run_maintenance
+from app.core.metrics import metrics
+from app.core.opml import generate_opml, parse_opml
+from app.core.scheduler import scheduler
+from app.core.storage import storage
+from app.core.websub import verify_websub_challenge
 
 
 # Middleware for security headers
 class SecurityHeadersMiddleware(BaseHTTPMiddleware):
     async def dispatch(self, request: Request, call_next):
         response = await call_next(request)
-        
+
         # Security headers
         response.headers["X-Content-Type-Options"] = "nosniff"
         response.headers["X-Frame-Options"] = "DENY"
         response.headers["X-XSS-Protection"] = "1; mode=block"
         response.headers["Referrer-Policy"] = "strict-origin-when-cross-origin"
         response.headers["Permissions-Policy"] = "geolocation=(), microphone=(), camera=()"
-        
+
         # Content Security Policy
         csp = (
             "default-src 'self'; "
@@ -60,15 +58,15 @@ class SecurityHeadersMiddleware(BaseHTTPMiddleware):
             "frame-ancestors 'none';"
         )
         response.headers["Content-Security-Policy"] = csp
-        
+
         # Cross-Origin policies
         response.headers["Cross-Origin-Embedder-Policy"] = "require-corp"
         response.headers["Cross-Origin-Resource-Policy"] = "cross-origin"
-        
+
         # Static files caching
         if request.url.path.startswith("/static/"):
             response.headers["Cache-Control"] = "public, max-age=3600"
-        
+
         return response
 
 
@@ -128,7 +126,7 @@ async def index():
 
 
 @app.get("/admin/refresh")
-async def refresh_feed(feed_id: Optional[int] = Query(None), admin: str = Depends(verify_admin)):
+async def refresh_feed(feed_id: int | None = Query(None), admin: str = Depends(verify_admin)):
     """Manually refresh a feed."""
     # Validate feed_id to prevent injection
     if feed_id:
@@ -154,16 +152,16 @@ async def health_status(request: Request):
     """Get health status of feeds and scheduler."""
     feeds = storage.get_feeds(enabled_only=False)
     active_feeds = len([f for f in feeds if f.enabled])
-    
+
     # Get detailed statistics
     db_stats = get_db_stats()
     scheduler_status = scheduler.get_scheduler_status()
-    
+
     # Calculate feed health metrics
     healthy_feeds = len([f for f in feeds if f.last_fetch_status == "success"])
     error_feeds = len([f for f in feeds if f.last_fetch_status == "error"])
     degraded_feeds = len([f for f in feeds if f.degraded])
-    
+
     return templates.TemplateResponse("health.html", {
         "request": request,
         "app_name": settings.APP_NAME,
@@ -209,17 +207,16 @@ async def prometheus_metrics():
     # Update scheduler queue depth metric
     scheduler_status = scheduler.get_scheduler_status()
     metrics.set_gauge("feeder_scheduler_queue_depth", scheduler_status['job_count'])
-    
+
     # Update uptime gauge
-    import time
     metrics.set_gauge("feeder_uptime_seconds", scheduler_status['uptime_seconds'])
-    
+
     # Add database stats
     db_stats = get_db_stats()
     metrics.set_gauge("feeder_db_size_bytes", db_stats.get('db_size_bytes', 0))
     metrics.set_gauge("feeder_total_feeds", db_stats.get('total_feeds', 0))
     metrics.set_gauge("feeder_total_items", db_stats.get('total_items', 0))
-    
+
     # Export in Prometheus format
     return Response(
         content=metrics.get_prometheus_format(),
@@ -254,7 +251,7 @@ async def get_stats():
     try:
         db_stats = get_db_stats()
         scheduler_status = scheduler.get_scheduler_status()
-        
+
         return JSONResponse({
             "database": db_stats,
             "scheduler": scheduler_status,
@@ -272,27 +269,27 @@ async def websub_callback(request: FastAPIRequest):
     topic = request.query_params.get('hub.topic')
     challenge = request.query_params.get('hub.challenge')
     lease_seconds = request.query_params.get('hub.lease_seconds')
-    
+
     if mode == 'subscribe' and challenge:
         try:
             # Verify the subscription
-            verify_response = verify_websub_challenge(
+            verify_websub_challenge(
                 mode=mode,
                 topic=topic,
                 challenge=challenge,
                 lease_seconds=int(lease_seconds) if lease_seconds else None
             )
-            
+
             # Return challenge
             return Response(content=challenge, media_type="text/plain")
         except Exception as e:
             logger.error(f"WebSub verification error: {e}")
             raise HTTPException(status_code=400, detail="Verification failed")
-    
+
     # Handle unsubscription
     if mode == 'unsubscribe':
         return Response(content="OK", media_type="text/plain")
-    
+
     raise HTTPException(status_code=400, detail="Invalid request")
 
 
@@ -302,11 +299,11 @@ async def websub_notification(request: FastAPIRequest):
     try:
         # Get topic (feed URL) from headers
         topic = request.headers.get('X-Hub-Topic')
-        
+
         if not topic:
             # Try to get from request body or headers
             topic = request.headers.get('Link', '').split('>')[0].replace('<', '')
-        
+
         if topic:
             # Find feed by URL and trigger refresh
             feeds = storage.get_feeds(enabled_only=False)
@@ -315,9 +312,9 @@ async def websub_notification(request: FastAPIRequest):
                     logger.info(f"WebSub notification received for feed {feed.name}")
                     scheduler.refresh_feed(feed.id)
                     break
-        
+
         return Response(content="OK", media_type="text/plain")
-    
+
     except Exception as e:
         logger.error(f"WebSub notification error: {e}")
         raise HTTPException(status_code=500, detail="Notification processing failed")
@@ -330,10 +327,10 @@ async def import_opml(file: UploadFile = File(...), admin: str = Depends(verify_
         # Read file content
         content = await file.read()
         opml_content = content.decode('utf-8')
-        
+
         # Parse OPML
         feeds = parse_opml(opml_content)
-        
+
         # Add feeds to database
         imported = []
         for feed_config in feeds:
@@ -347,12 +344,12 @@ async def import_opml(file: UploadFile = File(...), admin: str = Depends(verify_
                 'name': feed.name,
                 'url': feed.url
             })
-        
+
         return JSONResponse({
             "message": f"Imported {len(imported)} feeds",
             "feeds": imported
         })
-    
+
     except ValueError as e:
         raise HTTPException(status_code=400, detail=str(e))
     except Exception as e:
@@ -364,15 +361,15 @@ async def export_opml(admin: str = Depends(verify_admin)):
     """Export all feeds as OPML file."""
     try:
         feeds = storage.get_feeds(enabled_only=False)
-        
+
         # Convert to OPML format
         feeds_data = [{
             'name': feed.name,
             'url': feed.url
         } for feed in feeds]
-        
+
         opml_content = generate_opml(feeds_data)
-        
+
         return Response(
             content=opml_content,
             media_type="application/xml",
@@ -380,7 +377,7 @@ async def export_opml(admin: str = Depends(verify_admin)):
                 "Content-Disposition": f"attachment; filename=pablo-feeds-{datetime.now().strftime('%Y%m%d')}.opml"
             }
         )
-    
+
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Error exporting OPML: {str(e)}")
 
@@ -392,22 +389,22 @@ async def discover_feed(url: str = Query(..., description="URL to discover feed 
         # Validate URL
         if not url.startswith(('http://', 'https://')):
             raise HTTPException(status_code=400, detail="Invalid URL")
-        
+
         # Try to fetch the URL
         result = await fetch_with_backoff(url)
-        
+
         if not result.is_success:
             raise HTTPException(status_code=result.status, detail=f"Failed to fetch URL: {result.error}")
-        
+
         # Try to detect feed in HTML
         feed_url = detect_feed_in_html(result.content)
-        
+
         if feed_url:
             # Handle relative URLs
             if feed_url.startswith('/'):
                 from urllib.parse import urljoin
                 feed_url = urljoin(url, feed_url)
-            
+
             return JSONResponse({
                 "feed_url": feed_url,
                 "discovered": True
@@ -418,7 +415,7 @@ async def discover_feed(url: str = Query(..., description="URL to discover feed 
                 "discovered": False,
                 "message": "No RSS feed found in HTML"
             })
-    
+
     except HTTPException:
         raise
     except Exception as e:
@@ -432,17 +429,17 @@ async def proxy_image(url: str = Query(..., description="Image URL to proxy")):
         # Validate URL
         if not url.startswith(('http://', 'https://')):
             raise HTTPException(status_code=400, detail="Invalid URL")
-        
+
         # Fetch image with short timeout
         async with httpx.AsyncClient(timeout=3.0) as client:
             response = await client.get(url)
-            
+
             if response.status_code != 200:
                 raise HTTPException(status_code=response.status_code, detail="Failed to fetch image")
-            
+
             # Get content type
             content_type = response.headers.get("Content-Type", "image/jpeg")
-            
+
             # Return proxied image
             return Response(
                 content=response.content,
@@ -452,7 +449,7 @@ async def proxy_image(url: str = Query(..., description="Image URL to proxy")):
                     "X-Content-Type-Options": "nosniff"
                 }
             )
-    
+
     except httpx.TimeoutException:
         raise HTTPException(status_code=504, detail="Image fetch timeout")
     except httpx.RequestError as e:

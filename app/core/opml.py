@@ -3,12 +3,12 @@ OPML (Outline Processor Markup Language) import/export functionality.
 """
 
 import xml.etree.ElementTree as ET
-from typing import List, Dict, Any
 from datetime import datetime
+from typing import Any
 from zoneinfo import ZoneInfo
 
 
-def parse_opml(opml_content: str) -> List[Dict[str, Any]]:
+def parse_opml(opml_content: str) -> list[dict[str, Any]]:
     """
     Parse OPML content and extract feed information.
     
@@ -19,10 +19,10 @@ def parse_opml(opml_content: str) -> List[Dict[str, Any]]:
         List of feed dictionaries with name, url, and optional interval_seconds
     """
     feeds = []
-    
+
     try:
         root = ET.fromstring(opml_content)
-        
+
         # Find all outline elements
         for outline in root.findall('.//outline'):
             # Check if it's a feed (has xmlUrl or url attribute)
@@ -34,14 +34,14 @@ def parse_opml(opml_content: str) -> List[Dict[str, Any]]:
                     'interval_seconds': None  # Can be extended later
                 }
                 feeds.append(feed)
-    
+
     except ET.ParseError as e:
         raise ValueError(f"Invalid OPML format: {e}")
-    
+
     return feeds
 
 
-def generate_opml(feeds: List[Dict[str, Any]]) -> str:
+def generate_opml(feeds: list[dict[str, Any]]) -> str:
     """
     Generate OPML content from feeds.
     
@@ -53,26 +53,26 @@ def generate_opml(feeds: List[Dict[str, Any]]) -> str:
     """
     root = ET.Element('opml')
     root.set('version', '2.0')
-    
+
     head = ET.SubElement(root, 'head')
     title = ET.SubElement(head, 'title')
     title.text = 'Pablo Feeds Export'
     date_created = ET.SubElement(head, 'dateCreated')
     date_created.text = datetime.now(ZoneInfo('UTC')).isoformat()
-    
+
     body = ET.SubElement(root, 'body')
-    
+
     for feed in feeds:
         outline = ET.SubElement(body, 'outline')
         outline.set('type', 'rss')
         outline.set('text', feed.get('name', 'Unnamed Feed'))
         outline.set('title', feed.get('name', 'Unnamed Feed'))
         outline.set('xmlUrl', feed.get('url', ''))
-    
+
     # Convert to string
     tree = ET.ElementTree(root)
     ET.indent(tree, space='  ')
-    
+
     from io import BytesIO
     buffer = BytesIO()
     tree.write(buffer, encoding='utf-8', xml_declaration=True)

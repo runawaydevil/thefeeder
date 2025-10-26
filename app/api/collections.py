@@ -2,8 +2,9 @@
 Collections management endpoints for Pablo Feeds.
 """
 
-from fastapi import APIRouter, HTTPException, Depends, Query
-from typing import Optional
+
+from fastapi import APIRouter, Depends, HTTPException, Query
+
 from app.core.auth_jwt import get_current_user
 from app.core.models import User
 from app.core.storage import storage
@@ -21,7 +22,7 @@ async def get_my_collections(user: User = Depends(get_current_user)):
 async def create_collection(
     title: str = Query(...),
     slug: str = Query(...),
-    description: Optional[str] = Query(None),
+    description: str | None = Query(None),
     is_public: bool = Query(True),
     user: User = Depends(get_current_user)
 ):
@@ -30,7 +31,7 @@ async def create_collection(
     existing = storage.get_public_collection(user.id, slug)
     if existing:
         raise HTTPException(400, "Collection slug already exists")
-    
+
     collection = storage.create_collection(user.id, title, slug, description, is_public)
     return {"message": "Collection created", "collection": collection}
 

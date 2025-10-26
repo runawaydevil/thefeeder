@@ -3,16 +3,17 @@ REST API endpoints for the React frontend.
 Returns JSON responses for feeds, items, and pagination.
 """
 
-from fastapi import APIRouter, Query, HTTPException
-from fastapi.responses import JSONResponse
-from typing import Optional, List, Dict, Any
-from datetime import datetime
 import logging
+from datetime import datetime
+from typing import Any
 from zoneinfo import ZoneInfo
 
-from app.core.storage import storage
+from fastapi import APIRouter, HTTPException, Query
+from fastapi.responses import JSONResponse
+
 from app.core.config import settings
 from app.core.maintenance import clean_reddit_summaries
+from app.core.storage import storage
 
 logger = logging.getLogger(__name__)
 
@@ -29,7 +30,7 @@ async def get_config():
     })
 
 
-def serialize_item(item: Dict[str, Any]) -> Dict[str, Any]:
+def serialize_item(item: dict[str, Any]) -> dict[str, Any]:
     """Serialize item dict to API response format."""
     published = item.get("published")
     if published:
@@ -43,7 +44,7 @@ def serialize_item(item: Dict[str, Any]) -> Dict[str, Any]:
             published = published
     else:
         published = None
-    
+
     return {
         "id": item.get("id"),
         "feed_id": item.get("feed_id"),
@@ -60,7 +61,7 @@ def serialize_item(item: Dict[str, Any]) -> Dict[str, Any]:
     }
 
 
-def serialize_feed(feed) -> Dict[str, Any]:
+def serialize_feed(feed) -> dict[str, Any]:
     """Serialize feed object to API response format."""
     # Convert datetime fields to configured timezone
     last_fetch_time = None
@@ -70,7 +71,7 @@ def serialize_feed(feed) -> Dict[str, Any]:
         else:
             last_fetch_time = feed.last_fetch_time
         last_fetch_time = last_fetch_time.astimezone(settings.tz).isoformat()
-    
+
     created_at = None
     if feed.created_at:
         if feed.created_at.tzinfo is None:
@@ -78,7 +79,7 @@ def serialize_feed(feed) -> Dict[str, Any]:
         else:
             created_at = feed.created_at
         created_at = created_at.astimezone(settings.tz).isoformat()
-    
+
     return {
         "id": feed.id,
         "name": feed.name,
@@ -97,9 +98,9 @@ def serialize_feed(feed) -> Dict[str, Any]:
 async def get_items(
     page: int = Query(1, ge=1),
     limit: int = Query(20, ge=1, le=100),
-    feed_id: Optional[int] = Query(None),
-    search: Optional[str] = Query(None),
-    sort: Optional[str] = Query("recent"),
+    feed_id: int | None = Query(None),
+    search: str | None = Query(None),
+    sort: str | None = Query("recent"),
 ):
     """
     Get paginated items with optional filtering and search.
@@ -115,12 +116,12 @@ async def get_items(
         # Validate sort parameter
         valid_sorts = ["recent", "oldest", "title", "feed"]
         sort_param = sort if sort in valid_sorts else "recent"
-        
+
         # Sanitize search query
         search_sanitized = None
         if search and search.strip():
             search_sanitized = search.strip()[:200]
-        
+
         # Get items and total count
         items = storage.get_items(
             page=page,
@@ -131,10 +132,10 @@ async def get_items(
         )
         total_items = storage.get_items_count(feed_id, search_query=search_sanitized)
         total_pages = (total_items + limit - 1) // limit
-        
+
         # Serialize items
         serialized_items = [serialize_item(item) for item in items]
-        
+
         return JSONResponse({
             "items": serialized_items,
             "pagination": {
@@ -148,7 +149,7 @@ async def get_items(
                 "total": total_items,
             }
         })
-    
+
     except Exception as e:
         logger.error(f"Error fetching items: {e}")
         raise HTTPException(status_code=500, detail=str(e))
@@ -159,15 +160,15 @@ async def get_item(item_id: int):
     """Get a single item by ID."""
     try:
         items = storage.get_items(page=1, limit=1, feed_id=None, search_query=None, sort_by="recent")
-        
+
         # Find item by ID
         item = next((i for i in items if i.get("id") == item_id), None)
-        
+
         if not item:
             raise HTTPException(status_code=404, detail="Item not found")
-        
+
         return JSONResponse(serialize_item(item))
-    
+
     except HTTPException:
         raise
     except Exception as e:
@@ -177,7 +178,7 @@ async def get_item(item_id: int):
 
 @router.get("/feeds")
 async def get_feeds(
-    search: Optional[str] = Query(None),
+    search: str | None = Query(None),
     enabled_only: bool = Query(True),
 ):
     """
@@ -189,7 +190,7 @@ async def get_feeds(
     """
     try:
         feeds = storage.get_feeds(enabled_only=enabled_only)
-        
+
         # Filter by search if provided
         if search and search.strip():
             search_lower = search.strip().lower()
@@ -197,10 +198,10 @@ async def get_feeds(
                 f for f in feeds
                 if search_lower in f.name.lower() or search_lower in f.url.lower()
             ]
-        
+
         # Serialize feeds
         serialized_feeds = [serialize_feed(feed) for feed in feeds]
-        
+
         return JSONResponse({
             "feeds": serialized_feeds,
             "pagination": {
@@ -211,7 +212,7 @@ async def get_feeds(
                 "has_prev": False,
             }
         })
-    
+
     except Exception as e:
         logger.error(f"Error fetching feeds: {e}")
         raise HTTPException(status_code=500, detail=str(e))
@@ -223,14 +224,14 @@ async def get_feed(feed_id: int):
     try:
         feeds = storage.get_feeds(enabled_only=False)
         feed = next((f for f in feeds if f.id == feed_id), None)
-        
+
         if not feed:
             raise HTTPException(status_code=404, detail="Feed not found")
-        
+
         # Get feed statistics
         items = storage.get_items(page=1, limit=1, feed_id=feed_id)
         total_items = storage.get_items_count(feed_id)
-        
+
         feed_data = serialize_feed(feed)
         # Convert last item time to configured timezone
         last_item_time = None
@@ -242,14 +243,14 @@ async def get_feed(feed_id: int):
                 last_item_time = published.astimezone(settings.tz).isoformat()
             elif isinstance(published, str):
                 last_item_time = published
-        
+
         feed_data["stats"] = {
             "total_items": total_items,
             "last_item_time": last_item_time,
         }
-        
+
         return JSONResponse(feed_data)
-    
+
     except HTTPException:
         raise
     except Exception as e:
@@ -262,8 +263,8 @@ async def get_feed_items(
     feed_id: int,
     page: int = Query(1, ge=1),
     limit: int = Query(20, ge=1, le=100),
-    search: Optional[str] = Query(None),
-    sort: Optional[str] = Query("recent"),
+    search: str | None = Query(None),
+    sort: str | None = Query("recent"),
 ):
     """
     Get items for a specific feed.
@@ -278,12 +279,12 @@ async def get_feed_items(
         # Validate sort parameter
         valid_sorts = ["recent", "oldest", "title"]
         sort_param = sort if sort in valid_sorts else "recent"
-        
+
         # Sanitize search query
         search_sanitized = None
         if search and search.strip():
             search_sanitized = search.strip()[:200]
-        
+
         # Get items
         items = storage.get_items(
             page=page,
@@ -294,10 +295,10 @@ async def get_feed_items(
         )
         total_items = storage.get_items_count(feed_id, search_query=search_sanitized)
         total_pages = (total_items + limit - 1) // limit
-        
+
         # Serialize items
         serialized_items = [serialize_item(item) for item in items]
-        
+
         return JSONResponse({
             "items": serialized_items,
             "pagination": {
@@ -311,7 +312,7 @@ async def get_feed_items(
                 "total": total_items,
             }
         })
-    
+
     except Exception as e:
         logger.error(f"Error fetching feed items: {e}")
         raise HTTPException(status_code=500, detail=str(e))

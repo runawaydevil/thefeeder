@@ -5,20 +5,25 @@ exponential backoff with jitter, and per-host rate limiting.
 
 import asyncio
 import random
-import httpx
-from backoff import on_exception, expo
-from typing import Optional
-from app.core.config import settings
-from app.core.ua import get_headers
-from app.core.rate_limit import respect_rate_limit, release_rate_limit, get_retry_after_delay, apply_retry_after
-import mimetypes
 import re
+
+import httpx
+from backoff import expo, on_exception
+
+from app.core.config import settings
+from app.core.rate_limit import (
+    apply_retry_after,
+    get_retry_after_delay,
+    release_rate_limit,
+    respect_rate_limit,
+)
+from app.core.ua import get_headers
 
 
 class FetchResult:
     """Result of a fetch operation."""
-    
-    def __init__(self, status: int, content: bytes = b"", etag: str = "", 
+
+    def __init__(self, status: int, content: bytes = b"", etag: str = "",
                  last_modified: str = "", error: str = ""):
         self.status = status
         self.content = content
@@ -37,7 +42,7 @@ async def try_head_request(url: str, etag: str = "", last_modified: str = "") ->
             headers["If-None-Match"] = etag
         if last_modified:
             headers["If-Modified-Since"] = last_modified
-        
+
         async with httpx.AsyncClient(
             http2=True,
             timeout=settings.FETCH_TIMEOUT_SECONDS,
@@ -45,14 +50,14 @@ async def try_head_request(url: str, etag: str = "", last_modified: str = "") ->
             follow_redirects=True
         ) as client:
             response = await client.head(url)
-            
+
             # Handle 429 with Retry-After
             if response.status_code == 429:
                 delay = get_retry_after_delay(response)
                 if delay:
                     apply_retry_after(url, delay)
                     raise httpx.HTTPStatusError("429 retry", request=response.request, response=response)
-            
+
             return FetchResult(
                 status=response.status_code,
                 content=b"",
@@ -76,7 +81,7 @@ async def fetch_with_backoff(url: str, etag: str = "", last_modified: str = "") 
     Returns:
         FetchResult with status, content, and headers
     """
-    
+
     @on_exception(
         expo,
         (httpx.HTTPError, httpx.TimeoutException),
@@ -89,14 +94,14 @@ async def fetch_with_backoff(url: str, etag: str = "", last_modified: str = "") 
         # Respect rate limits
         if not await respect_rate_limit(url):
             await asyncio.sleep(1)  # Wait if rate limited
-        
+
         try:
             headers = get_headers()
             if etag:
                 headers["If-None-Match"] = etag
             if last_modified:
                 headers["If-Modified-Since"] = last_modified
-            
+
             async with httpx.AsyncClient(
                 http2=True,
                 timeout=settings.FETCH_TIMEOUT_SECONDS,
@@ -104,24 +109,24 @@ async def fetch_with_backoff(url: str, etag: str = "", last_modified: str = "") 
                 follow_redirects=True
             ) as client:
                 response = await client.get(url)
-                
+
                 # Handle 429 with Retry-After
                 if response.status_code == 429:
                     delay = get_retry_after_delay(response)
                     if delay:
                         await asyncio.sleep(delay)
                         raise httpx.HTTPStatusError("429 retry", request=response.request, response=response)
-                
+
                 return FetchResult(
                     status=response.status_code,
                     content=response.content,
                     etag=response.headers.get("ETag", ""),
                     last_modified=response.headers.get("Last-Modified", "")
                 )
-        
+
         finally:
             release_rate_limit()
-    
+
     try:
         return await _fetch()
     except httpx.HTTPStatusError as e:
@@ -156,15 +161,15 @@ def is_valid_feed_content(content: bytes) -> bool:
     """Check if content looks like a valid RSS/Atom/JSON feed."""
     if not content:
         return False
-    
+
     try:
         content_str = content.decode('utf-8', errors='ignore').lower()
-        
+
         # Check for XML-based feeds (RSS, Atom, RDF)
         xml_tags = ['<rss', '<feed', '<channel', '<?xml', '<rdf:']
         if any(tag in content_str for tag in xml_tags):
             return True
-        
+
         # Check for JSON Feed (https://jsonfeed.org/)
         if content_str.strip().startswith('{'):
             try:
@@ -175,7 +180,7 @@ def is_valid_feed_content(content: bytes) -> bool:
                     return True
             except (json.JSONDecodeError, ValueError):
                 pass
-        
+
         return False
     except Exception:
         return False
@@ -185,10 +190,10 @@ def validate_content_type(content_type: str) -> bool:
     """Validate Content-Type header for feeds."""
     if not content_type:
         return True  # Allow if missing
-    
+
     # Normalize content type
     content_type = content_type.lower().split(';')[0].strip()
-    
+
     # Valid feed content types
     valid_types = [
         'application/rss+xml',
@@ -199,27 +204,27 @@ def validate_content_type(content_type: str) -> bool:
         'application/feed+json',
         'application/json+feed'
     ]
-    
+
     return content_type in valid_types
 
 
-def detect_feed_in_html(html_content: bytes) -> Optional[str]:
+def detect_feed_in_html(html_content: bytes) -> str | None:
     """Try to discover RSS feed link in HTML content."""
     try:
         html_str = html_content.decode('utf-8', errors='ignore')
-        
+
         # Look for <link rel="alternate" type="application/rss+xml">
         pattern = r'<link[^>]*rel=["\']alternate["\'][^>]*type=["\']application/rss\+xml["\'][^>]*href=["\']([^"\']+)["\']'
         match = re.search(pattern, html_str, re.IGNORECASE)
         if match:
             return match.group(1)
-        
+
         # Look for <link rel="alternate" href="..." type="application/rss+xml">
         pattern = r'<link[^>]*href=["\']([^"\']+)["\'][^>]*type=["\']application/rss\+xml["\']'
         match = re.search(pattern, html_str, re.IGNORECASE)
         if match:
             return match.group(1)
-        
+
         return None
     except Exception:
         return None

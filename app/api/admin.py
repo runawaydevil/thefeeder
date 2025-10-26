@@ -2,8 +2,9 @@
 Admin endpoints with RBAC for multi-user Pablo Feeds.
 """
 
-from fastapi import APIRouter, Depends, HTTPException, Query
-from app.core.auth_jwt import get_current_user, require_role
+from fastapi import APIRouter, Depends, Query
+
+from app.core.auth_jwt import require_role
 from app.core.models import User
 from app.core.storage import storage
 

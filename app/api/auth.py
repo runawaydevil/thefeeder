@@ -2,14 +2,15 @@
 Authentication endpoints for multi-user Pablo Feeds.
 """
 
-from fastapi import APIRouter, HTTPException, Depends, status
+from fastapi import APIRouter, Depends, HTTPException, status
 from pydantic import BaseModel, EmailStr
+
 from app.core.auth_jwt import (
-    hash_password,
-    verify_password,
     create_access_token,
     create_refresh_token,
-    get_current_user
+    get_current_user,
+    hash_password,
+    verify_password,
 )
 from app.core.models import User
 from app.core.storage import storage
@@ -57,14 +58,14 @@ async def register(req: RegisterRequest):
             status_code=status.HTTP_400_BAD_REQUEST,
             detail="Handle already taken"
         )
-    
+
     existing_email = storage.get_user_by_email(req.email)
     if existing_email:
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
             detail="Email already registered"
         )
-    
+
     # Create user
     user = storage.create_user(
         email=req.email,
@@ -72,11 +73,11 @@ async def register(req: RegisterRequest):
         display_name=req.display_name,
         handle=req.handle
     )
-    
+
     # Generate tokens
     access_token = create_access_token({"sub": str(user.id)})
     refresh_token = create_refresh_token({"sub": str(user.id)})
-    
+
     return TokenResponse(access_token=access_token, refresh_token=refresh_token)
 
 
@@ -84,22 +85,22 @@ async def register(req: RegisterRequest):
 async def login(req: LoginRequest):
     """Login with email and password."""
     user = storage.get_user_by_email(req.email)
-    
+
     if not user or not verify_password(req.password, user.password_hash):
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
             detail="Invalid credentials"
         )
-    
+
     if not user.is_active:
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
             detail="Account is inactive"
         )
-    
+
     access_token = create_access_token({"sub": str(user.id)})
     refresh_token = create_refresh_token({"sub": str(user.id)})
-    
+
     return TokenResponse(access_token=access_token, refresh_token=refresh_token)
 
 

@@ -3,23 +3,25 @@ SQLModel + SQLite storage with tables for feeds, items, and fetch logs.
 Includes deduplication, pagination, and statistics.
 """
 
-from sqlmodel import SQLModel, Field, create_engine, Session, select, text, Index
-from typing import List, Optional, Dict, Any
-from datetime import datetime
-from zoneinfo import ZoneInfo
-from app.core.config import settings
 import logging
+from datetime import datetime
+from typing import Any
+from zoneinfo import ZoneInfo
 
-logger = logging.getLogger(__name__)
+from sqlmodel import Field, Session, SQLModel, create_engine, select, text
+
+from app.core.config import settings
 
 # Import multi-user models
-from app.core.models import User, Theme, Subscription, ReadState, Collection, CollectionItem
+from app.core.models import Collection, CollectionItem, ReadState, Subscription, Theme, User
+
+logger = logging.getLogger(__name__)
 
 
 class Feed(SQLModel, table=True):
     """Feed configuration and metadata."""
-    
-    id: Optional[int] = Field(default=None, primary_key=True)
+
+    id: int | None = Field(default=None, primary_key=True)
     name: str = Field(index=True)
     url: str = Field(index=True)
     interval_seconds: int = Field(default=600)
@@ -27,32 +29,32 @@ class Feed(SQLModel, table=True):
     last_etag: str = Field(default="")
     last_modified: str = Field(default="")
     last_fetch_status: str = Field(default="pending")
-    last_fetch_time: Optional[datetime] = Field(default=None)
+    last_fetch_time: datetime | None = Field(default=None)
     created_at: datetime = Field(default_factory=lambda: datetime.now(ZoneInfo('UTC')))
-    
+
     # Concurrency and adaptive backoff
     is_fetching: bool = Field(default=False)
     consecutive_errors: int = Field(default=0)
     backoff_multiplier: float = Field(default=1.0)
-    
+
     # TTL and degradation
-    last_published_time: Optional[datetime] = Field(default=None)
+    last_published_time: datetime | None = Field(default=None)
     degraded: bool = Field(default=False)
-    
+
     # Multi-user extensions
     tags: str = Field(default="[]")  # JSON array: ["tech", "video", "br"]
     is_discoverable: bool = Field(default=True)  # Appears in public search
-    creator_user_id: Optional[int] = Field(default=None, foreign_key="user.id")
+    creator_user_id: int | None = Field(default=None, foreign_key="user.id")
 
 
 class Item(SQLModel, table=True):
     """Feed item/article."""
-    
-    id: Optional[int] = Field(default=None, primary_key=True)
+
+    id: int | None = Field(default=None, primary_key=True)
     feed_id: int = Field(foreign_key="feed.id", index=True)
     title: str = Field(index=True)
     link: str = Field(index=True)
-    published: Optional[datetime] = Field(default=None, index=True)
+    published: datetime | None = Field(default=None, index=True)
     author: str = Field(default="")
     summary: str = Field(default="")
     guid: str = Field(index=True)  # For deduplication
@@ -63,8 +65,8 @@ class Item(SQLModel, table=True):
 
 class FetchLog(SQLModel, table=True):
     """Log of fetch operations for monitoring."""
-    
-    id: Optional[int] = Field(default=None, primary_key=True)
+
+    id: int | None = Field(default=None, primary_key=True)
     feed_id: int = Field(foreign_key="feed.id", index=True)
     status_code: int
     items_found: int = Field(default=0)
@@ -76,13 +78,13 @@ class FetchLog(SQLModel, table=True):
 
 class Storage:
     """Database operations for feeds and items."""
-    
+
     def __init__(self, db_path: str = None):
         self.db_path = db_path or settings.DB_PATH
         self.engine = create_engine(f"sqlite:///{self.db_path}")
         self._configure_sqlite()
         self._create_tables()
-    
+
     def _configure_sqlite(self):
         """Configure SQLite pragmas for optimal performance."""
         with self.engine.connect() as conn:
@@ -96,12 +98,12 @@ class Storage:
             conn.execute(text("PRAGMA temp_store=MEMORY"))
             conn.commit()
             logger.info("SQLite pragmas configured: WAL, synchronous=NORMAL, foreign_keys=ON, temp_store=MEMORY")
-    
+
     def _create_tables(self):
         """Create database tables."""
         SQLModel.metadata.create_all(self.engine)
         self._create_fts5_index()
-    
+
     def _create_fts5_index(self):
         """Create FTS5 virtual table for full-text search."""
         with self.engine.connect() as conn:
@@ -110,7 +112,7 @@ class Storage:
                 SELECT name FROM sqlite_master 
                 WHERE type='table' AND name='item_fts'
             """))
-            
+
             if result.fetchone() is None:
                 # Create FTS5 virtual table
                 conn.execute(text("""
@@ -120,13 +122,13 @@ class Storage:
                         content_rowid='id'
                     )
                 """))
-                
+
                 # Populate with existing data
                 conn.execute(text("""
                     INSERT INTO item_fts(rowid, title, summary, author)
                     SELECT id, title, summary, author FROM item
                 """))
-                
+
                 # Create triggers for automatic synchronization
                 conn.execute(text("""
                     CREATE TRIGGER item_ai AFTER INSERT ON item BEGIN
@@ -134,14 +136,14 @@ class Storage:
                         VALUES(new.id, new.title, new.summary, new.author);
                     END
                 """))
-                
+
                 conn.execute(text("""
                     CREATE TRIGGER item_ad AFTER DELETE ON item BEGIN
                         INSERT INTO item_fts(item_fts, rowid, title, summary, author)
                         VALUES('delete', old.id, old.title, old.summary, old.author);
                     END
                 """))
-                
+
                 conn.execute(text("""
                     CREATE TRIGGER item_au AFTER UPDATE ON item BEGIN
                         INSERT INTO item_fts(item_fts, rowid, title, summary, author)
@@ -150,14 +152,14 @@ class Storage:
                         VALUES(new.id, new.title, new.summary, new.author);
                     END
                 """))
-                
+
                 conn.commit()
                 logger.info("FTS5 index created successfully")
-    
+
     def get_session(self) -> Session:
         """Get database session."""
         return Session(self.engine)
-    
+
     # Feed operations
     def add_feed(self, name: str, url: str, interval_seconds: int = 600) -> Feed:
         """Add a new feed or return existing one."""
@@ -166,14 +168,14 @@ class Storage:
             existing = session.exec(
                 select(Feed).where(Feed.url == url)
             ).first()
-            
+
             if existing:
                 # Feed exists, update interval if changed
                 if existing.interval_seconds != interval_seconds:
                     existing.interval_seconds = interval_seconds
                     session.commit()
                 return existing
-            
+
             # Create new feed
             feed = Feed(
                 name=name,
@@ -184,16 +186,16 @@ class Storage:
             session.commit()
             session.refresh(feed)
             return feed
-    
-    def get_feeds(self, enabled_only: bool = True) -> List[Feed]:
+
+    def get_feeds(self, enabled_only: bool = True) -> list[Feed]:
         """Get all feeds."""
         with self.get_session() as session:
             query = select(Feed)
             if enabled_only:
                 query = query.where(Feed.enabled)
             return session.exec(query).all()
-    
-    def get_feed_status_dict(self) -> Dict[int, Dict[str, Any]]:
+
+    def get_feed_status_dict(self) -> dict[int, dict[str, Any]]:
         """Get feed status dictionary for quick lookup."""
         with self.get_session() as session:
             feeds = session.exec(select(Feed)).all()
@@ -206,13 +208,13 @@ class Storage:
                     'enabled': feed.enabled
                 }
             return status_dict
-    
-    def get_feed(self, feed_id: int) -> Optional[Feed]:
+
+    def get_feed(self, feed_id: int) -> Feed | None:
         """Get feed by ID."""
         with self.get_session() as session:
             return session.get(Feed, feed_id)
-    
-    def update_feed_status(self, feed_id: int, status: str, etag: str = "", 
+
+    def update_feed_status(self, feed_id: int, status: str, etag: str = "",
                           last_modified: str = ""):
         """Update feed fetch status and cache headers."""
         with self.get_session() as session:
@@ -225,7 +227,7 @@ class Storage:
                 if last_modified:
                     feed.last_modified = last_modified
                 session.commit()
-    
+
     def acquire_feed_lock(self, feed_id: int) -> bool:
         """Acquire lock for feed. Returns True if lock acquired."""
         with self.get_session() as session:
@@ -235,7 +237,7 @@ class Storage:
                 session.commit()
                 return True
             return False
-    
+
     def release_feed_lock(self, feed_id: int):
         """Release lock for feed."""
         with self.get_session() as session:
@@ -243,7 +245,7 @@ class Storage:
             if feed:
                 feed.is_fetching = False
                 session.commit()
-    
+
     def update_adaptive_backoff(self, feed_id: int, success: bool):
         """Update adaptive backoff based on fetch result."""
         with self.get_session() as session:
@@ -259,8 +261,8 @@ class Storage:
                     # Cap at 4x multiplier
                     feed.backoff_multiplier = min(4.0, 1.0 + (feed.consecutive_errors * 0.5))
                 session.commit()
-    
-    def update_feed_published_time(self, feed_id: int, published_time: Optional[datetime]):
+
+    def update_feed_published_time(self, feed_id: int, published_time: datetime | None):
         """Update last published time for TTL tracking."""
         with self.get_session() as session:
             feed = session.get(Feed, feed_id)
@@ -270,30 +272,30 @@ class Storage:
                 if feed.degraded:
                     feed.degraded = False
                 session.commit()
-    
+
     def check_and_degrade_feeds(self, ttl_hours: int = 24):
         """Check feeds that haven't published in TTL and degrade them."""
         from datetime import timedelta
         cutoff_time = datetime.now(ZoneInfo('UTC')) - timedelta(hours=ttl_hours)
-        
+
         with self.get_session() as session:
             feeds = session.exec(select(Feed)).all()
             degraded_count = 0
-            
+
             for feed in feeds:
                 if feed.last_published_time and feed.last_published_time < cutoff_time:
                     if not feed.degraded:
                         feed.degraded = True
                         degraded_count += 1
-            
+
             session.commit()
             return degraded_count
-    
+
     def mark_old_items_as_read(self, age_hours: int = 1):
         """Mark items older than age_hours as not new."""
         from datetime import timedelta
         cutoff_time = datetime.now(ZoneInfo('UTC')) - timedelta(hours=age_hours)
-        
+
         with self.get_session() as session:
             updated = session.exec(
                 text("UPDATE item SET is_new = 0 WHERE created_at < :cutoff AND is_new = 1"),
@@ -301,26 +303,26 @@ class Storage:
             )
             session.commit()
             return updated.rowcount if hasattr(updated, 'rowcount') else 0
-    
+
     # Item operations
-    def add_items(self, items: List[Dict[str, Any]]) -> int:
+    def add_items(self, items: list[dict[str, Any]]) -> int:
         """Add items with deduplication. Returns count of new items."""
         new_count = 0
-        
+
         with self.get_session() as session:
             for item_data in items:
                 # Check for existing item by guid
                 existing = session.exec(
                     select(Item).where(Item.guid == item_data['guid'])
                 ).first()
-                
+
                 if not existing:
                     item = Item(**item_data)
                     session.add(item)
                     new_count += 1
-            
+
             session.commit()
-            
+
             # Automatic cleanup: remove oldest items if exceeding MAX_ITEMS
             total_count = len(session.exec(select(Item)).all())
             if total_count > settings.MAX_ITEMS:
@@ -331,27 +333,27 @@ class Storage:
                     .order_by(Item.published.asc())
                     .limit(excess)
                 ).all()
-                
+
                 # Delete oldest items
                 for item in oldest_items:
                     session.delete(item)
                 session.commit()
-        
+
         return new_count
-    
-    def get_items(self, page: int = 1, limit: int = 20, 
-                 feed_id: Optional[int] = None,
-                 search_query: Optional[str] = None,
-                 sort_by: str = "recent") -> List[Dict[str, Any]]:
+
+    def get_items(self, page: int = 1, limit: int = 20,
+                 feed_id: int | None = None,
+                 search_query: str | None = None,
+                 sort_by: str = "recent") -> list[dict[str, Any]]:
         """Get paginated items with feed info."""
         offset = (page - 1) * limit
-        
+
         with self.get_session() as session:
             query = select(Item, Feed.name).join(Feed)
-            
+
             if feed_id:
                 query = query.where(Item.feed_id == feed_id)
-            
+
             # Full-text search using FTS5
             if search_query and search_query.strip():
                 search_term = search_query.strip()
@@ -364,7 +366,7 @@ class Storage:
                     """)
                     fts_results = session.exec(fts_query, {"search_term": search_term})
                     item_ids = [row[0] for row in fts_results]
-                    
+
                     if item_ids:
                         query = query.where(Item.id.in_(item_ids))
                     else:
@@ -379,7 +381,7 @@ class Storage:
                         (Item.summary.like(search_term)) |
                         (Item.author.like(search_term))
                     )
-            
+
             # Apply sorting
             if sort_by == "oldest":
                 query = query.order_by(Item.published.asc())
@@ -389,11 +391,11 @@ class Storage:
                 query = query.order_by(Feed.name.asc(), Item.published.desc())
             else:  # recent (default)
                 query = query.order_by(Item.published.desc())
-            
+
             query = query.offset(offset).limit(limit)
-            
+
             results = session.exec(query).all()
-            
+
             items = []
             for item, feed_name in results:
                 items.append({
@@ -408,16 +410,16 @@ class Storage:
                     'feed_id': item.feed_id,
                     'is_new': item.is_new
                 })
-            
+
             return items
-    
-    def get_items_count(self, feed_id: Optional[int] = None, search_query: Optional[str] = None) -> int:
+
+    def get_items_count(self, feed_id: int | None = None, search_query: str | None = None) -> int:
         """Get total count of items."""
         with self.get_session() as session:
             query = select(Item)
             if feed_id:
                 query = query.where(Item.feed_id == feed_id)
-            
+
             # Full-text search using FTS5
             if search_query and search_query.strip():
                 search_term = search_query.strip()
@@ -430,7 +432,7 @@ class Storage:
                     """)
                     fts_results = session.exec(fts_query, {"search_term": search_term})
                     item_ids = [row[0] for row in fts_results]
-                    
+
                     if item_ids:
                         query = query.where(Item.id.in_(item_ids))
                     else:
@@ -445,28 +447,28 @@ class Storage:
                         (Item.summary.like(search_term)) |
                         (Item.author.like(search_term))
                     )
-            
+
             return len(session.exec(query).all())
-    
+
     # Statistics
-    def get_feed_stats(self) -> List[Dict[str, Any]]:
+    def get_feed_stats(self) -> list[dict[str, Any]]:
         """Get statistics for all feeds."""
         with self.get_session() as session:
             feeds = session.exec(select(Feed)).all()
             stats = []
-            
+
             for feed in feeds:
                 item_count = len(session.exec(
                     select(Item).where(Item.feed_id == feed.id)
                 ).all())
-                
+
                 last_log = session.exec(
                     select(FetchLog)
                     .where(FetchLog.feed_id == feed.id)
                     .order_by(FetchLog.fetch_time.desc())
                     .limit(1)
                 ).first()
-                
+
                 stats.append({
                     'feed_id': feed.id,
                     'name': feed.name,
@@ -484,9 +486,9 @@ class Storage:
                         'duration_ms': last_log.duration_ms
                     } if last_log else None
                 })
-            
+
             return stats
-    
+
     # Logging
     def log_fetch(self, feed_id: int, status_code: int, items_found: int = 0,
                  items_new: int = 0, error_message: str = "", duration_ms: int = 0):
@@ -505,10 +507,10 @@ class Storage:
 
 
     # ========== Multi-user methods ==========
-    
+
     # User operations
-    def create_user(self, email: str, password_hash: str, display_name: str, 
-                   handle: str, avatar_url: str = None, bio: str = None, 
+    def create_user(self, email: str, password_hash: str, display_name: str,
+                   handle: str, avatar_url: str = None, bio: str = None,
                    role: str = "user", timezone: str = "UTC") -> User:
         """Create a new user."""
         from app.core.models import User
@@ -527,25 +529,25 @@ class Storage:
             session.commit()
             session.refresh(user)
             return user
-    
-    def get_user(self, user_id: int) -> Optional[User]:
+
+    def get_user(self, user_id: int) -> User | None:
         """Get user by ID."""
         from app.core.models import User
         with self.get_session() as session:
             return session.get(User, user_id)
-    
-    def get_user_by_email(self, email: str) -> Optional[User]:
+
+    def get_user_by_email(self, email: str) -> User | None:
         """Get user by email."""
         from app.core.models import User
         with self.get_session() as session:
             return session.exec(select(User).where(User.email == email)).first()
-    
-    def get_user_by_handle(self, handle: str) -> Optional[User]:
+
+    def get_user_by_handle(self, handle: str) -> User | None:
         """Get user by handle."""
         from app.core.models import User
         with self.get_session() as session:
             return session.exec(select(User).where(User.handle == handle)).first()
-    
+
     def update_user(self, user_id: int, data: dict):
         """Update user fields."""
         from app.core.models import User
@@ -556,26 +558,24 @@ class Storage:
                     if hasattr(user, key):
                         setattr(user, key, value)
                 session.commit()
-    
-    def get_users(self, page: int = 1, limit: int = 50) -> List[User]:
+
+    def get_users(self, page: int = 1, limit: int = 50) -> list[User]:
         """Get paginated users."""
         from app.core.models import User
         with self.get_session() as session:
             offset = (page - 1) * limit
             return session.exec(select(User).offset(offset).limit(limit)).all()
-    
+
     # Theme operations
-    def get_user_theme(self, user_id: int) -> Optional[dict]:
+    def get_user_theme(self, user_id: int) -> dict | None:
         """Get user theme, return None if not found."""
-        from app.core.models import Theme
         with self.get_session() as session:
             theme = session.exec(select(Theme).where(Theme.user_id == user_id)).first()
             return theme if theme else None
-    
+
     def save_user_theme(self, user_id: int, tokens: dict):
         """Save user theme tokens as JSON."""
         import json
-        from app.core.models import Theme
         with self.get_session() as session:
             theme = session.exec(select(Theme).where(Theme.user_id == user_id)).first()
             if theme:
@@ -584,12 +584,11 @@ class Storage:
                 theme = Theme(user_id=user_id, css_vars=json.dumps(tokens))
                 session.add(theme)
             session.commit()
-    
-    # Subscription operations  
-    def create_subscription(self, user_id: int, feed_id: int, is_public: bool = True, 
+
+    # Subscription operations
+    def create_subscription(self, user_id: int, feed_id: int, is_public: bool = True,
                            priority: int = 0) -> dict:
         """Create a new subscription."""
-        from app.core.models import Subscription
         with self.get_session() as session:
             sub = Subscription(
                 user_id=user_id,
@@ -607,10 +606,9 @@ class Storage:
                 'is_public': sub.is_public,
                 'priority': sub.priority
             }
-    
-    def get_user_subscriptions(self, user_id: int) -> List[dict]:
+
+    def get_user_subscriptions(self, user_id: int) -> list[dict]:
         """Get all subscriptions for a user."""
-        from app.core.models import Subscription
         with self.get_session() as session:
             subs = session.exec(
                 select(Subscription).where(Subscription.user_id == user_id)
@@ -621,20 +619,18 @@ class Storage:
                 'is_public': sub.is_public,
                 'priority': sub.priority
             } for sub in subs]
-    
-    def get_public_subscriptions(self, user_id: int) -> List[dict]:
+
+    def get_public_subscriptions(self, user_id: int) -> list[dict]:
         """Get public subscriptions only."""
-        from app.core.models import Subscription
         with self.get_session() as session:
             subs = session.exec(
                 select(Subscription)
-                .where(Subscription.user_id == user_id, Subscription.is_public == True)
+                .where(Subscription.user_id == user_id, Subscription.is_public)
             ).all()
             return [{'feed_id': sub.feed_id} for sub in subs]
-    
+
     def update_subscription(self, sub_id: int, user_id: int, data: dict):
         """Update subscription fields."""
-        from app.core.models import Subscription
         with self.get_session() as session:
             sub = session.exec(
                 select(Subscription)
@@ -645,10 +641,9 @@ class Storage:
                     if hasattr(sub, key) and value is not None:
                         setattr(sub, key, value)
                 session.commit()
-    
+
     def delete_subscription(self, sub_id: int, user_id: int):
         """Delete a subscription."""
-        from app.core.models import Subscription
         with self.get_session() as session:
             sub = session.exec(
                 select(Subscription)
@@ -657,11 +652,10 @@ class Storage:
             if sub:
                 session.delete(sub)
                 session.commit()
-    
+
     # ReadState operations
     def mark_item_read(self, user_id: int, item_id: int):
         """Mark item as read for user."""
-        from app.core.models import ReadState
         with self.get_session() as session:
             read_state = session.exec(
                 select(ReadState).where(ReadState.user_id == user_id, ReadState.item_id == item_id)
@@ -672,10 +666,9 @@ class Storage:
                 read_state = ReadState(user_id=user_id, item_id=item_id, is_read=True)
                 session.add(read_state)
             session.commit()
-    
+
     def mark_item_starred(self, user_id: int, item_id: int, starred: bool = True):
         """Star/unstar item for user."""
-        from app.core.models import ReadState
         with self.get_session() as session:
             read_state = session.exec(
                 select(ReadState).where(ReadState.user_id == user_id, ReadState.item_id == item_id)
@@ -686,21 +679,19 @@ class Storage:
                 read_state = ReadState(user_id=user_id, item_id=item_id, starred=starred)
                 session.add(read_state)
             session.commit()
-    
-    def get_user_read_state(self, user_id: int, item_ids: List[int]) -> dict:
+
+    def get_user_read_state(self, user_id: int, item_ids: list[int]) -> dict:
         """Get read/starred state for items."""
-        from app.core.models import ReadState
         with self.get_session() as session:
             states = session.exec(
                 select(ReadState).where(ReadState.user_id == user_id, ReadState.item_id.in_(item_ids))
             ).all()
             return {state.item_id: {'is_read': state.is_read, 'starred': state.starred} for state in states}
-    
+
     # Collection operations
-    def create_collection(self, user_id: int, title: str, slug: str, description: Optional[str] = None, 
+    def create_collection(self, user_id: int, title: str, slug: str, description: str | None = None,
                          is_public: bool = True) -> dict:
         """Create a new collection."""
-        from app.core.models import Collection
         with self.get_session() as session:
             collection = Collection(
                 user_id=user_id,
@@ -713,37 +704,33 @@ class Storage:
             session.commit()
             session.refresh(collection)
             return {'id': collection.id, 'title': collection.title, 'slug': collection.slug}
-    
-    def get_user_collections(self, user_id: int) -> List[dict]:
+
+    def get_user_collections(self, user_id: int) -> list[dict]:
         """Get all collections for a user."""
-        from app.core.models import Collection
         with self.get_session() as session:
             collections = session.exec(
                 select(Collection).where(Collection.user_id == user_id)
             ).all()
             return [{'id': c.id, 'title': c.title, 'slug': c.slug, 'is_public': c.is_public} for c in collections]
-    
-    def get_public_collections(self, user_id: int) -> List[dict]:
+
+    def get_public_collections(self, user_id: int) -> list[dict]:
         """Get public collections only."""
-        from app.core.models import Collection
         with self.get_session() as session:
             collections = session.exec(
-                select(Collection).where(Collection.user_id == user_id, Collection.is_public == True)
+                select(Collection).where(Collection.user_id == user_id, Collection.is_public)
             ).all()
             return [{'title': c.title, 'slug': c.slug, 'description': c.description} for c in collections]
-    
+
     def get_public_collection(self, user_id: int, slug: str):
         """Get a specific public collection."""
-        from app.core.models import Collection
         with self.get_session() as session:
             collection = session.exec(
-                select(Collection).where(Collection.user_id == user_id, Collection.slug == slug, Collection.is_public == True)
+                select(Collection).where(Collection.user_id == user_id, Collection.slug == slug, Collection.is_public)
             ).first()
             return collection
-    
+
     def add_item_to_collection(self, user_id: int, slug: str, item_id: int):
         """Add item to collection."""
-        from app.core.models import Collection, CollectionItem
         with self.get_session() as session:
             collection = session.exec(
                 select(Collection).where(Collection.user_id == user_id, Collection.slug == slug)
@@ -752,10 +739,9 @@ class Storage:
                 item = CollectionItem(collection_id=collection.id, item_id=item_id)
                 session.add(item)
                 session.commit()
-    
-    def get_collection_items(self, collection_id: int) -> List[dict]:
+
+    def get_collection_items(self, collection_id: int) -> list[dict]:
         """Get items in a collection."""
-        from app.core.models import CollectionItem
         with self.get_session() as session:
             items = session.exec(
                 select(CollectionItem).where(CollectionItem.collection_id == collection_id)
@@ -766,21 +752,20 @@ class Storage:
                 items_data = session.exec(select(Item).where(Item.id.in_(item_ids))).all()
                 return [{'id': i.id, 'title': i.title, 'link': i.link} for i in items_data]
             return []
-    
+
     # Public profile operations
-    def get_public_user_items(self, user_id: int, limit: int = 20) -> List[dict]:
+    def get_public_user_items(self, user_id: int, limit: int = 20) -> list[dict]:
         """Get recent items from user's public subscriptions."""
-        from app.core.models import Subscription
         with self.get_session() as session:
             # Get public subscription feed_ids
             subs = session.exec(
-                select(Subscription).where(Subscription.user_id == user_id, Subscription.is_public == True)
+                select(Subscription).where(Subscription.user_id == user_id, Subscription.is_public)
             ).all()
             feed_ids = [sub.feed_id for sub in subs]
-            
+
             if not feed_ids:
                 return []
-            
+
             # Get items from those feeds, ordered by published DESC, limit
             items = session.exec(
                 select(Item)
@@ -788,9 +773,9 @@ class Storage:
                 .order_by(Item.published.desc())
                 .limit(limit)
             ).all()
-            
+
             return [{'id': i.id, 'title': i.title, 'link': i.link, 'published': i.published} for i in items]
-    
+
     def get_feed_by_url(self, url: str):
         """Get feed by URL."""
         with self.get_session() as session:

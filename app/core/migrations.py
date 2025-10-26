@@ -3,8 +3,9 @@ Migration script from single-user to multi-user Pablo Feeds.
 """
 
 import logging
-from app.core.storage import storage
+
 from app.core.auth_jwt import hash_password
+from app.core.storage import storage
 
 logger = logging.getLogger(__name__)
 
@@ -19,9 +20,9 @@ def migrate_to_multiuser(
     Migrate single-user data to multi-user schema.
     Creates founder user and subscribes all existing feeds.
     """
-    
+
     logger.info("Starting migration to multi-user...")
-    
+
     # Create founder user
     founder = storage.create_user(
         email=founder_email,
@@ -31,13 +32,13 @@ def migrate_to_multiuser(
         role="admin",
         timezone="UTC"
     )
-    
+
     logger.info(f"Created founder user: {founder.handle}")
-    
+
     # Migrate all feeds to subscriptions
     feeds = storage.get_feeds(enabled_only=False)
     subscription_count = 0
-    
+
     for feed in feeds:
         try:
             storage.create_subscription(
@@ -49,16 +50,16 @@ def migrate_to_multiuser(
             subscription_count += 1
         except Exception as e:
             logger.warning(f"Could not create subscription for feed {feed.id}: {e}")
-    
+
     logger.info(f"Created {subscription_count} subscriptions for founder user")
-    
+
     # Summary
-    logger.info(f"Migration complete!")
+    logger.info("Migration complete!")
     logger.info(f"Founder user: {founder.handle}")
     logger.info(f"Email: {founder_email}")
     logger.info(f"Password: {founder_password}")
     logger.info("⚠️  IMPORTANT: Change the password after first login!")
-    
+
     return {
         "founder_handle": founder.handle,
         "subscriptions_created": subscription_count,
