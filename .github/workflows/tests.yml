@@ -36,5 +36,5 @@ jobs:
     - name: Check linting
       run: |
         pip install ruff
-        ruff check app/ || echo "Linting completed with warnings"
+        ruff check --fix app/ || echo "Linting completed with warnings"
 
