@@ -2,7 +2,7 @@
 
 # Pablo Feeds - Minimalist RSS Aggregator
 
-![Logo](app/assets/logo.png)
+<img src="app/assets/logo.png" width="150" height="150">
 
 A minimalist, conservative RSS feed aggregator built with Python FastAPI and Jinja2 templates.
 
