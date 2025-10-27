@@ -81,31 +81,34 @@ def parse_feed_content(feed_id: int, content: bytes) -> list[ParsedItem]:
         return []
 
     try:
-        # Try to detect and fix encoding issues
-        encodings_to_try = ['utf-8', 'latin-1', 'iso-8859-1', 'cp1252']
-        parsed_feed = None
+        # Try direct feedparser first (it handles most cases well)
+        feed = feedparser.parse(content)
         
-        for encoding in encodings_to_try:
-            try:
-                # Decode with encoding
-                decoded_content = content.decode(encoding, errors='replace')
-                # Parse with feedparser (it handles encoding internally)
-                parsed_feed = feedparser.parse(decoded_content.encode('utf-8'))
-                if parsed_feed.entries:
-                    break
-            except (UnicodeDecodeError, Exception):
-                continue
+        # If no entries and bozo errors, try to fix encoding issues
+        if not feed.entries and feed.bozo:
+            logger.warning(f"Feed {feed_id} has parsing errors, trying encoding fixes: {feed.bozo_exception}")
+            
+            # Try to detect and fix encoding issues
+            encodings_to_try = ['utf-8', 'latin-1', 'iso-8859-1', 'cp1252']
+            
+            for encoding in encodings_to_try:
+                try:
+                    # Decode with encoding
+                    decoded_content = content.decode(encoding, errors='replace')
+                    # Parse with feedparser
+                    parsed_feed = feedparser.parse(decoded_content)
+                    if parsed_feed.entries:
+                        logger.info(f"Feed {feed_id} parsed successfully with encoding: {encoding}")
+                        feed = parsed_feed
+                        break
+                except (UnicodeDecodeError, Exception) as e:
+                    logger.debug(f"Feed {feed_id} failed with encoding {encoding}: {e}")
+                    continue
         
-        # If no encoding worked, try raw feedparser
-        if not parsed_feed or not parsed_feed.entries:
-            parsed_feed = feedparser.parse(content)
-
-        feed = parsed_feed
-
         # Even if there are bozo errors, try to parse entries if they exist
         if not feed.entries:
             if feed.bozo:
-                logger.warning(f"Feed {feed_id} has parsing errors: {feed.bozo_exception}")
+                logger.warning(f"Feed {feed_id} has parsing errors and no entries: {feed.bozo_exception}")
             return []
 
         # If there are entries, proceed even with bozo errors
