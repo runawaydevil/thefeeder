@@ -165,7 +165,11 @@ class FeedScheduler:
                 storage.log_fetch(feed_id, 304, duration_ms=duration_ms)
                 record_fetch_metrics(feed_id, host, 304, duration_ms, 0, 0)
                 storage.update_adaptive_backoff(feed_id, success=True)
-                logger.info(f"Feed {feed.name}: No new content (304)")
+                logger.info(
+                    f"Feed {feed.name}: No new content (304 Not Modified). "
+                    f"Last fetch was at {feed.last_fetch_time}. "
+                    f"Using ETag: {feed.last_etag[:20] if feed.last_etag else 'none'}..."
+                )
 
             elif result.is_success:
                 # Parse content
@@ -208,7 +212,13 @@ class FeedScheduler:
                     storage.log_fetch(feed_id, result.status, duration_ms=duration_ms)
                     record_fetch_metrics(feed_id, host, result.status, duration_ms, 0, 0)
                     storage.update_adaptive_backoff(feed_id, success=True)
-                    logger.warning(f"Feed {feed.name}: No items found")
+                    
+                    # Log detailed info about why no items were found
+                    logger.warning(
+                        f"Feed {feed.name}: No items found. "
+                        f"Content size: {len(result.content)} bytes, "
+                        f"Status: {result.status}"
+                    )
 
             else:
                 # Error occurred

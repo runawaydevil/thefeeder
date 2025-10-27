@@ -4,6 +4,7 @@ and deduplication by guid/link/hash.
 """
 
 import hashlib
+import logging
 import re
 from datetime import datetime
 from typing import Any
@@ -11,6 +12,8 @@ from zoneinfo import ZoneInfo
 
 import chardet
 import feedparser
+
+logger = logging.getLogger(__name__)
 
 
 def detect_encoding(content: bytes) -> str:
@@ -78,12 +81,36 @@ def parse_feed_content(feed_id: int, content: bytes) -> list[ParsedItem]:
         return []
 
     try:
-        # Parse with feedparser (it handles encoding internally)
-        feed = feedparser.parse(content)
+        # Try to detect and fix encoding issues
+        encodings_to_try = ['utf-8', 'latin-1', 'iso-8859-1', 'cp1252']
+        parsed_feed = None
+        
+        for encoding in encodings_to_try:
+            try:
+                # Decode with encoding
+                decoded_content = content.decode(encoding, errors='replace')
+                # Parse with feedparser (it handles encoding internally)
+                parsed_feed = feedparser.parse(decoded_content.encode('utf-8'))
+                if parsed_feed.entries:
+                    break
+            except (UnicodeDecodeError, Exception):
+                continue
+        
+        # If no encoding worked, try raw feedparser
+        if not parsed_feed or not parsed_feed.entries:
+            parsed_feed = feedparser.parse(content)
 
-        if feed.bozo and not feed.entries:
-            print(f"Warning: Feed {feed_id} has parsing errors: {feed.bozo_exception}")
+        feed = parsed_feed
+
+        # Even if there are bozo errors, try to parse entries if they exist
+        if not feed.entries:
+            if feed.bozo:
+                logger.warning(f"Feed {feed_id} has parsing errors: {feed.bozo_exception}")
             return []
+
+        # If there are entries, proceed even with bozo errors
+        if feed.bozo:
+            logger.warning(f"Feed {feed_id} has parsing errors but proceeding: {feed.bozo_exception}")
 
         items = []
         for entry in feed.entries[:100]:  # Limit to 100 items per feed
@@ -140,13 +167,13 @@ def parse_feed_content(feed_id: int, content: bytes) -> list[ParsedItem]:
                 items.append(item)
 
             except Exception as e:
-                print(f"Error parsing entry in feed {feed_id}: {e}")
+                logger.error(f"Error parsing entry in feed {feed_id}: {e}")
                 continue
 
         return items
 
     except Exception as e:
-        print(f"Error parsing feed {feed_id}: {e}")
+        logger.error(f"Error parsing feed {feed_id}: {e}")
         return []
 
 

@@ -19,6 +19,7 @@ from app import __version__
 from app.api import admin as admin_routes
 from app.api import auth as auth_routes
 from app.api import collections as collections_routes
+from app.api import diagnostics as diagnostics_routes
 from app.api import public as public_routes
 from app.api import routes as api_routes
 from app.api import subscriptions as subscriptions_routes
@@ -104,6 +105,7 @@ app.include_router(subscriptions_routes.router, tags=["subscriptions"])
 app.include_router(collections_routes.router, tags=["collections"])
 app.include_router(public_routes.router, tags=["public"])
 app.include_router(admin_routes.router)
+app.include_router(diagnostics_routes.router)
 
 
 @app.on_event("startup")
