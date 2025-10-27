@@ -6,6 +6,7 @@ jitter to avoid synchronization, and health monitoring.
 import logging
 import random
 import time
+import traceback
 from typing import Any
 
 import httpx
@@ -180,9 +181,10 @@ class FeedScheduler:
                     items_data = [item.to_dict() for item in items]
                     new_count = storage.add_items(items_data)
 
-                    # Track latest published time for TTL
-                    latest_published = max([item.published for item in items if item.published])
-                    if latest_published:
+                    # Track latest published time for TTL (only if there are items with published time)
+                    published_times = [item.published for item in items if item.published]
+                    if published_times:
+                        latest_published = max(published_times)
                         storage.update_feed_published_time(feed_id, latest_published)
 
                     # Update feed status
@@ -251,7 +253,11 @@ class FeedScheduler:
                 host = "unknown"
             record_fetch_metrics(feed_id, host, 0, duration_ms, 0, 0)
 
-            logger.error(f"Error fetching feed {feed_id}: {e}")
+            # Log full traceback for debugging
+            logger.error(
+                f"Error fetching feed {feed_id}: {e}\n"
+                f"Traceback: {traceback.format_exc()}"
+            )
 
         finally:
             # Always release lock
