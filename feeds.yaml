@@ -196,9 +196,9 @@
   url: "https://www.forbes.com/real-time/feed2/"
   interval_seconds: 1800
 
-- name: "Harvard Business Review"
-  url: "https://feeds.hbr.org/harvardbusiness"
-  interval_seconds: 3600
+- name: "The Register"
+  url: "https://www.theregister.com/feed/"
+  interval_seconds: 1800
 
 - name: "Business Insider"
   url: "https://www.businessinsider.com/rss"
@@ -212,6 +212,6 @@
   url: "https://techcrunch.com/tag/startups/feed/"
   interval_seconds: 1800
 
-- name: "Space Ghetto"
-  url: "https://www.spaceghetto.space/feed/"
+- name: "The Next Web"
+  url: "https://thenextweb.com/feed"
   interval_seconds: 1800
