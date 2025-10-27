@@ -211,3 +211,7 @@
 - name: "TechCrunch Startups"
   url: "https://techcrunch.com/tag/startups/feed/"
   interval_seconds: 1800
+
+- name: "Space Ghetto"
+  url: "https://www.spaceghetto.space/feed/"
+  interval_seconds: 1800
