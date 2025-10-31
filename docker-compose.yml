@@ -1,41 +1,95 @@
 services:
-  feeder:
-    build: .
-    env_file: .env
-    restart: unless-stopped
-    volumes:
-      - feeder_db:/data
-    environment:
-      - DB_PATH=/data/feeder.sqlite
-    healthcheck:
-      test: ["CMD", "curl", "-f", "http://localhost:7389/health"]
-      interval: 30s
-      timeout: 10s
-      retries: 3
-      start_period: 40s
-    networks:
-      - feeder-network
-
-  frontend:
+  web:
     build:
-      context: ./frontend
+      context: .
       dockerfile: Dockerfile
-    ports:
-      - "7389:80"
-    restart: unless-stopped
+      target: web
+    env_file:
+      - ./.env
     environment:
-      - VITE_API_URL=http://feeder:7389
+      - NODE_ENV=production
+      - PORT=3000
+      - DATABASE_URL=postgresql://thefeeder:thefeeder@db:5432/thefeeder
+      - REDIS_URL=redis://redis:6379
+      - WORKER_API_URL=http://worker:3001
+      - WORKER_API_TOKEN=${WORKER_API_TOKEN:-change-me-in-production}
+      - NEXTAUTH_SECRET=${NEXTAUTH_SECRET:-change-me-in-production-generate-random-secret}
+      - NEXTAUTH_URL=${NEXTAUTH_URL:-http://localhost:7389}
+      - TZ=${TZ:-America/Sao_Paulo}
+    ports:
+      - "7389:3000"
     depends_on:
-      - feeder
-    networks:
-      - feeder-network
+      db:
+        condition: service_healthy
+      redis:
+        condition: service_started
+    healthcheck:
+      test: ["CMD-SHELL", "wget --no-verbose --tries=1 --spider http://localhost:3000/api/health || exit 1"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 60s
+    restart: unless-stopped
 
-networks:
-  feeder-network:
-    driver: bridge
+  worker:
+    build:
+      context: .
+      dockerfile: Dockerfile
+      target: worker
+    env_file:
+      - ./.env
+    ports:
+      - "7388:3001"
+    environment:
+      - NODE_ENV=production
+      - DATABASE_URL=postgresql://thefeeder:thefeeder@db:5432/thefeeder
+      - REDIS_URL=redis://redis:6379
+      - SMTP_HOST=${SMTP_HOST:-}
+      - SMTP_PORT=${SMTP_PORT:-587}
+      - SMTP_SECURE=${SMTP_SECURE:-false}
+      - SMTP_USER=${SMTP_USER:-}
+      - SMTP_PASS=${SMTP_PASS:-}
+      - SMTP_FROM=${SMTP_FROM:-noreply@thefeeder.com}
+      - TZ=${TZ:-America/Sao_Paulo}
+      - DIGEST_TIME=${DIGEST_TIME:-09:00}
+      - NEXT_PUBLIC_SITE_URL=${NEXT_PUBLIC_SITE_URL:-http://localhost:7389}
+      - WORKER_API_PORT=3001
+      - WORKER_API_TOKEN=${WORKER_API_TOKEN:-change-me-in-production}
+    depends_on:
+      db:
+        condition: service_healthy
+      redis:
+        condition: service_started
+      web:
+        condition: service_healthy
+    restart: unless-stopped
+
+  db:
+    image: postgres:16-alpine
+    environment:
+      - POSTGRES_USER=thefeeder
+      - POSTGRES_PASSWORD=thefeeder
+      - POSTGRES_DB=thefeeder
+    ports:
+      - "15432:5432"
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U thefeeder"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  redis:
+    image: redis:7-alpine
+    ports:
+      - "16379:6379"
+    command: ["redis-server", "--appendonly", "yes"]
+    volumes:
+      - redisdata:/data
 
 volumes:
-  feeder_db:
-    driver: local
+  pgdata:
+  redisdata:
 
 

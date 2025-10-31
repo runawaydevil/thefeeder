@@ -1,302 +1,240 @@
 <div align="center">
 
-# Pablo Feeds - Minimalist RSS Aggregator
+# TheFeeder - Modern RSS Aggregator
 
-<img src="app/assets/logo.png" width="150" height="150">
+<img src="apps/web/public/logo.png" width="150" height="150">
 
-A minimalist, conservative RSS feed aggregator built with Python FastAPI and Jinja2 templates.
+A modern RSS feed aggregator with daily email digest, built with Next.js 15, PostgreSQL, and Redis.
 
 </div>
 
-### Version: 1.0.0 - Multi-User Edition
-
+**Version:** 2.0.0 - Node.js Edition  
 **Author:** Pablo Murad <pablomurad@pm.me>  
-**Repositories:** [GitHub](https://github.com/runawaydevil/thefeeder) • [Forgejo](https://git.teu.cool/pablo/thefeeder)
+**Repository:** [GitHub](https://github.com/runawaydevil/thefeeder)
 
 ---
-
 
 ## Features
 
 ### Core Features
-- **Multi-User System**: JWT authentication with role-based access control (RBAC)
-- **User Management**: Admin, Moderator, and User roles
-- **Minimalist Design**: Clean, responsive React frontend with Tailwind CSS
-- **Dark/Light Theme**: Automatic theme detection with manual toggle
-- **Custom Themes**: JSON-based theme system with CSS variables
-- **RSS/Atom Support**: Parses feeds with feedparser (supports RSS, Atom, JSON Feed)
-- **Smart Fetching**: ETag/Last-Modified caching, rate limiting, retry with backoff
-- **Per-Feed Intervals**: Custom update intervals per feed
-- **Feed Limit**: Maximum 150 feeds supported
-- **Item Limit**: Maximum 1500 articles stored (older items auto-deleted)
-- **Deduplication**: Prevents duplicate articles
-- **Timezone Support**: Display timestamps in any IANA timezone
-- **Docker Ready**: Complete containerization setup
+- 🎨 **Retro/Vaporwave Design**: Beautiful neon-themed UI with cyber aesthetic
+- 📰 **RSS/Atom Feed Aggregation**: Supports RSS, Atom, and JSON feeds
+- 🔍 **Auto Discovery**: Automatically discovers feeds from websites, Reddit, YouTube, GitHub
+- 📧 **Daily Email Digest**: Send curated daily digests to subscribers
+- 👤 **Admin Dashboard**: Full CRUD interface for managing feeds
+- 🔐 **Secure Authentication**: NextAuth with role-based access control
+- ⚡ **Background Jobs**: BullMQ for reliable feed fetching and email delivery
+- 🌐 **Multi-timezone Support**: Configured timezone support (default: America/Sao_Paulo)
+- 📱 **Responsive Design**: Works perfectly on desktop and mobile
 
-### Multi-User Features (v1.0.0)
-- **🔐 JWT Authentication**: Secure login with access + refresh tokens
-- **👥 User Profiles**: Customizable profiles with @handle URLs
-- **🎨 Custom Themes**: JSON-based theming system per user
-- **📝 Collections**: Curated lists of articles (collections)
-- **🔔 Subscriptions**: User-specific feed subscriptions
-- **📊 Public Profiles**: Shareable user profiles with public feeds
-- **⚙️ Admin Panel**: RBAC-based administration interface
-- **🔒 Feed Privacy**: Public/private subscription controls
+### Feed Management
+- **Auto Discovery**: Enter a URL and automatically find RSS feeds
+- **Reddit Support**: Auto-converts subreddit URLs to RSS feeds
+- **YouTube Support**: Detects YouTube channels and converts to RSS
+- **GitHub Support**: Supports GitHub user and repository feeds
+- **Rate Limiting**: Intelligent rate limiting (Reddit: 1 hour minimum)
+- **User Agent Rotation**: Random user agents to prevent blocking
+- **Custom Intervals**: Set refresh intervals per feed (minimum 10 minutes)
 
-### User Experience (v1.0.0)
-- **🔍 FTS5 Search**: Ultra-fast full-text search (10x faster than LIKE)
-- **📑 Smart Pagination**: Configurable pagination (10-100 items per page)
-- **⏰ Relative Time**: "2 hours ago" with timezone support
-- **✅ Read Tracking**: Mark articles as read with visual indicators
-- **🔄 Custom Sorting**: Sort by recent, oldest, title, or feed
-- **🎨 Status Indicators**: Feed health badges with color-coded status
-- **🖼️ Image Handling**: Smart placeholders and lazy loading with proxy
-- **♿ Accessibility**: WCAG AA compliant with skip links and ARIA support
-- **📱 Empty States**: Contextual messages with helpful actions
-- **📋 List View**: Toggle between Cards and compact List view
-- **⌨️ Keyboard Shortcuts**: j/k navigation, o/Enter open, m mark read
-- **🎨 Multiple Themes**: Light, Dark, Sepia, Solarized, High Contrast
-- **📱 PWA Support**: Service Worker, offline support, manifest
+### Technical Stack
+- **Frontend**: Next.js 15 (App Router), React 18, Tailwind CSS
+- **Backend**: Next.js API Routes
+- **Database**: PostgreSQL with Prisma ORM
+- **Queue**: BullMQ with Redis
+- **Email**: Nodemailer
+- **Auth**: NextAuth v5
 
-### Advanced Features
-- **🔒 Feed Locking**: Prevents concurrent fetches of same feed
-- **📈 Adaptive Backoff**: Automatically reduces frequency for unstable feeds
-- **⚡ HEAD Requests**: Cache checks without downloading content
-- **🔍 Autodiscovery**: Automatically find RSS feeds from websites
-- **📦 OPML Support**: Import/export feeds in standard format
-- **🔔 WebSub**: Real-time updates via PubSubHubbub
-- **⏱️ TTL Tracking**: Automatic degradation of inactive feeds
-- **📊 Prometheus Metrics**: Full observability with /metrics endpoint
-- **🔧 Auto Maintenance**: VACUUM, ANALYZE, and log cleanup
-- **🛡️ Enhanced Security**: CSP, COEP, CORP headers
+---
 
 ## Quick Start
 
-1. **Clone and configure**:
-   ```bash
-   cp .env.example .env
-   # Edit .env with your feeds and settings
-   ```
+### Prerequisites
+- Node.js 20+ 
+- PostgreSQL 16+
+- Redis 7+
+- Docker & Docker Compose (optional)
 
-2. **Run with Docker**:
-   ```bash
-   docker compose up --build
-   ```
+### Installation
 
-3. **Access**: http://localhost:7389
-   - Frontend React (main interface)
-   - API REST at `/api/*`
-   - Admin endpoints at `/admin/*`
-
-## Configuration
-
-### Environment Variables
-
-- `APP_NAME`: Application name (displayed in header)
-- `USER_AGENT_BASE`: User-Agent string (Reddit-compliant)
-- `FEEDS_YAML`: YAML string with feed configurations
-- `PER_HOST_RPS`: Requests per second per host (default: 0.5)
-- `DEFAULT_FETCH_INTERVAL_SECONDS`: Default update interval (default: 600)
-- `MAX_FEEDS`: Maximum number of feeds (default: 1500)
-- `TIMEZONE`: Timezone for displaying article timestamps (default: UTC)
-
-### Feed Configuration
-
-Feeds are configured in the `FEEDS_YAML` environment variable:
-
-```yaml
-- name: "Feed Name"
-  url: "https://example.com/feed.xml"
-  interval_seconds: 1200
+1. **Clone the repository:**
+```bash
+git clone https://github.com/runawaydevil/thefeeder.git
+cd thefeeder
 ```
 
-### Timezone Configuration
+2. **Install dependencies:**
+```bash
+npm run install:all
+```
 
-Set the `TIMEZONE` environment variable to display article timestamps in your local timezone:
+3. **Configure environment:**
+```bash
+cp .env.example .env
+# Edit .env with your settings
+```
+
+4. **Setup database:**
+```bash
+npm run prisma:generate
+npm run prisma:migrate:dev
+npm run prisma:seed
+```
+
+5. **Start development servers:**
+```bash
+npm run dev
+```
+
+This starts both:
+- Web app: http://localhost:7389
+- Worker API: http://localhost:7388
+
+### Default Admin Credentials
+
+- **Email:** `admin@example.com`
+- **Password:** `admin123`
+
+⚠️ **Change these in production!**
+
+---
+
+## Docker Deployment
 
 ```bash
-# Examples
-TIMEZONE=America/Sao_Paulo    # Brazil (UTC-3)
-TIMEZONE=America/New_York     # US East (UTC-5/-4)
-TIMEZONE=Europe/London        # UK (UTC+0/+1)
-TIMEZONE=Asia/Tokyo           # Japan (UTC+9)
+docker-compose -f docker-compose.node.yml up -d
 ```
 
-The system uses IANA timezone names. If an invalid timezone is provided, it falls back to UTC.
+This starts all services:
+- Web app (port 3000)
+- Worker (port 3001)
+- PostgreSQL (port 15432)
+- Redis (port 16379)
 
-## API Endpoints
+---
 
-### Authentication API
-- `POST /api/auth/register`: Register new user
-- `POST /api/auth/login`: Login with email/password
-- `POST /api/auth/refresh`: Refresh access token
-- `GET /api/auth/me`: Get current user info
+## Environment Variables
 
-### User API
-- `GET /api/me/subscriptions`: Get user's subscriptions
-- `POST /api/me/subscriptions`: Add subscription
-- `DELETE /api/me/subscriptions/{id}`: Remove subscription
-- `GET /api/me/collections`: Get user's collections
-- `POST /api/me/collections`: Create collection
-- `POST /api/me/collections/{slug}/items`: Add item to collection
+Key variables in `.env`:
 
-### Public API
-- `GET /public/@{handle}`: Public user profile
-- `GET /public/@{handle}/feed.xml`: Public RSS feed
-- `GET /public/@{handle}/theme.css`: Custom theme CSS
-- `GET /public/@{handle}/collections/{slug}`: Public collection
+```env
+# Database
+DATABASE_URL=postgresql://user:pass@localhost:15432/thefeeder
 
-### REST API (for React frontend)
-- `GET /api/items`: Get paginated items with filtering
-- `GET /api/items/{id}`: Get single item details
-- `GET /api/feeds`: List all feeds
-- `GET /api/feeds/{id}`: Get feed details with stats
-- `GET /api/feeds/{id}/items`: Get items for specific feed
+# Redis
+REDIS_URL=redis://localhost:16379
 
-### Admin API (RBAC)
-- `GET /admin/users`: List all users (admin only)
-- `PATCH /admin/users/{id}`: Update user role (admin only)
-- `DELETE /admin/users/{id}`: Delete user (admin only)
-- `GET /admin/health`: System health status
-- `GET /admin/refresh?feed_id=X`: Manual feed refresh
-- `GET /health`: Simple health check
+# NextAuth
+NEXTAUTH_SECRET=your-secret-here
+NEXTAUTH_URL=http://localhost:7389
 
-## Architecture
+# Worker API
+WORKER_API_URL=http://localhost:7388
+WORKER_API_TOKEN=your-token-here
 
-```
-app/
-├── api/                    # REST API endpoints
-│   ├── routes.py          # Main API routes
-│   ├── auth.py            # Authentication endpoints
-│   ├── admin.py           # Admin endpoints (RBAC)
-│   ├── subscriptions.py   # Subscription management
-│   ├── collections.py     # Collections API
-│   └── public.py          # Public profiles/RSS
-├── core/                   # Core modules
-│   ├── models.py          # Multi-user ORM models
-│   ├── storage.py         # SQLite database layer
-│   ├── auth_jwt.py        # JWT authentication
-│   ├── config.py          # Settings and YAML parser
-│   ├── fetcher.py         # HTTP client with caching
-│   ├── parser.py          # RSS/Atom parser
-│   ├── scheduler.py       # APScheduler jobs
-│   ├── rate_limit.py      # Rate limiting
-│   ├── theming.py         # Theme system
-│   ├── migrations.py      # Database migrations
-│   ├── maintenance.py     # Auto maintenance
-│   ├── metrics.py         # Prometheus metrics
-│   ├── opml.py            # OPML support
-│   ├── websub.py          # WebSub real-time
-│   └── ua.py              # User-Agent policy
-├── web/
-│   ├── server.py          # FastAPI app & routes
-│   ├── templates/         # Jinja2 templates (legacy)
-│   └── static/            # Static assets
-├── assets/                # Logo and assets
-└── main.py                # Entry point
+# Timezone
+TZ=America/Sao_Paulo
 
-frontend/                   # React frontend
-├── src/
-│   ├── app/              # Page components
-│   ├── components/       # UI components
-│   ├── lib/              # Utilities
-│   ├── hooks/            # Custom React hooks
-│   ├── contexts/         # React contexts
-│   └── types/            # TypeScript types
-└── public/
-    ├── manifest.json     # PWA manifest
-    └── sw.js             # Service Worker
+# Daily Digest
+DIGEST_TIME=09:00
+
+# SMTP (optional)
+SMTP_HOST=smtp.example.com
+SMTP_USER=user@example.com
+SMTP_PASS=password
 ```
 
-## Best Practices Implemented
+See `.env.example` for all available options.
 
-- **Reddit Compliance**: Descriptive User-Agent with contact info
-- **Rate Limiting**: Token bucket per host + global concurrency
-- **Caching**: ETag/Last-Modified headers
-- **Retry Logic**: Exponential backoff with jitter
-- **Encoding Detection**: Automatic charset detection with chardet
-- **Feed Validation**: Supports RSS, Atom, RDF, and JSON Feed
-- **Deduplication**: GUID-based item deduplication
-- **Health Monitoring**: Feed status tracking
-- **Error Handling**: Graceful degradation
-- **Theme Support**: System preference detection with manual override
+---
 
-## Supported Feed Types
+## Project Structure
 
-- **RSS 0.90, 0.91, 0.92, 1.0, 2.0**: Standard RSS feeds
-- **Atom 0.3, 1.0**: Atom feeds
-- **RDF**: RDF feeds
-- **JSON Feed**: JSON Feed format (https://jsonfeed.org/)
-
-## Feed Sources
-
-### Supported Sources
-
-- **RSS/Atom**: Standard feeds
-- **YouTube**: `https://www.youtube.com/feeds/videos.xml?channel_id=CHANNEL_ID`
-- **Reddit**: `https://www.reddit.com/r/SUBREDDIT/.rss`
-- **GitHub**: `https://github.com/USERNAME.atom`
-- **Dev.to**: `https://dev.to/feed`
-
-### RSSHub Integration
-
-For TikTok/Instagram feeds, use a self-hosted RSSHub instance:
-
-```yaml
-- name: "TikTok User"
-  url: "https://rsshub.your-domain.com/tiktok/user/username"
-  interval_seconds: 1800
 ```
+thefeeder/
+├── apps/
+│   ├── web/              # Next.js web application
+│   │   ├── app/          # Pages and API routes
+│   │   ├── src/          # Components and utilities
+│   │   └── prisma/       # Database schema
+│   └── worker/           # Background worker (BullMQ)
+│       └── src/          # Job processors
+├── .env                  # Environment variables (root)
+├── .env.example         # Environment template
+├── package.json          # Root package.json with scripts
+└── docker-compose.node.yml
+```
+
+---
+
+## Scripts
+
+From the root directory:
+
+```bash
+npm run dev              # Start web + worker in dev mode
+npm run build            # Build both services
+npm run start            # Start both in production
+npm run install:all      # Install all dependencies
+npm run prisma:generate  # Generate Prisma client
+npm run prisma:migrate:dev  # Run migrations
+npm run prisma:seed      # Seed database
+```
+
+---
 
 ## Development
 
-### Local Development
+### Running Individual Services
 
 ```bash
-# Install dependencies
-pip install -r requirements.txt
+# Web app only
+cd apps/web && npm run dev
 
-# Run locally
-python -m app.main
+# Worker only
+cd apps/worker && npm run dev
 ```
 
-### Docker Development
+### Database Management
 
 ```bash
-# Build and run
-docker compose up --build
+# Open Prisma Studio
+npm run prisma:studio
 
-# View logs
-docker compose logs -f feeder
+# Create migration
+npm run prisma:migrate:dev
 
-# Clean rebuild
-docker compose down -v
-docker compose up --build
+# Reset database
+cd apps/web && npx prisma migrate reset
 ```
 
-## Monitoring
+---
 
-- **Health Check**: `/health` endpoint
-- **Feed Status**: `/admin/health` for detailed status
-- **Manual Refresh**: `/admin/refresh?feed_id=X`
-- **Logs**: Docker logs show fetch operations
+## Feed Discovery
 
-## Security
+The admin dashboard includes an auto-discovery feature:
 
-- User-Agent compliance with major platforms
-- Rate limiting to prevent abuse
-- Input validation and sanitization
-- No external dependencies for core functionality
-- Environment variables for sensitive configuration
+1. Click "🔍 Discover" in the feeds manager
+2. Enter a URL (website, Reddit, YouTube, GitHub, etc.)
+3. Select a discovered feed to add it
 
-## Theme Customization
+Supported formats:
+- Regular websites (searches for RSS/Atom links)
+- Reddit: `r/subreddit` or `https://reddit.com/r/subreddit`
+- YouTube: Channel URLs or channel IDs
+- GitHub: User or repository URLs
 
-The application supports automatic theme detection based on system preferences and manual toggle via the button in the header. Themes are stored in browser localStorage.
+---
 
-## Credits
+## Contributing
 
-Developed by [runawaydevil](https://github.com/runawaydevil) - 2025
+See [CONTRIBUTING.md](CONTRIBUTING.md) for guidelines.
+
+---
 
 ## License
 
-MIT License - Pablo Murad, 2025
+See [LICENSE](LICENSE) file.
+
+---
+
+**Built with ❤️ by Pablo Murad**

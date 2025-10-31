@@ -1,0 +1,36 @@
+{
+  "name": "thefeeder",
+  "private": true,
+  "version": "0.1.0",
+  "scripts": {
+    "dev": "concurrently \"npm run dev:web\" \"npm run dev:worker\"",
+    "dev:web": "cd apps/web && npm run dev",
+    "dev:worker": "cd apps/worker && npm run dev",
+    "build": "npm run build:web && npm run build:worker",
+    "build:web": "cd apps/web && npm run build",
+    "build:worker": "cd apps/worker && npm run build || echo 'Worker build skipped (no build script)'",
+    "start": "concurrently \"npm run start:web\" \"npm run start:worker\"",
+    "start:web": "cd apps/web && npm run start",
+    "start:worker": "cd apps/worker && npm run start",
+    "install:all": "npm install && cd apps/web && npm install && cd ../worker && npm install",
+    "prisma:generate": "cd apps/web && npm run prisma:generate",
+    "prisma:migrate:dev": "cd apps/web && npm run prisma:migrate:dev",
+    "prisma:studio": "cd apps/web && npm run prisma:studio",
+    "prisma:seed": "cd apps/web && npm run prisma:seed",
+    "lint": "cd apps/web && npm run lint",
+    "typecheck": "cd apps/web && npm run typecheck",
+    "docker:up": "docker compose up -d --build",
+    "docker:down": "docker compose down",
+    "docker:logs": "docker compose logs -f",
+    "docker:ps": "docker compose ps",
+    "db:generate": "docker compose exec web npx prisma generate",
+    "db:migrate": "docker compose exec web npx prisma migrate dev --name init",
+    "db:deploy": "docker compose exec web npx prisma migrate deploy",
+    "db:seed": "docker compose exec web npm run prisma:seed",
+    "db:studio": "docker compose exec web npx prisma studio"
+  },
+  "devDependencies": {
+    "concurrently": "^8.2.2"
+  }
+}
+

@@ -1,40 +1,151 @@
-FROM python:3.12-slim
-
+# ============================================
+# Base stage - shared by both web and worker
+# ============================================
+FROM node:20-alpine AS base
 WORKDIR /app
 
-# Set environment variables
-ENV PYTHONDONTWRITEBYTECODE=1
-ENV PYTHONUNBUFFERED=1
-ENV PYTHONPATH=/app
+# ============================================
+# Web App Dependencies
+# ============================================
+FROM base AS deps-web
+# Copy package files
+COPY apps/web/package*.json ./
+# Use npm ci if package-lock.json exists, otherwise npm install
+RUN test -f package-lock.json && npm ci || npm install
 
-# Install system dependencies
-RUN apt-get update && apt-get install -y \
-    gcc \
-    curl \
-    && rm -rf /var/lib/apt/lists/*
+# ============================================
+# Worker Dependencies
+# ============================================
+FROM base AS deps-worker
+WORKDIR /worker
+# Copy package files
+COPY apps/worker/package*.json ./
+# Use npm ci if package-lock.json exists, otherwise npm install
+RUN test -f package-lock.json && npm ci || npm install
 
-# Copy requirements first for better caching
-COPY requirements.txt /app/
+# ============================================
+# Web App Build
+# ============================================
+FROM base AS build-web
+WORKDIR /app
 
-# Install Python dependencies from requirements.txt
-RUN pip install --no-cache-dir -r requirements.txt
+# Install OpenSSL for Prisma
+RUN apk add --no-cache openssl openssl-dev
 
-# Copy application code
-COPY app /app/app
-COPY feeds.yaml /app/
+# Copy node_modules from deps
+COPY --from=deps-web /app/node_modules ./node_modules
 
-# Verify feeds.yaml is present
-RUN test -f /app/feeds.yaml || (echo "ERROR: feeds.yaml not found" && exit 1)
+# Copy package-lock.json from deps (generated if it didn't exist)
+COPY --from=deps-web /app/package-lock.json* ./package-lock.json
 
-# Create data directory
-RUN mkdir -p /data
+# Copy web app files
+COPY apps/web/package.json ./package.json
+COPY apps/web/next.config.mjs ./next.config.mjs
+COPY apps/web/tsconfig.json ./tsconfig.json
+COPY apps/web/postcss.config.mjs ./postcss.config.mjs
+COPY apps/web/tailwind.config.ts ./tailwind.config.ts
+COPY apps/web/middleware.ts ./middleware.ts
+COPY apps/web/prisma ./prisma
+COPY apps/web/src ./src
+COPY apps/web/app ./app
+COPY apps/web/public ./public
 
-# Expose port
-EXPOSE 7389
+# Generate Prisma Client and build
+RUN npx prisma generate
+RUN npm run build
 
-# Health check
-HEALTHCHECK --interval=30s --timeout=10s --start-period=5s --retries=3 \
-    CMD curl -f http://localhost:7389/health || exit 1
+# ============================================
+# Worker Build
+# ============================================
+FROM base AS build-worker
+WORKDIR /worker
 
-# Run the application
-CMD ["python", "app/main.py"]
+# Install OpenSSL for Prisma
+RUN apk add --no-cache openssl openssl-dev
+
+# Copy node_modules from deps
+COPY --from=deps-worker /worker/node_modules ./node_modules
+
+# Copy package-lock.json from deps (generated if it didn't exist)
+COPY --from=deps-worker /worker/package-lock.json* ./package-lock.json
+
+# Copy worker files
+COPY apps/worker/package.json ./package.json
+COPY apps/worker/src ./src
+COPY apps/worker/tsconfig.json ./tsconfig.json
+
+# Copy prisma schema from web app
+COPY apps/web/prisma ./prisma
+
+# Generate Prisma Client
+RUN npx prisma generate
+
+# ============================================
+# Web App Production Image
+# ============================================
+FROM node:20-alpine AS web
+WORKDIR /app
+ENV NODE_ENV=production
+
+# Install OpenSSL for Prisma runtime, postgresql-client for pg_isready, and wget for healthcheck
+RUN apk add --no-cache openssl postgresql-client wget
+
+# Copy package files
+COPY --from=build-web /app/package.json ./package.json
+COPY --from=build-web /app/package-lock.json* ./package-lock.json
+
+# Copy node_modules from build-web (includes generated Prisma Client)
+COPY --from=build-web /app/node_modules ./node_modules
+
+# Remove dev dependencies but keep Prisma Client
+# Install tsx as production dependency (needed for seed) BEFORE prune
+# This ensures tsx is available and accessible via npx
+RUN npm install --save-prod --no-audit tsx && \
+    npm prune --production --omit=dev --no-audit && \
+    npm cache clean --force
+
+# Copy build artifacts and runtime files
+COPY --from=build-web /app/.next ./.next
+COPY --from=build-web /app/public ./public
+COPY --from=build-web /app/next.config.mjs ./next.config.mjs
+COPY --from=build-web /app/prisma ./prisma
+COPY --from=build-web /app/src ./src
+COPY --from=build-web /app/middleware.ts ./middleware.ts
+
+# Copy entrypoint script
+COPY docker-entrypoint-web.sh /docker-entrypoint-web.sh
+RUN chmod +x /docker-entrypoint-web.sh
+
+EXPOSE 3000
+ENTRYPOINT ["/docker-entrypoint-web.sh"]
+
+# ============================================
+# Worker Production Image
+# ============================================
+FROM node:20-alpine AS worker
+WORKDIR /worker
+ENV NODE_ENV=production
+
+# Install OpenSSL for Prisma runtime and postgresql-client for pg_isready
+RUN apk add --no-cache openssl postgresql-client
+
+# Copy package files
+COPY --from=build-worker /worker/package.json ./package.json
+COPY --from=build-worker /worker/package-lock.json* ./package-lock.json
+
+# Copy node_modules from build-worker (includes generated Prisma Client)
+COPY --from=build-worker /worker/node_modules ./node_modules
+
+# Remove dev dependencies but keep Prisma Client
+RUN npm prune --production && npm cache clean --force
+
+# Copy runtime files
+COPY --from=build-worker /worker/prisma ./prisma
+COPY --from=build-worker /worker/src ./src
+
+# Copy entrypoint script
+COPY docker-entrypoint-worker.sh /docker-entrypoint-worker.sh
+RUN chmod +x /docker-entrypoint-worker.sh
+
+EXPOSE 3001
+ENTRYPOINT ["/docker-entrypoint-worker.sh"]

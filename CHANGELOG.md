@@ -1,4 +1,4 @@
-# CHANGELOG - Pablo Feeds
+# CHANGELOG - TheFeeder
 
 All notable changes to this project will be documented in this file.
 
@@ -7,26 +7,66 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ---
 
-## [0.0.2] - 2025-01-15
+## [0.0.2] - 2025-10-31
 
 ### Added
-- **List View Toggle**: Switch between Cards and compact List view with feed icons
-- **Feed Icons**: Automatic icon detection for popular feeds (YouTube 📺, GitHub 💻, Reddit 🔴, Dev.to 💜, Hacker News 🍊)
-- **Improved Link Colors**: Better color scheme for links throughout the application
-- **View Persistence**: List view preference saved in localStorage
+- **Pagination System**: Display up to 600 articles per page with navigation controls
+  - Pagination component with Previous/Next buttons
+  - Shows current page and total pages
+  - Displays article count range (e.g., "Showing 1-600 of 1234 articles")
+- **OPML Export**: Admin dashboard can export all active feeds as OPML format
+  - New API endpoint `/api/feeds/export/opml`
+  - Export button in FeedsManager component
+  - Compatible with standard feed readers (Feedly, Inoreader, etc.)
+- **Enhanced YouTube Support**: Complete support for all YouTube URL formats
+  - Support for `@username` format (e.g., `@channelname`)
+  - Support for `/user/USERNAME` format
+  - Support for `/c/CHANNELNAME` custom URLs
+  - Automatic channel ID extraction from channel pages
+  - Channel title detection for better feed names
+- **Admin Notifications**: Pending subscriber count badge
+  - Real-time counter on "Subscribers" button in admin dashboard
+  - Automatic polling every 30 seconds
+  - Visual badge with neon cyan styling
+  - Updates immediately after subscriber actions
 
 ### Changed
-- Updated link colors from default blue to slate blue (#2c5282) for better aesthetics
-- Dark mode links use light blue (#5dade2) for better contrast
-- Footer links match new color scheme
+- **Email Digest**: Limited to 20 most recent articles (down from 50)
+  - Only sends top 20 articles from last 24 hours
+  - Reduces email size and improves readability
+- **Article Display**: Increased from 20 to 600 articles per page
+  - New articles always appear first (most recent)
+  - Footer shows real total count from database
+  - Pagination automatically appears when total > 600
+- **UI Improvements**:
+  - Removed distracting neon cyan borders from empty states
+  - Improved article title legibility (white text with soft glow)
+  - Removed harsh neon pink from article card titles
+- **Docker Configuration**:
+  - Fixed Prisma seed execution with tsx
+  - Improved entrypoint scripts with multiple fallbacks
+  - Better error handling and logging
 
-### Files Modified
-- `app/__init__.py` - Version updated to 0.0.2
-- `app/web/templates/base.html` - Added view-toggle.js script
-- `app/web/static/styles.css` - Updated link colors and added list view styles
-- `app/web/static/view-toggle.js` - New file for view toggle functionality
-- `README.md` - Updated version and features
-- `CHANGELOG.md` - Reformatted changelog
+### Fixed
+- **Prisma Seed**: Fixed "tsx not found" error in Docker containers
+  - Install tsx as production dependency before npm prune
+  - Multiple fallback methods for seed execution
+  - Absolute path fallback if npx fails
+- **Feed Deletion**: Fixed cascade delete for feeds and associated items
+  - Added `onDelete: Cascade` to Item model
+  - Improved error handling and user feedback
+- **TypeScript Compatibility**: Fixed null/undefined type mismatches
+  - Proper conversion from Prisma null to undefined
+  - Fixed TypeScript errors in server-data.ts
+
+### Technical
+- **Dockerfile**: Consolidated to single root Dockerfile
+  - Multi-stage builds for web and worker
+  - Proper OpenSSL installation for Prisma
+  - Improved dependency management
+- **Email Configuration**: Mailgun SMTP integration
+  - Production-ready email service
+  - Secure credentials in .env
 
 ---
 
