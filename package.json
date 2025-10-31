@@ -8,7 +8,7 @@
     "dev:worker": "cd apps/worker && npm run dev",
     "build": "npm run build:web && npm run build:worker",
     "build:web": "cd apps/web && npm run build",
-    "build:worker": "cd apps/worker && npm run build || echo 'Worker build skipped (no build script)'",
+    "build:worker": "cd apps/worker && (npm run build 2>&1 || echo 'Worker build skipped (no build script)')",
     "start": "concurrently \"npm run start:web\" \"npm run start:worker\"",
     "start:web": "cd apps/web && npm run start",
     "start:worker": "cd apps/worker && npm run start",
