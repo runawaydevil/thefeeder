@@ -3,6 +3,20 @@
 import { useState, useEffect } from "react";
 import { FeedIcon } from "@/src/lib/feed-icon";
 
+/**
+ * Format date deterministically to avoid hydration errors
+ * Uses UTC to ensure same output on server and client
+ */
+function formatDateTime(dateString: string): string {
+  const date = new Date(dateString);
+  const year = date.getUTCFullYear();
+  const month = String(date.getUTCMonth() + 1).padStart(2, '0');
+  const day = String(date.getUTCDate()).padStart(2, '0');
+  const hours = String(date.getUTCHours()).padStart(2, '0');
+  const minutes = String(date.getUTCMinutes()).padStart(2, '0');
+  return `${day}/${month}/${year} ${hours}:${minutes}`;
+}
+
 interface Feed {
   id: string;
   title: string;
@@ -410,7 +424,7 @@ export default function FeedsManager() {
                 {feed.lastFetchedAt && (
                   <span className="flex items-center gap-1">
                     <span className="w-1 h-1 bg-vaporwave-purple rounded-full" />
-                    Last: {new Date(feed.lastFetchedAt).toLocaleString()}
+                    Last: {formatDateTime(feed.lastFetchedAt)}
                   </span>
                 )}
               </div>

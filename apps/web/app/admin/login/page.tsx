@@ -37,7 +37,7 @@ export default function AdminLoginPage() {
   };
 
   return (
-    <div className="min-h-screen relative overflow-hidden scanlines flex items-center justify-center px-4">
+    <div className="min-h-screen relative overflow-x-hidden overflow-y-auto scanlines flex items-center justify-center px-4">
       <div className="vaporwave-grid" />
       <div className="absolute inset-0 opacity-30" style={{
         background: 'radial-gradient(circle at 50% 0%, hsl(320 100% 50% / 0.4), transparent 50%), radial-gradient(circle at 80% 80%, hsl(270 100% 50% / 0.3), transparent 50%)'

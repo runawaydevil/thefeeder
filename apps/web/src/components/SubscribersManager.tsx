@@ -2,6 +2,18 @@
 
 import { useState, useEffect } from "react";
 
+/**
+ * Format date deterministically to avoid hydration errors
+ * Uses UTC to ensure same output on server and client
+ */
+function formatDate(dateString: string): string {
+  const date = new Date(dateString);
+  const year = date.getUTCFullYear();
+  const month = String(date.getUTCMonth() + 1).padStart(2, '0');
+  const day = String(date.getUTCDate()).padStart(2, '0');
+  return `${day}/${month}/${year}`;
+}
+
 interface Subscriber {
   id: string;
   name: string;
@@ -146,12 +158,12 @@ export default function SubscribersManager({ onSubscriberUpdate }: SubscribersMa
                   </span>
                   <span className="flex items-center gap-1">
                     <span className="w-1 h-1 bg-vaporwave-pink rounded-full" />
-                    Joined: {new Date(subscriber.createdAt).toLocaleDateString()}
+                    Joined: {formatDate(subscriber.createdAt)}
                   </span>
                   {subscriber.approvedAt && (
                     <span className="flex items-center gap-1">
                       <span className="w-1 h-1 bg-vaporwave-purple rounded-full" />
-                      Approved: {new Date(subscriber.approvedAt).toLocaleDateString()}
+                      Approved: {formatDate(subscriber.approvedAt)}
                     </span>
                   )}
                 </div>
