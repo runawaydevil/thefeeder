@@ -1,6 +1,7 @@
 import FeedList from "@/src/components/FeedList";
 import SubscribeForm from "@/src/components/SubscribeForm";
 import Pagination from "@/src/components/Pagination";
+import StarsEffect from "@/src/components/StarsEffect";
 import { getItems, getStats } from "@/src/lib/server-data";
 
 // Force dynamic rendering to ensure fresh data
@@ -31,23 +32,8 @@ export default async function HomePage({ searchParams }: HomePageProps) {
         background: 'radial-gradient(circle at 50% 0%, hsl(320 100% 50% / 0.4), transparent 50%), radial-gradient(circle at 80% 80%, hsl(270 100% 50% / 0.3), transparent 50%)'
       }} />
 
-      {/* Stars/Particles Effect */}
-      <div className="absolute inset-0">
-        {[...Array(20)].map((_, i) => (
-          <div
-            key={i}
-            className="absolute rounded-full bg-vaporwave-cyan"
-            style={{
-              width: Math.random() * 2 + 1 + 'px',
-              height: Math.random() * 2 + 1 + 'px',
-              top: Math.random() * 100 + '%',
-              left: Math.random() * 100 + '%',
-              opacity: Math.random() * 0.5 + 0.2,
-              boxShadow: `0 0 ${Math.random() * 8 + 3}px hsl(180 100% 60%)`,
-            }}
-          />
-        ))}
-      </div>
+      {/* Stars/Particles Effect - Client-side only to avoid hydration errors */}
+      <StarsEffect />
 
       <header className="relative z-10 pt-6 md:pt-8 pb-4 md:pb-6 flex flex-col items-center gap-3 md:gap-4">
         <div className="glow-soft">
