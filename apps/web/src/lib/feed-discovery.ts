@@ -164,6 +164,7 @@ async function extractYouTubeChannelId(channelUrl: string): Promise<{ channelId:
     const response = await fetch(channelUrl, {
       headers: {
         "User-Agent": getRandomUserAgent(),
+        "Accept": "text/html, application/xhtml+xml, application/xml, */*",
       },
       signal: AbortSignal.timeout(10000), // 10 second timeout
     });
@@ -361,27 +362,41 @@ async function discoverFeedsFromHTML(siteUrl: string): Promise<DiscoveredFeed[]>
     const response = await fetch(siteUrl, {
       headers: {
         "User-Agent": getRandomUserAgent(),
+        "Accept": "text/html, application/xhtml+xml, application/xml, */*",
       },
       signal: AbortSignal.timeout(10000), // 10 second timeout
     });
 
     if (!response.ok) {
+      console.warn(`Failed to fetch HTML from ${siteUrl}: ${response.status} ${response.statusText}`);
       return feeds;
     }
 
     const html = await response.text();
     
-    // Parse HTML for feed links
-    const feedLinkRegex = /<link[^>]+(?:rel=["']alternate["']|type=["'][^"']*rss[^"']*["']|type=["'][^"']*atom[^"']*["'])[^>]*>/gi;
-    const matches = html.match(feedLinkRegex);
+    // Multiple regex patterns to catch different feed link formats
+    const patterns = [
+      // Standard: <link rel="alternate" type="application/rss+xml" href="...">
+      /<link[^>]+rel=["'](?:alternate|feed|service\.feed)["'][^>]+type=["'][^"']*(?:rss|atom|feed)[^"']*["'][^>]+href=["']([^"']+)["'][^>]*>/gi,
+      // Reversed: <link href="..." rel="alternate" type="...">
+      /<link[^>]+href=["']([^"']+)["'][^>]+rel=["'](?:alternate|feed|service\.feed)["'][^>]+type=["'][^"']*(?:rss|atom|feed)[^"']*["'][^>]*>/gi,
+      // Type first: <link type="..." rel="alternate" href="...">
+      /<link[^>]+type=["'][^"']*(?:rss|atom|feed)[^"']*["'][^>]+rel=["'](?:alternate|feed|service\.feed)["'][^>]+href=["']([^"']+)["'][^>]*>/gi,
+      // Just type with feed-like URL: <link type="application/rss+xml" href="/feed">
+      /<link[^>]+type=["'][^"']*(?:rss|atom|feed)[^"']*["'][^>]+href=["']([^"']+)["'][^>]*>/gi,
+      // Just rel with feed-like URL: <link rel="alternate" href="/feed.xml">
+      /<link[^>]+rel=["'](?:alternate|feed|service\.feed)["'][^>]+href=["']([^"']*(?:rss|feed|atom)[^"']*)["'][^>]*>/gi,
+    ];
     
-    if (matches) {
+    const foundUrls = new Set<string>();
+    
+    for (const pattern of patterns) {
+      const matches = html.matchAll(pattern);
       for (const match of matches) {
-        const hrefMatch = match.match(/href=["']([^"']+)["']/i);
-        const typeMatch = match.match(/type=["']([^"']+)["']/i);
-        
-        if (hrefMatch) {
-          let feedUrl = hrefMatch[1];
+        if (match[1]) {
+          let feedUrl = match[1];
+          
+          // Normalize URL
           if (feedUrl.startsWith("//")) {
             feedUrl = `https:${feedUrl}`;
           } else if (feedUrl.startsWith("/")) {
@@ -392,21 +407,23 @@ async function discoverFeedsFromHTML(siteUrl: string): Promise<DiscoveredFeed[]>
             feedUrl = `${baseUrl.origin}/${feedUrl}`;
           }
           
-          // Determine feed type
+          // Skip if already processed
+          if (foundUrls.has(feedUrl)) {
+            continue;
+          }
+          foundUrls.add(feedUrl);
+          
+          // Determine feed type from URL
           let feedType: "rss" | "atom" | "json" = "rss";
-          if (typeMatch) {
-            const type = typeMatch[1].toLowerCase();
-            if (type.includes("atom")) {
-              feedType = "atom";
-            } else if (type.includes("json")) {
-              feedType = "json";
-            }
-          } else if (feedUrl.includes(".atom") || feedUrl.includes("/atom")) {
+          if (feedUrl.includes(".atom") || feedUrl.includes("/atom")) {
             feedType = "atom";
           } else if (feedUrl.includes(".json") || feedUrl.includes("/json")) {
             feedType = "json";
+          } else if (feedUrl.includes(".rss") || feedUrl.includes("/rss")) {
+            feedType = "rss";
           }
           
+          // Validate feed
           const isValid = await validateFeed(feedUrl);
           if (isValid) {
             feeds.push({
@@ -419,7 +436,7 @@ async function discoverFeedsFromHTML(siteUrl: string): Promise<DiscoveredFeed[]>
       }
     }
   } catch (error) {
-    console.error("Error discovering feeds from HTML:", error);
+    console.error(`Error discovering feeds from HTML for ${siteUrl}:`, error);
   }
   
   return feeds;
@@ -429,16 +446,40 @@ async function discoverCommonFeeds(siteUrl: string): Promise<DiscoveredFeed[]> {
   const feeds: DiscoveredFeed[] = [];
   const baseUrl = new URL(siteUrl);
   
+  // Expanded list of common feed paths
   const commonPaths = [
     "/feed",
     "/feed.xml",
+    "/feed/rss",
+    "/feed/atom",
+    "/feed/index.xml",
     "/rss",
     "/rss.xml",
+    "/rss/feed",
     "/atom.xml",
-    "/index.xml",
+    "/atom",
     "/feeds/all",
+    "/feeds/posts/default",
+    "/feeds/rss",
+    "/feeds/atom",
+    "/index.xml",
+    "/index.rss",
+    "/index.atom",
     "/blog/feed",
     "/blog/rss",
+    "/blog/atom.xml",
+    "/blog/feed.xml",
+    "/posts/feed",
+    "/posts/rss",
+    "/news/feed",
+    "/news/rss",
+    // WordPress specific
+    "/feed/rss/",
+    "/feed/rss2/",
+    "/feed/atom/",
+    // Common CMS patterns
+    "/syndication.axd",
+    "/rss.aspx",
   ];
   
   for (const path of commonPaths) {
@@ -453,7 +494,7 @@ async function discoverCommonFeeds(siteUrl: string): Promise<DiscoveredFeed[]> {
           title: `Feed (${feedType.toUpperCase()})`,
           type: feedType,
         });
-        break; // Found at least one feed
+        // Don't break - continue to find all possible feeds
       }
     } catch (error) {
       // Continue trying other paths
@@ -464,13 +505,46 @@ async function discoverCommonFeeds(siteUrl: string): Promise<DiscoveredFeed[]> {
 }
 
 async function validateFeed(feedUrl: string): Promise<boolean> {
+  const acceptHeader = "application/rss+xml, application/atom+xml, application/xml, text/xml, application/json, text/html, */*";
+  
+  // Try HEAD first
   try {
     const response = await fetch(feedUrl, {
       method: "HEAD",
       headers: {
         "User-Agent": getRandomUserAgent(),
+        "Accept": acceptHeader,
       },
       signal: AbortSignal.timeout(5000), // 5 second timeout
+    });
+
+    if (response.ok) {
+      const contentType = response.headers.get("content-type") || "";
+      
+      // Check if it's a valid feed content type
+      if (
+        contentType.includes("application/rss+xml") ||
+        contentType.includes("application/atom+xml") ||
+        contentType.includes("application/xml") ||
+        contentType.includes("text/xml") ||
+        contentType.includes("application/json")
+      ) {
+        return true;
+      }
+    }
+  } catch (error) {
+    // HEAD failed, will try GET as fallback
+  }
+
+  // Fallback to GET if HEAD failed or didn't return valid content-type
+  try {
+    const response = await fetch(feedUrl, {
+      method: "GET",
+      headers: {
+        "User-Agent": getRandomUserAgent(),
+        "Accept": acceptHeader,
+      },
+      signal: AbortSignal.timeout(8000), // 8 second timeout for GET
     });
 
     if (!response.ok) {
@@ -480,16 +554,37 @@ async function validateFeed(feedUrl: string): Promise<boolean> {
     const contentType = response.headers.get("content-type") || "";
     
     // Check if it's a valid feed content type
-    return (
+    if (
       contentType.includes("application/rss+xml") ||
       contentType.includes("application/atom+xml") ||
       contentType.includes("application/xml") ||
       contentType.includes("text/xml") ||
       contentType.includes("application/json")
-    );
+    ) {
+      // Also verify the content starts with feed-like structure
+      try {
+        const text = await response.text();
+        const firstChars = text.trim().substring(0, 100).toLowerCase();
+        
+        // Check for RSS, Atom, or JSON feed signatures
+        return (
+          firstChars.includes("<rss") ||
+          firstChars.includes("<?xml") ||
+          firstChars.includes("<feed") ||
+          firstChars.includes("{") ||
+          firstChars.includes("atom")
+        );
+      } catch (e) {
+        // If we can't read content, trust the content-type
+        return true;
+      }
+    }
   } catch (error) {
+    // Both HEAD and GET failed
     return false;
   }
+
+  return false;
 }
 
 

@@ -16,7 +16,7 @@ export default async function HomePage({ searchParams }: HomePageProps) {
   // Get page number from URL query (default to page 1)
   const params = await searchParams;
   const currentPage = Math.max(1, parseInt(params.page || "1", 10));
-  const itemsPerPage = 600;
+  const itemsPerPage = 20;
   const skip = (currentPage - 1) * itemsPerPage;
 
   // Use server-side data fetching directly (no HTTP fetch needed during SSR)

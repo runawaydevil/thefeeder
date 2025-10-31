@@ -16,6 +16,7 @@ const parser = new Parser({
   requestOptions: {
     headers: {
       "User-Agent": getRandomUserAgent(),
+      "Accept": "application/rss+xml, application/atom+xml, application/xml, text/xml, application/json, text/html, */*",
     },
   },
 });
@@ -52,6 +53,7 @@ export async function parseFeed(feedUrl: string, customUserAgent?: string): Prom
           requestOptions: {
             headers: {
               "User-Agent": customUserAgent,
+              "Accept": "application/rss+xml, application/atom+xml, application/xml, text/xml, application/json, text/html, */*",
             },
           },
         })
@@ -87,6 +89,71 @@ export async function parseFeed(feedUrl: string, customUserAgent?: string): Prom
       items: validItems,
     };
   } catch (error) {
+    // Check if error is related to contentType
+    const errorMessage = error instanceof Error ? error.message : String(error);
+    if (errorMessage.includes("contentType") || errorMessage.includes("Expected contentType string")) {
+      console.warn(`ContentType error parsing feed ${feedUrl}, attempting fallback:`, errorMessage);
+      // Try to parse anyway by fetching raw content
+      try {
+        const response = await fetch(feedUrl, {
+          headers: {
+            "User-Agent": customUserAgent || getRandomUserAgent(),
+            "Accept": "application/rss+xml, application/atom+xml, application/xml, text/xml, application/json, text/html, */*",
+          },
+        });
+        
+        if (!response.ok) {
+          throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+        }
+        
+        const text = await response.text();
+        const contentType = response.headers.get("content-type") || "text/xml";
+        
+        // Create a new parser that accepts the content type we received
+        const fallbackParser = new Parser({
+          customFields,
+          requestOptions: {
+            headers: {
+              "User-Agent": customUserAgent || getRandomUserAgent(),
+              "Accept": contentType,
+            },
+          },
+        });
+        
+        const feed = await fallbackParser.parseString(text);
+
+        const validItems: FeedItem[] = (feed.items || [])
+          .filter((item: any) => {
+            return !!item && typeof item.title === "string" && typeof item.link === "string";
+          })
+          .map((item: any) => ({
+            title: item.title as string,
+            link: item.link as string,
+            contentSnippet: item.contentSnippet,
+            content: item.content,
+            contentEncoded: item.contentEncoded,
+            isoDate: item.isoDate,
+            pubDate: item.pubDate,
+            creator: item.creator,
+            author: item.author,
+            "dc:creator": item["dc:creator"],
+            mediaContent: item.mediaContent,
+            mediaThumbnail: item.mediaThumbnail,
+            guid: item.guid,
+            id: item.id,
+          } as FeedItem));
+
+        return {
+          title: feed.title || "Untitled Feed",
+          link: feed.link,
+          items: validItems,
+        };
+      } catch (fallbackError) {
+        console.error(`Fallback parsing also failed for feed ${feedUrl}:`, fallbackError);
+        throw new Error(`Failed to parse feed: ${fallbackError instanceof Error ? fallbackError.message : "Unknown error"}`);
+      }
+    }
+    
     console.error(`Error parsing feed ${feedUrl}:`, error);
     throw new Error(`Failed to parse feed: ${error instanceof Error ? error.message : "Unknown error"}`);
   }
