@@ -22,6 +22,15 @@ const nextConfig = {
       },
     ];
   },
+  // Redirect old /assets/ paths to /_next/static/
+  async rewrites() {
+    return [
+      {
+        source: '/assets/:path*',
+        destination: '/_next/static/:path*',
+      },
+    ];
+  },
 };
 
 export default nextConfig;
