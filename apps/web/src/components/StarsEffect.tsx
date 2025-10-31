@@ -21,26 +21,31 @@ export default function StarsEffect() {
   const [stars, setStars] = useState<Star[]>([]);
 
   useEffect(() => {
-    // Mark as mounted after hydration is complete
-    setMounted(true);
-    
-    // Generate stars only on client side after hydration
-    const generatedStars: Star[] = Array.from({ length: 20 }, () => ({
-      width: `${Math.random() * 2 + 1}px`,
-      height: `${Math.random() * 2 + 1}px`,
-      top: `${Math.random() * 100}%`,
-      left: `${Math.random() * 100}%`,
-      opacity: Math.random() * 0.5 + 0.2,
-      boxShadow: `0 0 ${Math.random() * 8 + 3}px hsl(180 100% 60%)`,
-    }));
+    // Wait for hydration to complete before showing stars
+    // This ensures React hydration finishes before we modify the DOM
+    const timer = setTimeout(() => {
+      setMounted(true);
+      
+      // Generate stars only on client side after hydration
+      const generatedStars: Star[] = Array.from({ length: 20 }, () => ({
+        width: `${Math.random() * 2 + 1}px`,
+        height: `${Math.random() * 2 + 1}px`,
+        top: `${Math.random() * 100}%`,
+        left: `${Math.random() * 100}%`,
+        opacity: Math.random() * 0.5 + 0.2,
+        boxShadow: `0 0 ${Math.random() * 8 + 3}px hsl(180 100% 60%)`,
+      }));
 
-    setStars(generatedStars);
+      setStars(generatedStars);
+    }, 0); // Use setTimeout(0) to ensure this runs after React hydration completes
+
+    return () => clearTimeout(timer);
   }, []);
 
-  // Render empty container on server (SSR) to match client initial render
-  // This ensures no hydration mismatch
+  // Render empty container on server (SSR) and during initial client render
+  // This ensures no hydration mismatch - both SSR and initial CSR render the same
   if (!mounted) {
-    return <div className="absolute inset-0" suppressHydrationWarning />;
+    return <div className="absolute inset-0" />;
   }
 
   return (

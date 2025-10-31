@@ -10,9 +10,6 @@ export const metadata: Metadata = {
     icon: "/logo.png",
   },
   manifest: "/manifest.json",
-  other: {
-    "clear-site-data": "cache, storage, serviceworkers",
-  },
 };
 
 export const viewport: Viewport = {
@@ -24,8 +21,8 @@ export const viewport: Viewport = {
 
 export default function RootLayout({ children }: { children: ReactNode }) {
   return (
-    <html lang="en" suppressHydrationWarning>
-      <body className="font-orbitron" suppressHydrationWarning>
+    <html lang="en">
+      <body className="font-orbitron">
         <ServiceWorkerCleanup />
         {children}
       </body>

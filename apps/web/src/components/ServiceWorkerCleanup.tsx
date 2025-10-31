@@ -21,6 +21,7 @@ export default function ServiceWorkerCleanup() {
     const VERSION_KEY = "thefeeder_app_version";
 
     // Check if version changed and clear cache if needed
+    // This function schedules a reload but waits for hydration to complete
     function checkVersionAndClearCache(): boolean {
       try {
         const storedVersion = sessionStorage.getItem(VERSION_KEY);
@@ -44,8 +45,32 @@ export default function ServiceWorkerCleanup() {
           // Update stored version
           sessionStorage.setItem(VERSION_KEY, APP_VERSION);
 
-          // Force reload without cache
-          window.location.reload();
+          // Wait for hydration to complete before reloading
+          // Use requestIdleCallback if available, otherwise use a longer setTimeout
+          const scheduleReload = () => {
+            // Wait additional time to ensure React hydration is complete
+            // React typically hydrates within 100-500ms, so 1000ms is safe
+            setTimeout(() => {
+              // Force reload without cache
+              window.location.reload();
+            }, 1000);
+          };
+
+          if (typeof window.requestIdleCallback === "function") {
+            window.requestIdleCallback(scheduleReload, { timeout: 2000 });
+          } else {
+            // Fallback: wait for load event or use setTimeout
+            if (document.readyState === "complete") {
+              scheduleReload();
+            } else {
+              window.addEventListener(
+                "load",
+                scheduleReload,
+                { once: true }
+              );
+            }
+          }
+
           return true;
         }
         return false;
