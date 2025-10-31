@@ -21,8 +21,8 @@ export const viewport: Viewport = {
 
 export default function RootLayout({ children }: { children: ReactNode }) {
   return (
-    <html lang="en">
-      <body className="font-orbitron">
+    <html lang="en" suppressHydrationWarning>
+      <body className="font-orbitron" suppressHydrationWarning>
         <ServiceWorkerCleanup />
         {children}
       </body>
