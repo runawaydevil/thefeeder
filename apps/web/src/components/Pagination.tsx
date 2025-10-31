@@ -49,12 +49,12 @@ export default function Pagination({ currentPage, totalItems, itemsPerPage }: Pa
               : "bg-vaporwave-cyan text-primary-foreground border-vaporwave-cyan hover:bg-vaporwave-cyan/90 hover:shadow-[0_0_12px_hsl(180_100%_60%_/_0.5)]"
           }`}
         >
-          ← Anterior
+          ← Previous
         </button>
 
         {/* Page Info */}
         <div className="px-4 py-1.5 text-xs sm:text-sm text-vaporwave-cyan neon-glow-cyan uppercase tracking-wider font-bold border-2 border-vaporwave-cyan/50 rounded-md bg-card/50 backdrop-blur-md">
-          Página {currentPage} de {totalPages}
+          Page {currentPage} of {totalPages}
         </div>
 
         {/* Next Button */}
@@ -67,13 +67,13 @@ export default function Pagination({ currentPage, totalItems, itemsPerPage }: Pa
               : "bg-vaporwave-pink text-primary-foreground border-vaporwave-pink hover:bg-vaporwave-pink/90 hover:shadow-[0_0_12px_hsl(320_100%_65%_/_0.5)]"
           }`}
         >
-          Próxima →
+          Next →
         </button>
       </div>
 
       {/* Items Info */}
       <p className="text-[10px] sm:text-xs text-muted-foreground text-center">
-        Mostrando {((currentPage - 1) * itemsPerPage) + 1} - {Math.min(currentPage * itemsPerPage, totalItems)} de {totalItems} artigos
+        Showing {((currentPage - 1) * itemsPerPage) + 1} - {Math.min(currentPage * itemsPerPage, totalItems)} of {totalItems} articles
       </p>
     </div>
   );
