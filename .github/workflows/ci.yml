@@ -30,7 +30,11 @@ jobs:
     - name: Install dependencies
       run: |
         cd apps/web
-        npm ci
+        if [ -f package-lock.json ]; then
+          npm ci
+        else
+          npm install
+        fi
     
     - name: Run ESLint
       run: |
@@ -60,7 +64,11 @@ jobs:
     - name: Install dependencies
       run: |
         cd apps/web
-        npm ci
+        if [ -f package-lock.json ]; then
+          npm ci
+        else
+          npm install
+        fi
     
     - name: Run TypeScript check
       run: |
@@ -90,9 +98,17 @@ jobs:
     - name: Install dependencies
       run: |
         cd apps/web
-        npm ci
+        if [ -f package-lock.json ]; then
+          npm ci
+        else
+          npm install
+        fi
         cd ../worker
-        npm ci || echo "Worker dependencies install skipped"
+        if [ -f package-lock.json ]; then
+          npm ci || echo "Worker dependencies install skipped"
+        else
+          npm install || echo "Worker dependencies install skipped"
+        fi
     
     - name: Generate Prisma Client
       run: |

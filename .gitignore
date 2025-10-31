@@ -9,7 +9,9 @@ node_modules/
 npm-debug.log*
 pnpm-lock.yaml
 yarn.lock
-package-lock.json
+# Note: package-lock.json should be committed for reproducible builds
+# Only ignore root package-lock.json, but commit apps/*/package-lock.json
+/package-lock.json
 
 # IDEs
 .vscode/
