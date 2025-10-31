@@ -22,6 +22,42 @@ const nextConfig = {
           },
         ],
       },
+      // Headers for logo.png to ensure correct Content-Type
+      {
+        source: '/logo.png',
+        headers: [
+          {
+            key: 'Content-Type',
+            value: 'image/png',
+          },
+          {
+            key: 'Cache-Control',
+            value: process.env.NODE_ENV === 'production' 
+              ? 'public, max-age=31536000, immutable' 
+              : 'no-cache, no-store, must-revalidate',
+          },
+        ],
+      },
+      // Headers for favicon.ico
+      {
+        source: '/favicon.ico',
+        headers: [
+          {
+            key: 'Content-Type',
+            value: 'image/x-icon',
+          },
+        ],
+      },
+      // Headers for manifest.json
+      {
+        source: '/manifest.json',
+        headers: [
+          {
+            key: 'Content-Type',
+            value: 'application/manifest+json',
+          },
+        ],
+      },
     ];
     
     // Add no-cache headers for HTML in development

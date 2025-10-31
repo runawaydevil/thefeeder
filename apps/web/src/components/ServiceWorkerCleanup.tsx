@@ -1,12 +1,15 @@
 "use client";
 
-import { useEffect } from "react";
+import { useEffect, useRef } from "react";
 
 /**
  * Client-side component to cleanup service workers and cache
  * This runs ONLY after React hydration to avoid hydration errors
  */
 export default function ServiceWorkerCleanup() {
+  const isCleaningRef = useRef(false);
+  const cleanupTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+
   useEffect(() => {
     // Only run in browser environment
     if (typeof window === "undefined") {
@@ -30,7 +33,7 @@ export default function ServiceWorkerCleanup() {
             "- clearing cache",
           );
 
-          // Clear all storage
+          // Clear all storage only when version actually changes
           try {
             localStorage.clear();
             sessionStorage.clear();
@@ -53,9 +56,17 @@ export default function ServiceWorkerCleanup() {
     }
 
     // Aggressive service worker cleanup - runs first
+    // Only execute if not already cleaning
     function cleanupServiceWorkers() {
+      // Prevent multiple simultaneous executions
+      if (isCleaningRef.current) {
+        return;
+      }
+      isCleaningRef.current = true;
+
       try {
         if (!("serviceWorker" in navigator)) {
+          isCleaningRef.current = false;
           return;
         }
 
@@ -139,21 +150,9 @@ export default function ServiceWorkerCleanup() {
             });
         }
 
-        // Clear localStorage
-        try {
-          localStorage.clear();
-          console.log("[SW] localStorage cleared");
-        } catch (e) {
-          console.warn("[SW] Error clearing localStorage:", e);
-        }
-
-        // Clear sessionStorage
-        try {
-          sessionStorage.clear();
-          console.log("[SW] sessionStorage cleared");
-        } catch (e) {
-          console.warn("[SW] Error clearing sessionStorage:", e);
-        }
+        // Note: We don't clear localStorage/sessionStorage here
+        // They are only cleared when version changes (in checkVersionAndClearCache)
+        // This prevents unnecessary clearing on every page load
 
         // Clear IndexedDB
         if ("indexedDB" in window && indexedDB.databases) {
@@ -222,21 +221,38 @@ export default function ServiceWorkerCleanup() {
         console.log("[SW] Cleanup completed");
       } catch (e) {
         console.error("[SW] Cleanup error:", e);
+      } finally {
+        // Reset flag after cleanup completes
+        isCleaningRef.current = false;
       }
     }
 
     // Check version first - if changed, reload and don't run cleanup
     if (!checkVersionAndClearCache()) {
       // Version unchanged, proceed with cleanup
-      // Run cleanup after a small delay to ensure hydration is complete
-      setTimeout(cleanupServiceWorkers, 100);
+      // Consolidated cleanup function that handles all scenarios
+      const scheduleCleanup = (delay: number) => {
+        // Clear any existing timeout
+        if (cleanupTimeoutRef.current) {
+          clearTimeout(cleanupTimeoutRef.current);
+        }
+        
+        // Schedule new cleanup with debounce
+        cleanupTimeoutRef.current = setTimeout(() => {
+          cleanupServiceWorkers();
+          cleanupTimeoutRef.current = null;
+        }, delay);
+      };
+
+      // Run cleanup after hydration is complete
+      scheduleCleanup(100);
 
       // Run on various events to catch any edge cases
       if (document.readyState === "loading") {
         document.addEventListener(
           "DOMContentLoaded",
           function () {
-            setTimeout(cleanupServiceWorkers, 50);
+            scheduleCleanup(50);
           },
           { once: true },
         );
@@ -245,21 +261,24 @@ export default function ServiceWorkerCleanup() {
       window.addEventListener(
         "load",
         function () {
-          setTimeout(cleanupServiceWorkers, 100);
+          scheduleCleanup(100);
         },
         { once: true },
       );
 
       window.addEventListener("pageshow", function (event) {
         if (event.persisted) {
-          setTimeout(cleanupServiceWorkers, 50);
+          scheduleCleanup(50);
         }
       });
 
-      // Periodic cleanup to catch any late registrations
-      setTimeout(cleanupServiceWorkers, 200);
-      setTimeout(cleanupServiceWorkers, 500);
-      setTimeout(cleanupServiceWorkers, 1000);
+      // Cleanup function to clear timeout on unmount
+      return () => {
+        if (cleanupTimeoutRef.current) {
+          clearTimeout(cleanupTimeoutRef.current);
+          cleanupTimeoutRef.current = null;
+        }
+      };
     }
   }, []); // Run only once after mount
 
