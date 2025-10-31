@@ -235,12 +235,12 @@ export default function FeedsManager() {
 
   return (
     <div>
-      <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-3 mb-4">
+      <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3 mb-4">
         <h2 className="text-base md:text-lg font-bold text-vaporwave-cyan neon-glow-cyan uppercase tracking-wider">Feeds</h2>
-        <div className="flex gap-2 flex-wrap">
+        <div className="flex gap-2 flex-wrap w-full sm:w-auto">
           <button
             onClick={handleExportOPML}
-            className="px-3 py-1.5 text-xs md:text-sm bg-vaporwave-pink text-primary-foreground rounded-md hover:bg-vaporwave-pink/90 hover:shadow-[0_0_12px_hsl(320_100%_65%_/_0.5)] transition-all border-2 border-vaporwave-pink uppercase tracking-wider font-bold"
+            className="flex-1 sm:flex-initial px-3 py-1.5 text-xs md:text-sm bg-vaporwave-pink text-primary-foreground rounded-md hover:bg-vaporwave-pink/90 hover:shadow-[0_0_12px_hsl(320_100%_65%_/_0.5)] transition-all border-2 border-vaporwave-pink uppercase tracking-wider font-bold"
           >
             📥 Export OPML
           </button>
@@ -253,7 +253,7 @@ export default function FeedsManager() {
                 setDiscoverUrl("");
               }
             }}
-            className="px-3 py-1.5 text-xs md:text-sm bg-vaporwave-purple text-primary-foreground rounded-md hover:bg-vaporwave-purple/90 hover:shadow-[0_0_12px_hsl(270_100%_70%_/_0.5)] transition-all border-2 border-vaporwave-purple uppercase tracking-wider font-bold"
+            className="flex-1 sm:flex-initial px-3 py-1.5 text-xs md:text-sm bg-vaporwave-purple text-primary-foreground rounded-md hover:bg-vaporwave-purple/90 hover:shadow-[0_0_12px_hsl(270_100%_70%_/_0.5)] transition-all border-2 border-vaporwave-purple uppercase tracking-wider font-bold"
           >
             {showDiscover ? "Cancel" : "🔍 Discover"}
           </button>
@@ -264,7 +264,7 @@ export default function FeedsManager() {
               setShowDiscover(false);
               setFormData({ title: "", url: "", siteUrl: "", refreshIntervalMinutes: 60 });
             }}
-            className="px-3 py-1.5 text-xs md:text-sm bg-vaporwave-cyan text-primary-foreground rounded-md hover:bg-vaporwave-cyan/90 hover:shadow-[0_0_12px_hsl(180_100%_60%_/_0.5)] transition-all border-2 border-vaporwave-cyan uppercase tracking-wider font-bold"
+            className="flex-1 sm:flex-initial px-3 py-1.5 text-xs md:text-sm bg-vaporwave-cyan text-primary-foreground rounded-md hover:bg-vaporwave-cyan/90 hover:shadow-[0_0_12px_hsl(180_100%_60%_/_0.5)] transition-all border-2 border-vaporwave-cyan uppercase tracking-wider font-bold"
           >
             {showForm ? "Cancel" : "+ Add Feed"}
           </button>
@@ -278,19 +278,19 @@ export default function FeedsManager() {
             Enter a website URL and we'll automatically discover RSS/Atom feeds
           </p>
           
-          <div className="flex gap-2">
+          <div className="flex flex-col sm:flex-row gap-2">
             <input
               type="url"
               value={discoverUrl}
               onChange={(e) => setDiscoverUrl(e.target.value)}
               placeholder="https://example.com or r/programming or youtube.com/channel/..."
-              className="flex-1 px-3 py-2 text-sm bg-background/80 border-2 border-vaporwave-purple/30 rounded-md text-foreground focus:border-vaporwave-purple focus:outline-none focus:ring-2 focus:ring-vaporwave-purple/50 transition-all"
+              className="flex-1 px-3 py-2 text-xs sm:text-sm bg-background/80 border-2 border-vaporwave-purple/30 rounded-md text-foreground focus:border-vaporwave-purple focus:outline-none focus:ring-2 focus:ring-vaporwave-purple/50 transition-all min-w-0"
               onKeyPress={(e) => e.key === "Enter" && handleDiscover()}
             />
             <button
               onClick={handleDiscover}
               disabled={discovering}
-              className="px-4 py-2 text-xs md:text-sm bg-vaporwave-purple text-primary-foreground rounded-md hover:bg-vaporwave-purple/90 hover:shadow-[0_0_12px_hsl(270_100%_70%_/_0.5)] disabled:opacity-50 disabled:cursor-not-allowed transition-all border-2 border-vaporwave-purple uppercase tracking-wider font-bold"
+              className="px-4 py-2 text-xs md:text-sm bg-vaporwave-purple text-primary-foreground rounded-md hover:bg-vaporwave-purple/90 hover:shadow-[0_0_12px_hsl(270_100%_70%_/_0.5)] disabled:opacity-50 disabled:cursor-not-allowed transition-all border-2 border-vaporwave-purple uppercase tracking-wider font-bold flex-shrink-0 w-full sm:w-auto"
             >
               {discovering ? "Searching..." : "Discover"}
             </button>
@@ -307,8 +307,8 @@ export default function FeedsManager() {
                     key={index}
                     className="p-3 bg-background/50 border-2 border-vaporwave-cyan/30 rounded-md hover:border-vaporwave-cyan/50 transition-all"
                   >
-                    <div className="flex items-start justify-between gap-2">
-                      <div className="flex-1 min-w-0">
+                    <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-2">
+                      <div className="flex-1 min-w-0 w-full sm:w-auto">
                         <p className="text-sm font-bold text-primary mb-1 truncate">{feed.title}</p>
                         <p className="text-xs text-muted-foreground break-all mb-2">{feed.url}</p>
                         <span className="text-[10px] text-vaporwave-cyan uppercase tracking-wider">
@@ -317,7 +317,7 @@ export default function FeedsManager() {
                       </div>
                       <button
                         onClick={() => handleUseDiscoveredFeed(feed)}
-                        className="px-3 py-1.5 text-xs bg-vaporwave-cyan text-primary-foreground rounded hover:bg-vaporwave-cyan/90 transition-all border-2 border-vaporwave-cyan uppercase tracking-wider font-bold flex-shrink-0"
+                        className="px-3 py-1.5 text-xs bg-vaporwave-cyan text-primary-foreground rounded hover:bg-vaporwave-cyan/90 transition-all border-2 border-vaporwave-cyan uppercase tracking-wider font-bold flex-shrink-0 w-full sm:w-auto"
                       >
                         Use
                       </button>
@@ -415,22 +415,22 @@ export default function FeedsManager() {
                 )}
               </div>
             </div>
-            <div className="flex gap-1.5 flex-wrap">
+            <div className="flex gap-1.5 flex-wrap w-full sm:w-auto">
               <button
                 onClick={() => handleFetch(feed.id)}
-                className="px-2 py-1.5 text-[10px] md:text-xs bg-vaporwave-cyan/20 text-vaporwave-cyan border-2 border-vaporwave-cyan/50 rounded hover:bg-vaporwave-cyan/30 hover:shadow-[0_0_8px_hsl(180_100%_60%_/_0.5)] transition-all uppercase tracking-wider font-medium"
+                className="flex-1 sm:flex-initial px-2 py-1.5 text-[10px] md:text-xs bg-vaporwave-cyan/20 text-vaporwave-cyan border-2 border-vaporwave-cyan/50 rounded hover:bg-vaporwave-cyan/30 hover:shadow-[0_0_8px_hsl(180_100%_60%_/_0.5)] transition-all uppercase tracking-wider font-medium"
               >
                 Fetch
               </button>
               <button
                 onClick={() => handleEdit(feed)}
-                className="px-2 py-1.5 text-[10px] md:text-xs bg-vaporwave-purple/20 text-vaporwave-purple border-2 border-vaporwave-purple/50 rounded hover:bg-vaporwave-purple/30 hover:shadow-[0_0_8px_hsl(270_100%_70%_/_0.5)] transition-all uppercase tracking-wider font-medium"
+                className="flex-1 sm:flex-initial px-2 py-1.5 text-[10px] md:text-xs bg-vaporwave-purple/20 text-vaporwave-purple border-2 border-vaporwave-purple/50 rounded hover:bg-vaporwave-purple/30 hover:shadow-[0_0_8px_hsl(270_100%_70%_/_0.5)] transition-all uppercase tracking-wider font-medium"
               >
                 Edit
               </button>
               <button
                 onClick={() => handleDelete(feed.id)}
-                className="px-2 py-1.5 text-[10px] md:text-xs bg-destructive/20 text-destructive border-2 border-destructive/50 rounded hover:bg-destructive/30 hover:shadow-[0_0_8px_hsl(0_84%_60%_/_0.5)] transition-all uppercase tracking-wider font-medium"
+                className="flex-1 sm:flex-initial px-2 py-1.5 text-[10px] md:text-xs bg-destructive/20 text-destructive border-2 border-destructive/50 rounded hover:bg-destructive/30 hover:shadow-[0_0_8px_hsl(0_84%_60%_/_0.5)] transition-all uppercase tracking-wider font-medium"
               >
                 Delete
               </button>

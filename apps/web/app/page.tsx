@@ -25,7 +25,7 @@ export default async function HomePage({ searchParams }: HomePageProps) {
   ]);
 
   return (
-    <div className="min-h-screen relative overflow-hidden scanlines">
+    <div className="min-h-screen relative overflow-x-hidden overflow-y-auto scanlines">
       <div className="vaporwave-grid" />
       <div className="absolute inset-0 opacity-30" style={{
         background: 'radial-gradient(circle at 50% 0%, hsl(320 100% 50% / 0.4), transparent 50%), radial-gradient(circle at 80% 80%, hsl(270 100% 50% / 0.3), transparent 50%)'
@@ -90,9 +90,8 @@ export default async function HomePage({ searchParams }: HomePageProps) {
         <div className="flex justify-between items-center text-[8px] sm:text-[9px] md:text-[10px] text-vaporwave-cyan/70 max-w-7xl mx-auto px-2">
           <span className="flex items-center gap-1 md:gap-1.5">
             <span className="w-1 h-1 md:w-1.5 md:h-1.5 bg-vaporwave-pink rounded-full animate-pulse" style={{ boxShadow: '0 0 6px hsl(320 100% 65%)' }} />
-            <span className="hidden xs:inline sm:hidden">F:{stats.feeds} A:{stats.items}</span>
             <span className="hidden sm:inline">FEEDS: {stats.feeds} | ARTICLES: {stats.items}</span>
-            <span className="xs:hidden">{stats.feeds}|{stats.items}</span>
+            <span className="sm:hidden">{stats.feeds}|{stats.items}</span>
           </span>
           <span className="hidden md:inline text-[8px] sm:text-[9px]">
             developed by{" "}

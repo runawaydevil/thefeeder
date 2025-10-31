@@ -30,7 +30,7 @@ export default function AdminDashboard() {
   }, []);
 
   return (
-    <div className="min-h-screen relative overflow-hidden scanlines">
+    <div className="min-h-screen relative overflow-x-hidden overflow-y-auto scanlines">
       <div className="vaporwave-grid" />
       <div className="absolute inset-0 opacity-30" style={{
         background: 'radial-gradient(circle at 50% 0%, hsl(320 100% 50% / 0.4), transparent 50%), radial-gradient(circle at 80% 80%, hsl(270 100% 50% / 0.3), transparent 50%)'
@@ -39,21 +39,21 @@ export default function AdminDashboard() {
       <div className="relative z-10 p-3 md:p-4">
         <div className="max-w-7xl mx-auto">
           {/* Header */}
-          <header className="mb-4 md:mb-6 flex flex-col md:flex-row items-center md:items-center justify-between gap-3">
-            <div className="flex items-center gap-3">
-              <div className="glow-soft">
+          <header className="mb-4 md:mb-6 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
+            <div className="flex items-center gap-2 sm:gap-3 min-w-0 flex-1">
+              <div className="glow-soft flex-shrink-0">
                 <img src="/logo.png" alt="Logo" className="w-10 h-10 md:w-12 md:h-12" />
               </div>
-              <div>
-                <h1 className="text-lg md:text-xl font-bold text-primary neon-glow-pink uppercase tracking-wider">
+              <div className="min-w-0 flex-1">
+                <h1 className="text-base sm:text-lg md:text-xl font-bold text-primary neon-glow-pink uppercase tracking-wider truncate">
                   Admin Dashboard
                 </h1>
-                <p className="text-muted-foreground text-xs mt-0.5">Manage feeds and subscribers</p>
+                <p className="text-muted-foreground text-xs mt-0.5 truncate">Manage feeds and subscribers</p>
               </div>
             </div>
             <button
               onClick={() => signOut({ callbackUrl: "/" })}
-              className="px-3 py-1.5 text-xs md:text-sm bg-destructive/20 text-destructive border-2 border-destructive/50 rounded-md hover:bg-destructive/30 hover:shadow-[0_0_10px_hsl(0_84%_60%_/_0.5)] transition-all uppercase tracking-wider font-medium"
+              className="px-3 py-1.5 text-xs md:text-sm bg-destructive/20 text-destructive border-2 border-destructive/50 rounded-md hover:bg-destructive/30 hover:shadow-[0_0_10px_hsl(0_84%_60%_/_0.5)] transition-all uppercase tracking-wider font-medium flex-shrink-0 w-full sm:w-auto"
             >
               Sign Out
             </button>
