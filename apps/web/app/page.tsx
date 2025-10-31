@@ -3,6 +3,8 @@ import SubscribeForm from "@/src/components/SubscribeForm";
 import Pagination from "@/src/components/Pagination";
 import StarsEffect from "@/src/components/StarsEffect";
 import { getItems, getStats } from "@/src/lib/server-data";
+import type { Metadata } from "next";
+import { getAbsoluteUrl, getDefaultOgImage, truncateMetaText } from "@/src/lib/seo-utils";
 
 // Force dynamic rendering to ensure fresh data
 export const dynamic = 'force-dynamic';
@@ -10,6 +12,68 @@ export const revalidate = 0;
 
 interface HomePageProps {
   searchParams: Promise<{ page?: string }>;
+}
+
+// Generate dynamic metadata based on recent articles and stats
+export async function generateMetadata(): Promise<Metadata> {
+  const [{ items }, stats] = await Promise.all([
+    getItems(1, 0), // Get only the first (most recent) article
+    getStats(),
+  ]);
+
+  const firstArticle = items[0];
+  const siteUrl = getAbsoluteUrl("/");
+  
+  // Dynamic title with stats
+  const title = stats.items > 0 && stats.feeds > 0
+    ? `TheFeeder - ${stats.items} Articles from ${stats.feeds} Feeds`
+    : "TheFeeder - Modern RSS Aggregator";
+
+  // Dynamic description based on first article or generic
+  // Always use TheFeeder logo for social sharing
+  let description: string;
+
+  if (firstArticle) {
+    // Use first article's summary or title for description
+    description = firstArticle.summary
+      ? truncateMetaText(firstArticle.summary, 160)
+      : `Latest: ${firstArticle.title}. Stay updated with ${stats.items} articles from ${stats.feeds} feeds.`;
+  } else {
+    description = `Modern RSS feed reader and daily digest aggregator. ${stats.items > 0 ? `Currently aggregating ${stats.items} articles from ${stats.feeds} feeds.` : "Start aggregating your favorite RSS feeds today."}`;
+  }
+
+  // Always use TheFeeder logo for social sharing
+  const ogImage = getDefaultOgImage();
+
+  return {
+    title,
+    description,
+    alternates: {
+      canonical: siteUrl,
+    },
+    openGraph: {
+      title,
+      description,
+      url: siteUrl,
+      siteName: "TheFeeder",
+      images: [
+        {
+          url: ogImage,
+          width: 512,
+          height: 512,
+          alt: "TheFeeder - Modern RSS Aggregator",
+        },
+      ],
+      locale: "en_US",
+      type: "website",
+    },
+    twitter: {
+      card: "summary_large_image",
+      title,
+      description,
+      images: [ogImage],
+    },
+  };
 }
 
 export default async function HomePage({ searchParams }: HomePageProps) {
