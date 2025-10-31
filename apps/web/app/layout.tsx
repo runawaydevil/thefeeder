@@ -21,28 +21,72 @@ export default function RootLayout({ children }: { children: ReactNode }) {
         <script
           dangerouslySetInnerHTML={{
             __html: `
-              if ('serviceWorker' in navigator) {
-                // First, unregister all existing service workers
-                navigator.serviceWorker.getRegistrations().then(function(registrations) {
-                  for(let registration of registrations) {
-                    registration.unregister().then(function(success) {
-                      if (success) {
-                        console.log('Service Worker unregistered');
-                      }
-                    });
-                  }
-                  // Clear all caches after unregistering
-                  if ('caches' in window) {
-                    caches.keys().then(function(cacheNames) {
-                      return Promise.all(
-                        cacheNames.map(function(cacheName) {
-                          return caches.delete(cacheName);
+              (function() {
+                if ('serviceWorker' in navigator) {
+                  // Aggressively unregister all service workers and clear caches
+                  async function cleanupServiceWorkers() {
+                    try {
+                      // Step 1: Unregister all service workers
+                      const registrations = await navigator.serviceWorker.getRegistrations();
+                      await Promise.all(
+                        registrations.map(async function(registration) {
+                          try {
+                            const unregistered = await registration.unregister();
+                            if (unregistered) {
+                              console.log('[SW] Service Worker unregistered:', registration.scope);
+                            }
+                          } catch (e) {
+                            console.warn('[SW] Error unregistering:', e);
+                          }
                         })
                       );
-                    });
+                      
+                      // Step 2: Clear all caches
+                      if ('caches' in window) {
+                        try {
+                          const cacheNames = await caches.keys();
+                          await Promise.all(
+                            cacheNames.map(async function(cacheName) {
+                              try {
+                                await caches.delete(cacheName);
+                                console.log('[SW] Cache deleted:', cacheName);
+                              } catch (e) {
+                                console.warn('[SW] Error deleting cache:', cacheName, e);
+                              }
+                            })
+                          );
+                        } catch (e) {
+                          console.warn('[SW] Error accessing caches:', e);
+                        }
+                      }
+                      
+                      // Step 3: Force update controller if exists
+                      if (navigator.serviceWorker.controller) {
+                        navigator.serviceWorker.controller.postMessage({ type: 'SKIP_WAITING' });
+                      }
+                      
+                      console.log('[SW] Cleanup completed');
+                    } catch (e) {
+                      console.error('[SW] Cleanup error:', e);
+                    }
                   }
-                });
-              }
+                  
+                  // Run immediately
+                  cleanupServiceWorkers();
+                  
+                  // Also run on page load as fallback
+                  if (document.readyState === 'loading') {
+                    document.addEventListener('DOMContentLoaded', cleanupServiceWorkers);
+                  } else {
+                    window.addEventListener('load', cleanupServiceWorkers);
+                  }
+                  
+                  // Prevent any new service workers from being registered
+                  navigator.serviceWorker.addEventListener('controllerchange', function() {
+                    cleanupServiceWorkers();
+                  });
+                }
+              })();
             `,
           }}
         />

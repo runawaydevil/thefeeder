@@ -87,7 +87,7 @@ ruff format app/
 
 ## Questions?
 
-Open an issue or contact pablo@pablomurad.com
+Open an issue or contact the project maintainer.
 
 Thank you for contributing! 🎉
 

@@ -9,7 +9,7 @@ on:
     - cron: '0 0 * * 0'  # Weekly
 
 jobs:
-  dependency-scan:
+  npm-audit:
     runs-on: ubuntu-latest
     permissions:
       security-events: write
@@ -19,16 +19,22 @@ jobs:
     steps:
     - uses: actions/checkout@v4
     
-    - name: Set up Python
-      uses: actions/setup-python@v5
+    - name: Setup Node.js
+      uses: actions/setup-node@v4
       with:
-        python-version: '3.12'
+        node-version: '20'
+        cache: 'npm'
+        cache-dependency-path: apps/web/package-lock.json
     
-    - name: Install safety
-      run: pip install safety
+    - name: Install dependencies
+      run: |
+        cd apps/web
+        npm ci
     
-    - name: Check dependencies
-      run: safety scan --json -r requirements.txt || true
+    - name: Run npm audit
+      run: |
+        cd apps/web
+        npm audit --audit-level=moderate || true
       continue-on-error: true
 
   docker-scan:
@@ -42,12 +48,12 @@ jobs:
     - uses: actions/checkout@v4
     
     - name: Build Docker image
-      run: docker build -t pablo-feeds:scan .
+      run: docker build -t thefeeder:scan .
     
     - name: Run Trivy vulnerability scanner
       uses: aquasecurity/trivy-action@0.30.0
       with:
-        image-ref: 'pablo-feeds:scan'
+        image-ref: 'thefeeder:scan'
         format: 'sarif'
         output: 'trivy-results.sarif'
         exit-code: '0'

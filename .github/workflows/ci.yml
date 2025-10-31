@@ -2,7 +2,7 @@ name: CI
 
 on:
   push:
-    branches: [ main ]
+    branches: [ main, develop ]
   pull_request:
     branches: [ main ]
 
@@ -13,50 +13,45 @@ jobs:
     steps:
     - uses: actions/checkout@v4
     
-    - name: Set up Python
-      uses: actions/setup-python@v5
+    - name: Setup Node.js
+      uses: actions/setup-node@v4
       with:
-        python-version: '3.12'
+        node-version: '20'
+        cache: 'npm'
+        cache-dependency-path: apps/web/package-lock.json
     
-    - name: Install ruff
-      run: pip install ruff
+    - name: Install dependencies
+      run: |
+        cd apps/web
+        npm ci
     
-    - name: Run ruff
-      run: ruff check --fix app/ || echo "Linting completed with warnings"
+    - name: Run ESLint
+      run: |
+        cd apps/web
+        npm run lint || echo "Linting completed with warnings"
 
-  test:
+  typecheck:
     runs-on: ubuntu-latest
-    
-    strategy:
-      matrix:
-        python-version: ["3.12"]
     
     steps:
     - uses: actions/checkout@v4
     
-    - name: Set up Python ${{ matrix.python-version }}
-      uses: actions/setup-python@v5
+    - name: Setup Node.js
+      uses: actions/setup-node@v4
       with:
-        python-version: ${{ matrix.python-version }}
+        node-version: '20'
+        cache: 'npm'
+        cache-dependency-path: apps/web/package-lock.json
     
     - name: Install dependencies
       run: |
-        python -m pip install --upgrade pip
-        pip install -r requirements.txt
-        pip install -r requirements-dev.txt
+        cd apps/web
+        npm ci
     
-    - name: Run tests
+    - name: Run TypeScript check
       run: |
-        pytest tests/ -v --cov=app --cov-report=term-missing || true
-        echo "Tests completed"
-    
-    - name: Upload coverage
-      uses: codecov/codecov-action@v4
-      if: always()
-      with:
-        file: ./coverage.xml
-        flags: unittests
-        name: codecov-umbrella
+        cd apps/web
+        npm run typecheck || echo "Type checking completed with warnings"
 
   build:
     runs-on: ubuntu-latest
@@ -64,16 +59,27 @@ jobs:
     steps:
     - uses: actions/checkout@v4
     
-    - name: Set up Docker Buildx
-      uses: docker/setup-buildx-action@v3
+    - name: Setup Node.js
+      uses: actions/setup-node@v4
+      with:
+        node-version: '20'
+        cache: 'npm'
+        cache-dependency-path: apps/web/package-lock.json
     
-    - name: Build Docker image
-      run: docker build -t pablo-feeds:test .
-    
-    - name: Test Docker image
+    - name: Install dependencies
       run: |
-        docker run -d --name test-container -p 7389:7389 -e DB_PATH=/tmp/test.sqlite pablo-feeds:test
-        sleep 10
-        curl -f http://localhost:7389/health || exit 1
-        docker stop test-container
+        cd apps/web
+        npm ci
+        cd ../worker
+        npm ci || echo "Worker dependencies install skipped"
+    
+    - name: Generate Prisma Client
+      run: |
+        cd apps/web
+        npm run prisma:generate
+    
+    - name: Build web app
+      run: |
+        cd apps/web
+        npm run build
 
