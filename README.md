@@ -8,6 +8,16 @@ A modern RSS feed aggregator with daily email digest, built with Next.js 15, Pos
 
 </div>
 
+## Screenshots
+
+<div align="center">
+
+![TheFeeder Interface](public/f1.png)
+
+![TheFeeder Dashboard](public/f2.png)
+
+</div>
+
 **Version:** 2.0.0 - Node.js Edition  
 **Author:** Pablo Murad <pablomurad@pm.me>  
 **Repository:** [GitHub](https://github.com/runawaydevil/thefeeder)
@@ -29,12 +39,16 @@ A modern RSS feed aggregator with daily email digest, built with Next.js 15, Pos
 
 ### Feed Management
 - **Auto Discovery**: Enter a URL and automatically find RSS feeds
+- **OPML Import/Export**: Import and export feed lists via OPML files
+- **Duplicate Prevention**: Automatic URL normalization prevents duplicate feeds
 - **Reddit Support**: Auto-converts subreddit URLs to RSS feeds
 - **YouTube Support**: Detects YouTube channels and converts to RSS
 - **GitHub Support**: Supports GitHub user and repository feeds
 - **Rate Limiting**: Intelligent rate limiting (Reddit: 1 hour minimum)
 - **User Agent Rotation**: Random user agents to prevent blocking
 - **Custom Intervals**: Set refresh intervals per feed (minimum 10 minutes)
+- **Immediate Fetch**: New feeds are automatically fetched upon creation or import
+- **Auto Cleanup**: Automatically maintains up to 50,000 articles (oldest are removed)
 
 ### Technical Stack
 - **Frontend**: Next.js 15 (App Router), React 18, Tailwind CSS
@@ -86,7 +100,7 @@ npm run dev
 ```
 
 This starts both:
-- Web app: http://localhost:7389
+- Web app: http://localhost:8041
 - Worker API: http://localhost:7388
 
 ### Default Admin Credentials
@@ -101,14 +115,14 @@ This starts both:
 ## Docker Deployment
 
 ```bash
-docker-compose -f docker-compose.node.yml up -d
+docker compose up -d --build
 ```
 
 This starts all services:
-- Web app (port 3000)
-- Worker (port 3001)
-- PostgreSQL (port 15432)
-- Redis (port 16379)
+- Web app (port 8041)
+- Worker API (port 7388)
+- PostgreSQL (port 5432)
+- Redis (port 6379)
 
 ---
 
@@ -125,7 +139,10 @@ REDIS_URL=redis://localhost:16379
 
 # NextAuth
 NEXTAUTH_SECRET=your-secret-here
-NEXTAUTH_URL=http://localhost:7389
+NEXTAUTH_URL=https://feeder.works
+
+# Site URL
+NEXT_PUBLIC_SITE_URL=https://feeder.works
 
 # Worker API
 WORKER_API_URL=http://localhost:7388
@@ -161,7 +178,8 @@ thefeeder/
 ├── .env                  # Environment variables (root)
 ├── .env.example         # Environment template
 ├── package.json          # Root package.json with scripts
-└── docker-compose.node.yml
+├── docker-compose.yml    # Docker Compose configuration
+└── Dockerfile            # Multi-stage Dockerfile
 ```
 
 ---
@@ -222,6 +240,18 @@ Supported formats:
 - Reddit: `r/subreddit` or `https://reddit.com/r/subreddit`
 - YouTube: Channel URLs or channel IDs
 - GitHub: User or repository URLs
+
+## OPML Import/Export
+
+You can import and export feed lists via OPML files:
+
+1. **Import OPML**: Click "📤 Import OPML" in the feeds manager and select an OPML file
+2. **Export OPML**: Click "📥 Export OPML" to download your current feed list
+
+The system automatically:
+- Normalizes URLs to prevent duplicates
+- Triggers immediate fetch for all imported feeds
+- Skips feeds that already exist
 
 ---
 
