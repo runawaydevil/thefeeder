@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, type ChangeEvent, type KeyboardEvent, type FormEvent } from "react";
 import { FeedIcon } from "@/src/lib/feed-icon";
 
 /**
@@ -39,6 +39,8 @@ export default function FeedsManager() {
   const [discoverUrl, setDiscoverUrl] = useState("");
   const [discovering, setDiscovering] = useState(false);
   const [discoveredFeeds, setDiscoveredFeeds] = useState<Array<{ url: string; title: string; type: string }>>([]);
+  const [importingOPML, setImportingOPML] = useState(false);
+  const [importResult, setImportResult] = useState<{ imported: number; skipped: number; total: number; errors?: string[] } | null>(null);
   const [formData, setFormData] = useState({
     title: "",
     url: "",
@@ -64,7 +66,7 @@ export default function FeedsManager() {
     }
   };
 
-  const handleSubmit = async (e: React.FormEvent) => {
+  const handleSubmit = async (e: FormEvent<HTMLFormElement>) => {
     e.preventDefault();
     
     if (formData.refreshIntervalMinutes < 10) {
@@ -247,11 +249,75 @@ export default function FeedsManager() {
     }
   };
 
+  const handleImportOPML = async (event: ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0];
+    if (!file) return;
+
+    // Validate file type
+    if (!file.type.includes("xml") && !file.name.endsWith(".opml")) {
+      alert("Invalid file type. Please upload an OPML (.opml) file");
+      return;
+    }
+
+    setImportingOPML(true);
+    setImportResult(null);
+
+    try {
+      const formData = new FormData();
+      formData.append("file", file);
+
+      const res = await fetch("/api/feeds/import/opml", {
+        method: "POST",
+        body: formData,
+      });
+
+      const data = await res.json();
+
+      if (res.ok) {
+        setImportResult({
+          imported: data.imported,
+          skipped: data.skipped,
+          total: data.total,
+          errors: data.errors,
+        });
+        // Refresh feeds list
+        fetchFeeds();
+        // Clear file input
+        event.target.value = "";
+      } else {
+        alert(data.error || "Error importing OPML");
+      }
+    } catch (error) {
+      console.error("Error importing OPML:", error);
+      alert("Failed to import OPML");
+    } finally {
+      setImportingOPML(false);
+    }
+  };
+
   return (
     <div>
       <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3 mb-4">
         <h2 className="text-base md:text-lg font-bold text-vaporwave-cyan neon-glow-cyan uppercase tracking-wider">Feeds</h2>
         <div className="flex gap-2 flex-wrap w-full sm:w-auto">
+          <input
+            type="file"
+            accept=".opml,.xml"
+            onChange={handleImportOPML}
+            disabled={importingOPML}
+            className="hidden"
+            id="opml-import-input"
+          />
+          <label
+            htmlFor="opml-import-input"
+            className={`flex-1 sm:flex-initial px-3 py-1.5 text-xs md:text-sm rounded-md hover:shadow-[0_0_12px_hsl(270_100%_70%_/_0.5)] transition-all border-2 uppercase tracking-wider font-bold cursor-pointer ${
+              importingOPML
+                ? "bg-vaporwave-purple/50 text-primary-foreground/50 border-vaporwave-purple/30 cursor-not-allowed"
+                : "bg-vaporwave-purple text-primary-foreground border-vaporwave-purple hover:bg-vaporwave-purple/90"
+            }`}
+          >
+            {importingOPML ? "⏳ Importing..." : "📤 Import OPML"}
+          </label>
           <button
             onClick={handleExportOPML}
             className="flex-1 sm:flex-initial px-3 py-1.5 text-xs md:text-sm bg-vaporwave-pink text-primary-foreground rounded-md hover:bg-vaporwave-pink/90 hover:shadow-[0_0_12px_hsl(320_100%_65%_/_0.5)] transition-all border-2 border-vaporwave-pink uppercase tracking-wider font-bold"
@@ -285,6 +351,35 @@ export default function FeedsManager() {
         </div>
       </div>
 
+      {importResult && (
+        <div className="mb-4 cyber-card border-2 border-vaporwave-cyan/50 p-4 space-y-3">
+          <h3 className="text-sm font-bold text-vaporwave-cyan uppercase tracking-wider mb-2">Import Result</h3>
+          <div className="space-y-2">
+            <p className="text-xs text-muted-foreground">
+              <span className="text-green-400">✓ Imported: {importResult.imported}</span> | 
+              <span className="text-yellow-400"> ⊘ Skipped: {importResult.skipped}</span> | 
+              <span> Total: {importResult.total}</span>
+            </p>
+            {importResult.errors && importResult.errors.length > 0 && (
+              <div className="mt-2 p-2 bg-red-500/20 border border-red-500/30 rounded text-xs text-red-400">
+                <p className="font-bold mb-1">Errors:</p>
+                <ul className="list-disc list-inside space-y-1">
+                  {importResult.errors.map((error: string, index: number) => (
+                    <li key={index}>{error}</li>
+                  ))}
+                </ul>
+              </div>
+            )}
+            <button
+              onClick={() => setImportResult(null)}
+              className="text-xs text-vaporwave-cyan hover:text-vaporwave-cyan/80 underline"
+            >
+              Close
+            </button>
+          </div>
+        </div>
+      )}
+
       {showDiscover && (
         <div className="mb-4 cyber-card border-2 border-vaporwave-purple/50 p-4 space-y-3">
           <h3 className="text-sm font-bold text-vaporwave-purple uppercase tracking-wider mb-2">Discover Feeds</h3>
@@ -296,10 +391,10 @@ export default function FeedsManager() {
             <input
               type="url"
               value={discoverUrl}
-              onChange={(e) => setDiscoverUrl(e.target.value)}
+              onChange={(e: ChangeEvent<HTMLInputElement>) => setDiscoverUrl(e.target.value)}
               placeholder="https://example.com or r/programming or youtube.com/channel/..."
               className="flex-1 px-3 py-2 text-xs sm:text-sm bg-background/80 border-2 border-vaporwave-purple/30 rounded-md text-foreground focus:border-vaporwave-purple focus:outline-none focus:ring-2 focus:ring-vaporwave-purple/50 transition-all min-w-0"
-              onKeyPress={(e) => e.key === "Enter" && handleDiscover()}
+              onKeyPress={(e: KeyboardEvent<HTMLInputElement>) => e.key === "Enter" && handleDiscover()}
             />
             <button
               onClick={handleDiscover}
@@ -316,7 +411,7 @@ export default function FeedsManager() {
                 Found {discoveredFeeds.length} feed(s):
               </p>
               <div className="space-y-2">
-                {discoveredFeeds.map((feed, index) => (
+                {discoveredFeeds.map((feed: { url: string; title: string; type: string }, index: number) => (
                   <div
                     key={index}
                     className="p-3 bg-background/50 border-2 border-vaporwave-cyan/30 rounded-md hover:border-vaporwave-cyan/50 transition-all"
@@ -351,7 +446,7 @@ export default function FeedsManager() {
             <input
               type="text"
               value={formData.title}
-              onChange={(e) => setFormData({ ...formData, title: e.target.value })}
+              onChange={(e: ChangeEvent<HTMLInputElement>) => setFormData({ ...formData, title: e.target.value })}
               required
               className="w-full px-3 py-2 text-sm bg-background/80 border-2 border-vaporwave-cyan/30 rounded-md text-foreground focus:border-vaporwave-cyan focus:outline-none focus:ring-2 focus:ring-vaporwave-cyan/50 transition-all"
             />
@@ -361,7 +456,7 @@ export default function FeedsManager() {
             <input
               type="url"
               value={formData.url}
-              onChange={(e) => setFormData({ ...formData, url: e.target.value })}
+              onChange={(e: ChangeEvent<HTMLInputElement>) => setFormData({ ...formData, url: e.target.value })}
               required
               className="w-full px-3 py-2 text-sm bg-background/80 border-2 border-vaporwave-cyan/30 rounded-md text-foreground focus:border-vaporwave-cyan focus:outline-none focus:ring-2 focus:ring-vaporwave-cyan/50 transition-all"
             />
@@ -371,7 +466,7 @@ export default function FeedsManager() {
             <input
               type="url"
               value={formData.siteUrl}
-              onChange={(e) => setFormData({ ...formData, siteUrl: e.target.value })}
+              onChange={(e: ChangeEvent<HTMLInputElement>) => setFormData({ ...formData, siteUrl: e.target.value })}
               className="w-full px-3 py-2 text-sm bg-background/80 border-2 border-vaporwave-cyan/30 rounded-md text-foreground focus:border-vaporwave-cyan focus:outline-none focus:ring-2 focus:ring-vaporwave-cyan/50 transition-all"
             />
           </div>
@@ -383,7 +478,7 @@ export default function FeedsManager() {
               type="number"
               min="10"
               value={formData.refreshIntervalMinutes}
-              onChange={(e) => setFormData({ ...formData, refreshIntervalMinutes: parseInt(e.target.value) })}
+              onChange={(e: ChangeEvent<HTMLInputElement>) => setFormData({ ...formData, refreshIntervalMinutes: parseInt(e.target.value) })}
               required
               className="w-full px-3 py-2 text-sm bg-background/80 border-2 border-vaporwave-cyan/30 rounded-md text-foreground focus:border-vaporwave-cyan focus:outline-none focus:ring-2 focus:ring-vaporwave-cyan/50 transition-all"
             />
@@ -398,7 +493,7 @@ export default function FeedsManager() {
       )}
 
       <div className="space-y-4">
-        {feeds.map((feed) => (
+        {feeds.map((feed: Feed) => (
           <div
             key={feed.id}
             className={`cyber-card border-2 ${feed.isActive ? 'border-vaporwave-cyan/50' : 'border-vaporwave-purple/30 opacity-70'} p-3 md:p-4 flex flex-col md:flex-row items-start md:items-center justify-between gap-3 hover:shadow-[0_0_15px_hsl(180_100%_60%_/_0.3)] transition-all`}

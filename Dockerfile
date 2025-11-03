@@ -45,6 +45,7 @@ COPY apps/web/tsconfig.json ./tsconfig.json
 COPY apps/web/postcss.config.mjs ./postcss.config.mjs
 COPY apps/web/tailwind.config.ts ./tailwind.config.ts
 COPY apps/web/middleware.ts ./middleware.ts
+COPY apps/web/next-env.d.ts ./next-env.d.ts
 COPY apps/web/prisma ./prisma
 COPY apps/web/src ./src
 COPY apps/web/app ./app
@@ -112,9 +113,11 @@ COPY --from=build-web /app/prisma ./prisma
 COPY --from=build-web /app/src ./src
 COPY --from=build-web /app/middleware.ts ./middleware.ts
 
-# Copy entrypoint script
+# Copy entrypoint script and fix line endings (CRLF to LF for Windows compatibility)
 COPY docker-entrypoint-web.sh /docker-entrypoint-web.sh
-RUN chmod +x /docker-entrypoint-web.sh
+RUN sed -i.bak 's/\r$//' /docker-entrypoint-web.sh && \
+    rm -f /docker-entrypoint-web.sh.bak && \
+    chmod +x /docker-entrypoint-web.sh
 
 EXPOSE 3000
 ENTRYPOINT ["/docker-entrypoint-web.sh"]
@@ -143,9 +146,11 @@ RUN npm prune --production && npm cache clean --force
 COPY --from=build-worker /worker/prisma ./prisma
 COPY --from=build-worker /worker/src ./src
 
-# Copy entrypoint script
+# Copy entrypoint script and fix line endings (CRLF to LF for Windows compatibility)
 COPY docker-entrypoint-worker.sh /docker-entrypoint-worker.sh
-RUN chmod +x /docker-entrypoint-worker.sh
+RUN sed -i.bak 's/\r$//' /docker-entrypoint-worker.sh && \
+    rm -f /docker-entrypoint-worker.sh.bak && \
+    chmod +x /docker-entrypoint-worker.sh
 
 EXPOSE 3001
 ENTRYPOINT ["/docker-entrypoint-worker.sh"]

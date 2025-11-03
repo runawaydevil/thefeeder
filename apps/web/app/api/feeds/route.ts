@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { auth } from "@/src/auth";
 import { prisma } from "@/src/lib/prisma";
 import { Role } from "@prisma/client";
+import { normalizeFeedUrl } from "@/src/lib/feed-url";
 
 const MIN_REFRESH_INTERVAL = 10; // minutes
 
@@ -66,19 +67,48 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: "Invalid feed URL" }, { status: 400 });
     }
 
+    // Normalize URL to prevent duplicates
+    const normalizedUrl = normalizeFeedUrl(url);
+    
+    // Check if feed with normalized URL already exists
+    const existingFeeds = await prisma.feed.findMany({
+      select: { url: true },
+    });
+    
+    // Check if any existing feed URL matches the normalized URL
+    const isDuplicate = existingFeeds.some((feed: { url: string }) => {
+      try {
+        const normalizedExisting = normalizeFeedUrl(feed.url);
+        return normalizedExisting === normalizedUrl;
+      } catch {
+        return false;
+      }
+    });
+    
+    if (isDuplicate) {
+      return NextResponse.json(
+        { error: "A feed with this URL already exists (duplicate detected)" },
+        { status: 409 },
+      );
+    }
+
     const feed = await prisma.feed.create({
       data: {
         title,
-        url,
+        url: normalizedUrl, // Store normalized URL
         siteUrl: siteUrl || null,
         refreshIntervalMinutes,
       },
     });
 
-    // Schedule feed in worker (non-blocking)
-    import("@/src/lib/worker-api").then(({ scheduleFeed }) => {
+    // Schedule feed in worker and trigger immediate fetch (non-blocking)
+    import("@/src/lib/worker-api").then(({ scheduleFeed, fetchFeedImmediately }) => {
       scheduleFeed(feed.id).catch((err) => {
         console.error("Failed to schedule feed in worker:", err);
+      });
+      // Trigger immediate fetch after creation
+      fetchFeedImmediately(feed.id).catch((err) => {
+        console.error("Failed to trigger immediate fetch:", err);
       });
     });
 

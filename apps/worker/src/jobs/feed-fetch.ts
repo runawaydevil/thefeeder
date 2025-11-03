@@ -105,6 +105,9 @@ export async function processFeedFetch(job: Job<FeedFetchJobData>) {
       data: { lastFetchedAt: new Date() },
     });
 
+    // Clean up old items if total exceeds 50k
+    await cleanupOldItems();
+
     return {
       success: true,
       itemsCreated,
@@ -114,6 +117,53 @@ export async function processFeedFetch(job: Job<FeedFetchJobData>) {
   } catch (error) {
     console.error(`Error processing feed ${feedId}:`, error);
     throw error;
+  }
+}
+
+const MAX_ITEMS_LIMIT = 50000; // Maximum 50k articles
+
+/**
+ * Clean up old items if total exceeds MAX_ITEMS_LIMIT
+ * Keeps only the 50k most recent items (by publishedAt)
+ */
+async function cleanupOldItems() {
+  try {
+    const totalCount = await prisma.item.count();
+    
+    if (totalCount <= MAX_ITEMS_LIMIT) {
+      return; // No cleanup needed
+    }
+
+    const itemsToDelete = totalCount - MAX_ITEMS_LIMIT;
+    
+    // Find the oldest items (by publishedAt, then by createdAt as fallback)
+    // We want to keep the 50k most recent items
+    const oldestItems = await prisma.item.findMany({
+      orderBy: [
+        { publishedAt: "asc" },
+        { createdAt: "asc" },
+      ],
+      take: itemsToDelete,
+      select: { id: true },
+    });
+
+    if (oldestItems.length > 0) {
+      const idsToDelete = oldestItems.map((item: { id: string }) => item.id);
+      
+      // Delete in batches to avoid overwhelming the database
+      const batchSize = 1000;
+      for (let i = 0; i < idsToDelete.length; i += batchSize) {
+        const batch = idsToDelete.slice(i, i + batchSize);
+        await prisma.item.deleteMany({
+          where: { id: { in: batch } },
+        });
+      }
+
+      console.log(`Cleaned up ${oldestItems.length} old items (total was ${totalCount}, now ${totalCount - oldestItems.length})`);
+    }
+  } catch (error) {
+    console.error("Error cleaning up old items:", error);
+    // Don't throw - cleanup failure shouldn't break feed fetching
   }
 }
 

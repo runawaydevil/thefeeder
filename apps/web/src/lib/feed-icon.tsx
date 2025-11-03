@@ -26,20 +26,32 @@ export type FeedPlatform =
   | "default";
 
 export function detectFeedPlatform(url: string): FeedPlatform {
-  const lowerUrl = url.toLowerCase();
-  
-  if (lowerUrl.includes("reddit.com")) return "reddit";
-  if (lowerUrl.includes("youtube.com") || lowerUrl.includes("youtu.be")) return "youtube";
-  if (lowerUrl.includes("github.com")) return "github";
-  if (lowerUrl.includes("twitter.com") || lowerUrl.includes("x.com")) return "twitter";
-  if (lowerUrl.includes("instagram.com")) return "instagram";
-  if (lowerUrl.includes("facebook.com") || lowerUrl.includes("fb.com")) return "facebook";
-  if (lowerUrl.includes("linkedin.com")) return "linkedin";
-  if (lowerUrl.includes("dev.to")) return "devto";
-  if (lowerUrl.includes("medium.com")) return "medium";
-  if (lowerUrl.includes(".rss") || lowerUrl.includes("/feed") || lowerUrl.includes("/atom")) return "rss";
-  
-  return "default";
+  try {
+    const urlObj = new URL(url);
+    const hostname = urlObj.hostname.toLowerCase();
+    
+    // Check for specific platforms by hostname (more precise)
+    if (hostname.includes("reddit.com")) return "reddit";
+    if (hostname.includes("youtube.com") || hostname.includes("youtu.be")) return "youtube";
+    if (hostname.includes("github.com")) return "github";
+    if (hostname === "twitter.com" || hostname === "www.twitter.com" || hostname === "x.com" || hostname === "www.x.com") return "twitter";
+    if (hostname.includes("instagram.com")) return "instagram";
+    if (hostname.includes("facebook.com") || hostname.includes("fb.com")) return "facebook";
+    if (hostname.includes("linkedin.com")) return "linkedin";
+    if (hostname.includes("dev.to")) return "devto";
+    if (hostname.includes("medium.com")) return "medium";
+    
+    // Check for RSS/Atom feeds in the URL path
+    const pathname = urlObj.pathname.toLowerCase();
+    if (pathname.includes(".rss") || pathname.includes("/feed") || pathname.includes("/atom") || pathname.includes(".atom")) return "rss";
+    
+    return "default";
+  } catch (error) {
+    // If URL parsing fails, fallback to simple string matching
+    const lowerUrl = url.toLowerCase();
+    if (lowerUrl.includes(".rss") || lowerUrl.includes("/feed") || lowerUrl.includes("/atom")) return "rss";
+    return "default";
+  }
 }
 
 interface FeedIconProps {

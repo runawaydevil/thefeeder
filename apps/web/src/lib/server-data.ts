@@ -5,13 +5,17 @@ import { prisma } from "@/src/lib/prisma";
  * These can be called directly during SSR without HTTP requests
  */
 
-export async function getItems(limit: number = 600, skip: number = 0) {
+const MAX_ITEMS_LIMIT = 50000; // Maximum 50k articles
+
+export async function getItems(limit: number = 20, skip: number = 0) {
   try {
-    // Get total count for pagination
-    const total = await prisma.item.count();
+    // Get total count for pagination, but cap at MAX_ITEMS_LIMIT
+    const totalCount = await prisma.item.count();
+    const total = Math.min(totalCount, MAX_ITEMS_LIMIT);
     
+    // Only fetch items up to MAX_ITEMS_LIMIT
     const items = await prisma.item.findMany({
-      take: limit,
+      take: Math.min(limit, MAX_ITEMS_LIMIT - skip),
       skip: skip,
       orderBy: { publishedAt: "desc" },
       include: {
@@ -26,7 +30,7 @@ export async function getItems(limit: number = 600, skip: number = 0) {
 
     // Transform Prisma null to undefined for TypeScript compatibility
     // Prisma returns null for nullable fields, but components expect undefined
-    const transformedItems = items.map((item) => ({
+    const transformedItems = items.map((item: typeof items[0]) => ({
       id: item.id,
       title: item.title,
       url: item.url,
@@ -64,9 +68,12 @@ export async function getStats() {
     // Log for debugging
     console.log("[getStats] Real data:", { feeds: feedsCount, items: itemsCount });
 
+    // Cap items count at MAX_ITEMS_LIMIT for display
+    const displayItemsCount = Math.min(itemsCount, MAX_ITEMS_LIMIT);
+
     return {
       feeds: feedsCount,
-      items: itemsCount,
+      items: displayItemsCount,
       online: 420, // Placeholder
     };
   } catch (error) {

@@ -1,5 +1,5 @@
 import express from "express";
-import { scheduleFeed, unscheduleFeed } from "../lib/scheduler.js";
+import { scheduleFeed, unscheduleFeed, fetchFeedImmediately } from "../lib/scheduler.js";
 
 const router = express.Router();
 
@@ -40,6 +40,18 @@ router.delete("/:feedId", requireAuth, async (req, res) => {
     res.json({ success: true, message: `Feed ${feedId} unscheduled` });
   } catch (error: any) {
     console.error("Error unscheduling feed:", error);
+    res.status(500).json({ error: error.message || "Internal server error" });
+  }
+});
+
+// POST /schedule/:feedId/fetch - Trigger immediate feed fetch
+router.post("/:feedId/fetch", requireAuth, async (req, res) => {
+  try {
+    const { feedId } = req.params;
+    await fetchFeedImmediately(feedId);
+    res.json({ success: true, message: `Immediate fetch triggered for feed ${feedId}` });
+  } catch (error: any) {
+    console.error("Error triggering immediate fetch:", error);
     res.status(500).json({ error: error.message || "Internal server error" });
   }
 });

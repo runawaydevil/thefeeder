@@ -80,3 +80,36 @@ export async function unscheduleFeed(feedId: string) {
   }
 }
 
+/**
+ * Trigger immediate feed fetch (without affecting scheduled repeat job)
+ * This is used when a new feed is created or imported
+ */
+export async function fetchFeedImmediately(feedId: string) {
+  const queue = getQueue();
+  const feed = await prisma.feed.findUnique({ where: { id: feedId } });
+
+  if (!feed) {
+    throw new Error(`Feed ${feedId} not found`);
+  }
+
+  if (!feed.isActive) {
+    console.log(`Skipping immediate fetch for inactive feed: ${feed.title}`);
+    return;
+  }
+
+  // Add a one-time job with immediate execution (delay 0, no repeat)
+  const immediateJobId = `feed-immediate-${feed.id}-${Date.now()}`;
+  
+  await queue.add(
+    immediateJobId,
+    { feedId: feed.id },
+    {
+      jobId: immediateJobId,
+      delay: 0, // Execute immediately
+      // No repeat - this is a one-time fetch
+    },
+  );
+
+  console.log(`Immediate fetch triggered for feed: ${feed.title}`);
+}
+
