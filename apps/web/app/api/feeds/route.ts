@@ -17,7 +17,16 @@ export async function GET() {
 
     const feeds = await prisma.feed.findMany({
       orderBy: { createdAt: "desc" },
-      include: {
+      select: {
+        id: true,
+        title: true,
+        url: true,
+        siteUrl: true,
+        refreshIntervalMinutes: true,
+        lastFetchedAt: true,
+        isActive: true,
+        createdAt: true,
+        updatedAt: true,
         _count: {
           select: { items: true },
         },

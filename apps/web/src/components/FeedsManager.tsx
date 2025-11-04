@@ -516,12 +516,10 @@ export default function FeedsManager() {
                   <span className="w-1 h-1 bg-vaporwave-pink rounded-full" />
                   Items: {feed._count?.items || 0}
                 </span>
-                {feed.lastFetchedAt && (
-                  <span className="flex items-center gap-1">
-                    <span className="w-1 h-1 bg-vaporwave-purple rounded-full" />
-                    Last: {formatDateTime(feed.lastFetchedAt)}
-                  </span>
-                )}
+                <span className="flex items-center gap-1">
+                  <span className="w-1 h-1 bg-vaporwave-purple rounded-full" />
+                  Last: {feed.lastFetchedAt ? formatDateTime(feed.lastFetchedAt) : "Nunca"}
+                </span>
               </div>
             </div>
             <div className="flex gap-1.5 flex-wrap w-full sm:w-auto">

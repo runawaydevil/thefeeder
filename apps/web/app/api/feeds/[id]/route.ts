@@ -111,7 +111,42 @@ export async function DELETE(
       return NextResponse.json({ error: "Feed not found" }, { status: 404 });
     }
 
-    // Delete the feed (items will be deleted automatically due to cascade)
+    const itemCount = feed._count.items;
+
+    // Delete items manually first to avoid foreign key constraint issues
+    // This is a fallback if cascade delete doesn't work properly
+    if (itemCount > 0) {
+      try {
+        // Delete items in batches to avoid overwhelming the database
+        const batchSize = 1000;
+        let deletedCount = 0;
+        
+        while (deletedCount < itemCount) {
+          const itemsToDelete = await prisma.item.findMany({
+            where: { feedId: id },
+            take: batchSize,
+            select: { id: true },
+          });
+
+          if (itemsToDelete.length === 0) break;
+
+          const idsToDelete = itemsToDelete.map((item: { id: string }) => item.id);
+          await prisma.item.deleteMany({
+            where: { id: { in: idsToDelete } },
+          });
+
+          deletedCount += itemsToDelete.length;
+        }
+
+        console.log(`Deleted ${deletedCount} item(s) for feed ${feed.title}`);
+      } catch (itemError: any) {
+        console.error("Error deleting items:", itemError);
+        // Continue with feed deletion even if item deletion fails
+        // The cascade delete should handle it, or we'll see the error below
+      }
+    }
+
+    // Delete the feed (items should already be deleted, but cascade will handle any remaining)
     await prisma.feed.delete({
       where: { id },
     });
@@ -123,13 +158,15 @@ export async function DELETE(
 
     return NextResponse.json({ 
       success: true,
-      message: `Feed "${feed.title}" deleted successfully${feed._count.items > 0 ? ` along with ${feed._count.items} item(s)` : ''}`,
+      message: `Feed "${feed.title}" deleted successfully${itemCount > 0 ? ` along with ${itemCount} item(s)` : ''}`,
     });
   } catch (error: any) {
     if (error.code === "P2025") {
       return NextResponse.json({ error: "Feed not found" }, { status: 404 });
     }
     if (error.code === "P2003") {
+      // If we still get P2003 after manually deleting items, there's a deeper issue
+      console.error("P2003 error after manual item deletion:", error);
       return NextResponse.json(
         { error: "Cannot delete feed: it has related items that cannot be deleted. Please contact support." },
         { status: 400 },
