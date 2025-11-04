@@ -8,6 +8,8 @@ const parser = new Parser({
       ["media:thumbnail", "mediaThumbnail"],
       ["content:encoded", "contentEncoded"],
       ["content", "contentEncoded"],
+      // Map pubdate (lowercase) to pubDate for compatibility
+      ["pubdate", "pubDate"],
     ],
   },
   requestOptions: {
@@ -44,7 +46,15 @@ export async function parseFeed(feedUrl: string, customUserAgent?: string): Prom
     // Use custom user agent if provided, otherwise use random one from parser config
     const feedParser = customUserAgent
       ? new Parser({
-          customFields: parser.options.customFields,
+          customFields: {
+            item: [
+              ["media:content", "mediaContent"],
+              ["media:thumbnail", "mediaThumbnail"],
+              ["content:encoded", "contentEncoded"],
+              ["content", "contentEncoded"],
+              ["pubdate", "pubDate"],
+            ],
+          },
           requestOptions: {
             headers: {
               "User-Agent": customUserAgent,
@@ -82,11 +92,16 @@ export function normalizeFeedItem(item: FeedItem) {
     if (imgMatch) imageUrl = imgMatch[1];
   }
 
-  // Extract published date - try multiple fields
+  // Extract published date - try multiple fields and formats
   let publishedAt: Date | undefined;
+  
+  // Try isoDate first (ISO 8601 format)
   if (item.isoDate) {
     publishedAt = new Date(item.isoDate);
-  } else if (item.pubDate) {
+  }
+  
+  // Try pubDate (RSS format, e.g., "Tue, 04 Nov 2025 15:10:59 +0000")
+  if ((!publishedAt || isNaN(publishedAt.getTime())) && item.pubDate) {
     publishedAt = new Date(item.pubDate);
   }
   
