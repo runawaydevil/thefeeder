@@ -18,6 +18,7 @@ services:
       - NEXTAUTH_URL=${NEXTAUTH_URL:-http://localhost:8041}
       - NEXT_PUBLIC_SITE_URL=${NEXT_PUBLIC_SITE_URL:-http://localhost:8041}
       - TZ=${TZ:-America/Sao_Paulo}
+      - NEXT_PUBLIC_TZ=${TZ:-America/Sao_Paulo}
     ports:
       - "8041:3000"
     depends_on:

@@ -1,18 +1,7 @@
 "use client";
 
 import { FeedIcon } from "@/src/lib/feed-icon";
-
-/**
- * Format date deterministically to avoid hydration errors
- * Uses UTC to ensure same output on server and client
- */
-function formatDate(dateString: string): string {
-  const date = new Date(dateString);
-  const year = date.getUTCFullYear();
-  const month = String(date.getUTCMonth() + 1).padStart(2, '0');
-  const day = String(date.getUTCDate()).padStart(2, '0');
-  return `${day}/${month}/${year}`;
-}
+import { formatDateTime } from "@/src/lib/date-utils";
 
 interface FeedCardProps {
   id: string;
@@ -81,7 +70,7 @@ export default function FeedCard({
           {publishedAt && (
             <time dateTime={publishedAt} className="flex items-center gap-0.5 sm:gap-1">
               <span className="w-0.5 h-0.5 sm:w-1 sm:h-1 bg-vaporwave-purple rounded-full flex-shrink-0" />
-              <span className="truncate">{formatDate(publishedAt)}</span>
+              <span className="truncate">{formatDateTime(publishedAt)}</span>
             </time>
           )}
         </div>

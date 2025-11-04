@@ -200,12 +200,17 @@ export function normalizeFeedItem(item: FeedItem): {
     }
   }
 
-  // Extract published date
+  // Extract published date - try multiple fields
   let publishedAt: Date | undefined;
   if (item.isoDate) {
     publishedAt = new Date(item.isoDate);
   } else if (item.pubDate) {
     publishedAt = new Date(item.pubDate);
+  }
+  
+  // Validate date - if invalid, set to undefined
+  if (publishedAt && isNaN(publishedAt.getTime())) {
+    publishedAt = undefined;
   }
 
   // Extract GUID for deduplication

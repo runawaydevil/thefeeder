@@ -82,11 +82,17 @@ export function normalizeFeedItem(item: FeedItem) {
     if (imgMatch) imageUrl = imgMatch[1];
   }
 
+  // Extract published date - try multiple fields
   let publishedAt: Date | undefined;
   if (item.isoDate) {
     publishedAt = new Date(item.isoDate);
   } else if (item.pubDate) {
     publishedAt = new Date(item.pubDate);
+  }
+  
+  // Validate date - if invalid, set to undefined
+  if (publishedAt && isNaN(publishedAt.getTime())) {
+    publishedAt = undefined;
   }
 
   const sourceGuid = item.guid || item.id || item.link || undefined;

@@ -6,6 +6,17 @@ import { processDailyDigest, DailyDigestJobData } from "./jobs/daily-digest.js";
 import { scheduleFeed } from "./lib/scheduler.js";
 import scheduleRouter from "./api/schedule.js";
 
+// Configure timezone from environment variable
+const timezone = process.env.TZ || "America/Sao_Paulo";
+process.env.TZ = timezone;
+
+// Log timezone configuration
+console.log(`🌍 Timezone configured: ${timezone}`);
+const testDate = new Date();
+const tzString = Intl.DateTimeFormat().resolvedOptions().timeZone;
+console.log(`   Node.js timezone: ${tzString}`);
+console.log(`   Current time: ${testDate.toLocaleString("pt-BR", { timeZone: timezone })}`);
+
 // Environment variables are injected by Docker Compose via env_file and environment
 // No need to load .env file manually in Docker environment
 

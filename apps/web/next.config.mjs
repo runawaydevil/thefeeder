@@ -1,7 +1,9 @@
 /** @type {import('next').NextConfig} */
 const nextConfig = {
   reactStrictMode: true,
-  experimental: {},
+  experimental: {
+    instrumentationHook: true,
+  },
   outputFileTracingRoot: process.cwd(),
   // Ensure static assets are served correctly
   poweredByHeader: false,
