@@ -95,14 +95,17 @@ export default function ServiceWorkerCleanup() {
           return;
         }
 
-        // Step 1: Immediately prevent any new registrations
-        const originalRegister = navigator.serviceWorker.register;
-        navigator.serviceWorker.register = function () {
-          console.warn("[SW] Registration blocked:", arguments);
-          return Promise.reject(
-            new Error("Service worker registration is disabled"),
-          );
-        };
+        // Step 1: Only block registrations in development
+        // In production, allow ServiceWorkerRegistration to register the new SW
+        if (process.env.NODE_ENV !== "production") {
+          const originalRegister = navigator.serviceWorker.register;
+          navigator.serviceWorker.register = function () {
+            console.warn("[SW] Registration blocked in development:", arguments);
+            return Promise.reject(
+              new Error("Service worker registration is disabled in development"),
+            );
+          };
+        }
 
         // Step 2: Unregister all existing service workers WITHOUT calling update()
         // Calling update() triggers the browser to try fetching sw.js which causes 404 errors

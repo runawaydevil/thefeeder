@@ -297,17 +297,17 @@ export default function FeedsManager() {
           />
           <label
             htmlFor="opml-import-input"
-            className={`flex-1 sm:flex-initial px-3 py-1.5 text-xs md:text-sm rounded-md hover:shadow-[0_0_12px_hsl(270_100%_70%_/_0.5)] transition-all border-2 uppercase tracking-wider font-bold cursor-pointer ${
+            className={`flex-1 sm:flex-initial min-h-[44px] px-3 py-1.5 text-xs sm:text-sm rounded hover:shadow-[0_0_6px_hsl(270_100%_70%_/_0.3)] transition-all border uppercase tracking-wider font-normal cursor-pointer flex items-center justify-center touch-manipulation ${
               importingOPML
-                ? "bg-vaporwave-purple/50 text-primary-foreground/50 border-vaporwave-purple/30 cursor-not-allowed"
-                : "bg-vaporwave-purple text-primary-foreground border-vaporwave-purple hover:bg-vaporwave-purple/90"
+                ? "bg-vaporwave-purple/20 text-primary-foreground/50 border-vaporwave-purple/20 cursor-not-allowed"
+                : "bg-vaporwave-purple/10 text-vaporwave-purple/90 border-vaporwave-purple/40 hover:bg-vaporwave-purple/20 hover:border-vaporwave-purple/60"
             }`}
           >
             {importingOPML ? "⏳ Importing..." : "📤 Import OPML"}
           </label>
           <button
             onClick={handleExportOPML}
-            className="flex-1 sm:flex-initial px-3 py-1.5 text-xs md:text-sm bg-vaporwave-pink text-primary-foreground rounded-md hover:bg-vaporwave-pink/90 hover:shadow-[0_0_12px_hsl(320_100%_65%_/_0.5)] transition-all border-2 border-vaporwave-pink uppercase tracking-wider font-bold"
+            className="flex-1 sm:flex-initial min-h-[44px] px-3 py-1.5 text-xs sm:text-sm bg-vaporwave-pink/10 text-vaporwave-pink/90 border border-vaporwave-pink/40 rounded hover:bg-vaporwave-pink/20 hover:border-vaporwave-pink/60 hover:shadow-[0_0_6px_hsl(320_100%_65%_/_0.3)] transition-all uppercase tracking-wider font-normal touch-manipulation"
           >
             📥 Export OPML
           </button>
@@ -320,7 +320,7 @@ export default function FeedsManager() {
                 setDiscoverUrl("");
               }
             }}
-            className="flex-1 sm:flex-initial px-3 py-1.5 text-xs md:text-sm bg-vaporwave-purple text-primary-foreground rounded-md hover:bg-vaporwave-purple/90 hover:shadow-[0_0_12px_hsl(270_100%_70%_/_0.5)] transition-all border-2 border-vaporwave-purple uppercase tracking-wider font-bold"
+            className="flex-1 sm:flex-initial min-h-[44px] px-3 py-1.5 text-xs sm:text-sm bg-vaporwave-purple/10 text-vaporwave-purple/90 border border-vaporwave-purple/40 rounded hover:bg-vaporwave-purple/20 hover:border-vaporwave-purple/60 hover:shadow-[0_0_6px_hsl(270_100%_70%_/_0.3)] transition-all uppercase tracking-wider font-normal touch-manipulation"
           >
             {showDiscover ? "Cancel" : "🔍 Discover"}
           </button>
@@ -331,7 +331,7 @@ export default function FeedsManager() {
               setShowDiscover(false);
               setFormData({ title: "", url: "", siteUrl: "", refreshIntervalMinutes: 60 });
             }}
-            className="flex-1 sm:flex-initial px-3 py-1.5 text-xs md:text-sm bg-vaporwave-cyan text-primary-foreground rounded-md hover:bg-vaporwave-cyan/90 hover:shadow-[0_0_12px_hsl(180_100%_60%_/_0.5)] transition-all border-2 border-vaporwave-cyan uppercase tracking-wider font-bold"
+            className="flex-1 sm:flex-initial min-h-[44px] px-3 py-1.5 text-xs sm:text-sm bg-vaporwave-cyan/10 text-vaporwave-cyan/90 border border-vaporwave-cyan/40 rounded hover:bg-vaporwave-cyan/20 hover:border-vaporwave-cyan/60 hover:shadow-[0_0_6px_hsl(180_100%_60%_/_0.3)] transition-all uppercase tracking-wider font-normal touch-manipulation"
           >
             {showForm ? "Cancel" : "+ Add Feed"}
           </button>
@@ -359,7 +359,7 @@ export default function FeedsManager() {
             )}
             <button
               onClick={() => setImportResult(null)}
-              className="text-xs text-vaporwave-cyan hover:text-vaporwave-cyan/80 underline"
+              className="px-2 py-1 text-xs text-vaporwave-cyan/70 hover:text-vaporwave-cyan underline transition-colors touch-manipulation"
             >
               Close
             </button>
@@ -380,13 +380,13 @@ export default function FeedsManager() {
               value={discoverUrl}
               onChange={(e: ChangeEvent<HTMLInputElement>) => setDiscoverUrl(e.target.value)}
               placeholder="https://example.com or r/programming or youtube.com/channel/..."
-              className="flex-1 px-3 py-2 text-xs sm:text-sm bg-background/80 border-2 border-vaporwave-purple/30 rounded-md text-foreground focus:border-vaporwave-purple focus:outline-none focus:ring-2 focus:ring-vaporwave-purple/50 transition-all min-w-0"
+              className="flex-1 min-h-[44px] px-3 sm:px-4 py-2.5 sm:py-3 text-sm sm:text-base bg-background/80 border-2 border-vaporwave-purple/30 rounded-md text-foreground focus:border-vaporwave-purple focus:outline-none focus:ring-2 focus:ring-vaporwave-purple/50 transition-all min-w-0"
               onKeyPress={(e: KeyboardEvent<HTMLInputElement>) => e.key === "Enter" && handleDiscover()}
             />
             <button
               onClick={handleDiscover}
               disabled={discovering}
-              className="px-4 py-2 text-xs md:text-sm bg-vaporwave-purple text-primary-foreground rounded-md hover:bg-vaporwave-purple/90 hover:shadow-[0_0_12px_hsl(270_100%_70%_/_0.5)] disabled:opacity-50 disabled:cursor-not-allowed transition-all border-2 border-vaporwave-purple uppercase tracking-wider font-bold flex-shrink-0 w-full sm:w-auto"
+              className="min-h-[44px] px-3 py-1.5 text-xs sm:text-sm bg-vaporwave-purple/10 text-vaporwave-purple/90 border border-vaporwave-purple/40 rounded hover:bg-vaporwave-purple/20 hover:border-vaporwave-purple/60 hover:shadow-[0_0_6px_hsl(270_100%_70%_/_0.3)] disabled:opacity-50 disabled:cursor-not-allowed transition-all uppercase tracking-wider font-normal flex-shrink-0 w-full sm:w-auto touch-manipulation"
             >
               {discovering ? "Searching..." : "Discover"}
             </button>
@@ -413,7 +413,7 @@ export default function FeedsManager() {
                       </div>
                       <button
                         onClick={() => handleUseDiscoveredFeed(feed)}
-                        className="px-3 py-1.5 text-xs bg-vaporwave-cyan text-primary-foreground rounded hover:bg-vaporwave-cyan/90 transition-all border-2 border-vaporwave-cyan uppercase tracking-wider font-bold flex-shrink-0 w-full sm:w-auto"
+                        className="min-h-[44px] px-3 py-1.5 text-xs sm:text-sm bg-vaporwave-cyan/10 text-vaporwave-cyan/90 border border-vaporwave-cyan/40 rounded hover:bg-vaporwave-cyan/20 hover:border-vaporwave-cyan/60 transition-all uppercase tracking-wider font-normal flex-shrink-0 w-full sm:w-auto touch-manipulation"
                       >
                         Use
                       </button>
@@ -435,7 +435,7 @@ export default function FeedsManager() {
               value={formData.title}
               onChange={(e: ChangeEvent<HTMLInputElement>) => setFormData({ ...formData, title: e.target.value })}
               required
-              className="w-full px-3 py-2 text-sm bg-background/80 border-2 border-vaporwave-cyan/30 rounded-md text-foreground focus:border-vaporwave-cyan focus:outline-none focus:ring-2 focus:ring-vaporwave-cyan/50 transition-all"
+              className="w-full min-h-[44px] px-3 sm:px-4 py-2.5 sm:py-3 text-sm sm:text-base bg-background/80 border-2 border-vaporwave-cyan/30 rounded-md text-foreground focus:border-vaporwave-cyan focus:outline-none focus:ring-2 focus:ring-vaporwave-cyan/50 transition-all"
             />
           </div>
           <div>
@@ -445,7 +445,7 @@ export default function FeedsManager() {
               value={formData.url}
               onChange={(e: ChangeEvent<HTMLInputElement>) => setFormData({ ...formData, url: e.target.value })}
               required
-              className="w-full px-3 py-2 text-sm bg-background/80 border-2 border-vaporwave-cyan/30 rounded-md text-foreground focus:border-vaporwave-cyan focus:outline-none focus:ring-2 focus:ring-vaporwave-cyan/50 transition-all"
+              className="w-full min-h-[44px] px-3 sm:px-4 py-2.5 sm:py-3 text-sm sm:text-base bg-background/80 border-2 border-vaporwave-cyan/30 rounded-md text-foreground focus:border-vaporwave-cyan focus:outline-none focus:ring-2 focus:ring-vaporwave-cyan/50 transition-all"
             />
           </div>
           <div>
@@ -454,7 +454,7 @@ export default function FeedsManager() {
               type="url"
               value={formData.siteUrl}
               onChange={(e: ChangeEvent<HTMLInputElement>) => setFormData({ ...formData, siteUrl: e.target.value })}
-              className="w-full px-3 py-2 text-sm bg-background/80 border-2 border-vaporwave-cyan/30 rounded-md text-foreground focus:border-vaporwave-cyan focus:outline-none focus:ring-2 focus:ring-vaporwave-cyan/50 transition-all"
+              className="w-full min-h-[44px] px-3 sm:px-4 py-2.5 sm:py-3 text-sm sm:text-base bg-background/80 border-2 border-vaporwave-cyan/30 rounded-md text-foreground focus:border-vaporwave-cyan focus:outline-none focus:ring-2 focus:ring-vaporwave-cyan/50 transition-all"
             />
           </div>
           <div>
@@ -467,12 +467,12 @@ export default function FeedsManager() {
               value={formData.refreshIntervalMinutes}
               onChange={(e: ChangeEvent<HTMLInputElement>) => setFormData({ ...formData, refreshIntervalMinutes: parseInt(e.target.value) })}
               required
-              className="w-full px-3 py-2 text-sm bg-background/80 border-2 border-vaporwave-cyan/30 rounded-md text-foreground focus:border-vaporwave-cyan focus:outline-none focus:ring-2 focus:ring-vaporwave-cyan/50 transition-all"
+              className="w-full min-h-[44px] px-3 sm:px-4 py-2.5 sm:py-3 text-sm sm:text-base bg-background/80 border-2 border-vaporwave-cyan/30 rounded-md text-foreground focus:border-vaporwave-cyan focus:outline-none focus:ring-2 focus:ring-vaporwave-cyan/50 transition-all"
             />
           </div>
           <button
             type="submit"
-            className="px-4 py-2 text-xs md:text-sm bg-vaporwave-pink text-primary-foreground rounded-md hover:bg-vaporwave-pink/90 hover:shadow-[0_0_15px_hsl(320_100%_65%_/_0.5)] transition-all border-2 border-vaporwave-pink uppercase tracking-wider font-bold"
+            className="min-h-[44px] px-3 py-1.5 text-xs sm:text-sm bg-vaporwave-pink/10 text-vaporwave-pink/90 border border-vaporwave-pink/40 rounded hover:bg-vaporwave-pink/20 hover:border-vaporwave-pink/60 hover:shadow-[0_0_6px_hsl(320_100%_65%_/_0.3)] transition-all uppercase tracking-wider font-normal touch-manipulation"
           >
             {editing ? "Update" : "Create"} Feed
           </button>
@@ -509,22 +509,22 @@ export default function FeedsManager() {
                 </span>
               </div>
             </div>
-            <div className="flex gap-1.5 flex-wrap w-full sm:w-auto">
+            <div className="flex gap-2 sm:gap-1.5 flex-wrap w-full sm:w-auto">
               <button
                 onClick={() => handleFetch(feed.id)}
-                className="flex-1 sm:flex-initial px-2 py-1.5 text-[10px] md:text-xs bg-vaporwave-cyan/20 text-vaporwave-cyan border-2 border-vaporwave-cyan/50 rounded hover:bg-vaporwave-cyan/30 hover:shadow-[0_0_8px_hsl(180_100%_60%_/_0.5)] transition-all uppercase tracking-wider font-medium"
+                className="flex-1 sm:flex-initial min-h-[44px] px-3 py-1.5 text-xs sm:text-sm bg-vaporwave-cyan/10 text-vaporwave-cyan/90 border border-vaporwave-cyan/40 rounded hover:bg-vaporwave-cyan/20 hover:border-vaporwave-cyan/60 hover:shadow-[0_0_6px_hsl(180_100%_60%_/_0.3)] transition-all uppercase tracking-wider font-normal touch-manipulation"
               >
                 Fetch
               </button>
               <button
                 onClick={() => handleEdit(feed)}
-                className="flex-1 sm:flex-initial px-2 py-1.5 text-[10px] md:text-xs bg-vaporwave-purple/20 text-vaporwave-purple border-2 border-vaporwave-purple/50 rounded hover:bg-vaporwave-purple/30 hover:shadow-[0_0_8px_hsl(270_100%_70%_/_0.5)] transition-all uppercase tracking-wider font-medium"
+                className="flex-1 sm:flex-initial min-h-[44px] px-3 py-1.5 text-xs sm:text-sm bg-vaporwave-purple/10 text-vaporwave-purple/90 border border-vaporwave-purple/40 rounded hover:bg-vaporwave-purple/20 hover:border-vaporwave-purple/60 hover:shadow-[0_0_6px_hsl(270_100%_70%_/_0.3)] transition-all uppercase tracking-wider font-normal touch-manipulation"
               >
                 Edit
               </button>
               <button
                 onClick={() => handleDelete(feed.id)}
-                className="flex-1 sm:flex-initial px-2 py-1.5 text-[10px] md:text-xs bg-destructive/20 text-destructive border-2 border-destructive/50 rounded hover:bg-destructive/30 hover:shadow-[0_0_8px_hsl(0_84%_60%_/_0.5)] transition-all uppercase tracking-wider font-medium"
+                className="flex-1 sm:flex-initial min-h-[44px] px-3 py-1.5 text-xs sm:text-sm bg-destructive/10 text-destructive/90 border border-destructive/40 rounded hover:bg-destructive/20 hover:border-destructive/60 hover:shadow-[0_0_6px_hsl(0_84%_60%_/_0.3)] transition-all uppercase tracking-wider font-normal touch-manipulation"
               >
                 Delete
               </button>

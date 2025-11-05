@@ -1,18 +1,17 @@
 {
-  "name": "TheFeeder",
+  "name": "TheFeeder - Modern RSS Aggregator",
   "short_name": "TheFeeder",
-  "description": "Modern feed reader and daily digest",
+  "description": "Modern RSS feed reader and daily digest aggregator. Stay updated with the latest articles from your favorite feeds.",
   "start_url": "/",
+  "scope": "/",
   "display": "standalone",
+  "orientation": "portrait-primary",
   "background_color": "#0a0a0f",
   "theme_color": "#00ffff",
+  "categories": ["news", "productivity", "utilities"],
+  "lang": "en",
+  "dir": "ltr",
   "icons": [
-    {
-      "src": "/logo.png",
-      "sizes": "any",
-      "type": "image/png",
-      "purpose": "any maskable"
-    },
     {
       "src": "/logo.png",
       "sizes": "192x192",
@@ -25,6 +24,21 @@
       "type": "image/png",
       "purpose": "any maskable"
     }
-  ]
+  ],
+  "shortcuts": [
+    {
+      "name": "Latest Articles",
+      "short_name": "Articles",
+      "description": "View latest articles from all feeds",
+      "url": "/",
+      "icons": [
+        {
+          "src": "/logo.png",
+          "sizes": "192x192"
+        }
+      ]
+    }
+  ],
+  "screenshots": [],
+  "prefer_related_applications": false
 }
-

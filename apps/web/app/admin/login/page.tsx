@@ -92,7 +92,7 @@ export default function AdminLoginPage() {
           <button
             type="submit"
             disabled={loading}
-            className="w-full py-2.5 md:py-3 px-4 md:px-6 text-xs md:text-sm bg-vaporwave-pink text-primary-foreground rounded-md font-bold uppercase tracking-wider hover:bg-vaporwave-pink/90 hover:shadow-[0_0_15px_hsl(320_100%_65%_/_0.6)] disabled:opacity-50 disabled:cursor-not-allowed transition-all border-2 border-vaporwave-pink"
+            className="w-full min-h-[44px] py-2 px-4 text-xs sm:text-sm bg-vaporwave-pink/10 text-vaporwave-pink/90 border border-vaporwave-pink/40 rounded hover:bg-vaporwave-pink/20 hover:border-vaporwave-pink/60 hover:shadow-[0_0_8px_hsl(320_100%_65%_/_0.3)] disabled:opacity-50 disabled:cursor-not-allowed transition-all uppercase tracking-wider font-normal touch-manipulation"
           >
             {loading ? "SIGNING IN..." : "SIGN IN"}
           </button>

@@ -53,7 +53,7 @@ export default function AdminDashboard() {
             </div>
             <button
               onClick={() => signOut({ callbackUrl: "/" })}
-              className="px-3 py-1.5 text-xs md:text-sm bg-destructive/20 text-destructive border-2 border-destructive/50 rounded-md hover:bg-destructive/30 hover:shadow-[0_0_10px_hsl(0_84%_60%_/_0.5)] transition-all uppercase tracking-wider font-medium flex-shrink-0 w-full sm:w-auto"
+              className="min-h-[44px] px-3 py-1.5 text-xs sm:text-sm bg-destructive/10 text-destructive/90 border border-destructive/40 rounded hover:bg-destructive/20 hover:border-destructive/60 transition-all uppercase tracking-wider font-normal flex-shrink-0 w-full sm:w-auto touch-manipulation"
             >
               Sign Out
             </button>
@@ -63,25 +63,25 @@ export default function AdminDashboard() {
           <div className="flex gap-2 mb-4">
             <button
               onClick={() => setActiveTab("feeds")}
-              className={`px-4 py-2 text-xs md:text-sm rounded-md transition-all uppercase tracking-wider font-bold border-2 ${
+              className={`min-h-[44px] px-3 py-1.5 text-xs sm:text-sm rounded transition-all uppercase tracking-wider font-normal border touch-manipulation ${
                 activeTab === "feeds"
-                  ? "bg-vaporwave-pink text-primary-foreground border-vaporwave-pink shadow-[0_0_15px_hsl(320_100%_65%_/_0.5)]"
-                  : "bg-card/50 text-muted-foreground border-vaporwave-pink/30 hover:bg-card/70 hover:border-vaporwave-pink/50"
+                  ? "bg-vaporwave-pink/20 text-vaporwave-pink border-vaporwave-pink/60 shadow-[0_0_8px_hsl(320_100%_65%_/_0.3)]"
+                  : "bg-card/30 text-muted-foreground border-vaporwave-pink/20 hover:bg-card/50 hover:border-vaporwave-pink/40"
               }`}
             >
               Feeds
             </button>
             <button
               onClick={() => setActiveTab("subscribers")}
-              className={`relative px-4 py-2 text-xs md:text-sm rounded-md transition-all uppercase tracking-wider font-bold border-2 ${
+              className={`relative min-h-[44px] px-3 py-1.5 text-xs sm:text-sm rounded transition-all uppercase tracking-wider font-normal border touch-manipulation ${
                 activeTab === "subscribers"
-                  ? "bg-vaporwave-pink text-primary-foreground border-vaporwave-pink shadow-[0_0_15px_hsl(320_100%_65%_/_0.5)]"
-                  : "bg-card/50 text-muted-foreground border-vaporwave-pink/30 hover:bg-card/70 hover:border-vaporwave-pink/50"
+                  ? "bg-vaporwave-pink/20 text-vaporwave-pink border-vaporwave-pink/60 shadow-[0_0_8px_hsl(320_100%_65%_/_0.3)]"
+                  : "bg-card/30 text-muted-foreground border-vaporwave-pink/20 hover:bg-card/50 hover:border-vaporwave-pink/40"
               }`}
             >
               Subscribers
               {pendingCount > 0 && (
-                <span className="absolute -top-1 -right-1 min-w-[18px] h-[18px] px-1.5 rounded-full bg-vaporwave-cyan text-primary-foreground text-[10px] font-bold flex items-center justify-center border-2 border-primary shadow-[0_0_8px_hsl(180_100%_50%_/_0.6)] animate-pulse">
+                <span className="absolute -top-1 -right-1 min-w-[16px] h-[16px] px-1 rounded-full bg-vaporwave-cyan text-primary-foreground text-[9px] font-medium flex items-center justify-center border border-primary shadow-[0_0_6px_hsl(180_100%_50%_/_0.4)] animate-pulse">
                   {pendingCount > 99 ? "99+" : pendingCount}
                 </span>
               )}

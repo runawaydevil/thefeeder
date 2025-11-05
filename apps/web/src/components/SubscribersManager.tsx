@@ -168,18 +168,18 @@ export default function SubscribersManager({ onSubscriberUpdate }: SubscribersMa
                   )}
                 </div>
               </div>
-              <div className="flex gap-1.5 flex-wrap w-full sm:w-auto">
+              <div className="flex gap-2 sm:gap-1.5 flex-wrap w-full sm:w-auto">
                 {subscriber.status === "pending" && (
                   <>
                     <button
                       onClick={() => handleUpdateStatus(subscriber.id, "approved")}
-                      className="flex-1 sm:flex-initial px-2 py-1.5 text-[10px] md:text-xs bg-vaporwave-cyan/20 text-vaporwave-cyan border-2 border-vaporwave-cyan/50 rounded hover:bg-vaporwave-cyan/30 hover:shadow-[0_0_8px_hsl(180_100%_60%_/_0.5)] transition-all uppercase tracking-wider font-medium"
+                      className="flex-1 sm:flex-initial min-h-[44px] px-3 py-1.5 text-xs sm:text-sm bg-vaporwave-cyan/10 text-vaporwave-cyan/90 border border-vaporwave-cyan/40 rounded hover:bg-vaporwave-cyan/20 hover:border-vaporwave-cyan/60 hover:shadow-[0_0_6px_hsl(180_100%_60%_/_0.3)] transition-all uppercase tracking-wider font-normal touch-manipulation"
                     >
                       Approve
                     </button>
                     <button
                       onClick={() => handleUpdateStatus(subscriber.id, "rejected")}
-                      className="flex-1 sm:flex-initial px-2 py-1.5 text-[10px] md:text-xs bg-destructive/20 text-destructive border-2 border-destructive/50 rounded hover:bg-destructive/30 hover:shadow-[0_0_8px_hsl(0_84%_60%_/_0.5)] transition-all uppercase tracking-wider font-medium"
+                      className="flex-1 sm:flex-initial min-h-[44px] px-3 py-1.5 text-xs sm:text-sm bg-destructive/10 text-destructive/90 border border-destructive/40 rounded hover:bg-destructive/20 hover:border-destructive/60 hover:shadow-[0_0_6px_hsl(0_84%_60%_/_0.3)] transition-all uppercase tracking-wider font-normal touch-manipulation"
                     >
                       Reject
                     </button>
@@ -188,14 +188,14 @@ export default function SubscribersManager({ onSubscriberUpdate }: SubscribersMa
                 {subscriber.status === "approved" && (
                   <button
                     onClick={() => handleUpdateStatus(subscriber.id, "pending")}
-                    className="flex-1 sm:flex-initial px-2 py-1.5 text-[10px] md:text-xs bg-vaporwave-purple/20 text-vaporwave-purple border-2 border-vaporwave-purple/50 rounded hover:bg-vaporwave-purple/30 hover:shadow-[0_0_8px_hsl(270_100%_70%_/_0.5)] transition-all uppercase tracking-wider font-medium"
+                    className="flex-1 sm:flex-initial min-h-[44px] px-3 py-1.5 text-xs sm:text-sm bg-vaporwave-purple/10 text-vaporwave-purple/90 border border-vaporwave-purple/40 rounded hover:bg-vaporwave-purple/20 hover:border-vaporwave-purple/60 hover:shadow-[0_0_6px_hsl(270_100%_70%_/_0.3)] transition-all uppercase tracking-wider font-normal touch-manipulation"
                   >
                     Revoke
                   </button>
                 )}
                 <button
                   onClick={() => handleDelete(subscriber.id)}
-                  className="flex-1 sm:flex-initial px-2 py-1.5 text-[10px] md:text-xs bg-destructive/20 text-destructive border-2 border-destructive/50 rounded hover:bg-destructive/30 hover:shadow-[0_0_8px_hsl(0_84%_60%_/_0.5)] transition-all uppercase tracking-wider font-medium"
+                  className="flex-1 sm:flex-initial min-h-[44px] px-3 py-1.5 text-xs sm:text-sm bg-destructive/10 text-destructive/90 border border-destructive/40 rounded hover:bg-destructive/20 hover:border-destructive/60 hover:shadow-[0_0_6px_hsl(0_84%_60%_/_0.3)] transition-all uppercase tracking-wider font-normal touch-manipulation"
                 >
                   Delete
                 </button>

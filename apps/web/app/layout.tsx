@@ -2,6 +2,7 @@ import type { Metadata, Viewport } from "next";
 import "./globals.css";
 import { ReactNode } from "react";
 import ServiceWorkerCleanup from "@/src/components/ServiceWorkerCleanup";
+import ServiceWorkerRegistration from "@/src/components/ServiceWorkerRegistration";
 import { getBaseUrl, getAbsoluteUrl, getDefaultOgImage } from "@/src/lib/seo-utils";
 
 const siteUrl = getBaseUrl();
@@ -59,6 +60,11 @@ export const metadata: Metadata = {
     apple: "/logo.png",
   },
   manifest: "/manifest.json",
+  appleWebApp: {
+    capable: true,
+    statusBarStyle: "black-translucent",
+    title: "TheFeeder",
+  },
 };
 
 export const viewport: Viewport = {
@@ -66,6 +72,7 @@ export const viewport: Viewport = {
   initialScale: 1,
   maximumScale: 5,
   userScalable: true,
+  themeColor: "#00ffff",
 };
 
 export default function RootLayout({ children }: { children: ReactNode }) {
@@ -73,6 +80,7 @@ export default function RootLayout({ children }: { children: ReactNode }) {
     <html lang="en" suppressHydrationWarning>
       <body className="font-orbitron" suppressHydrationWarning>
         <ServiceWorkerCleanup />
+        <ServiceWorkerRegistration />
         {children}
       </body>
     </html>

@@ -50,6 +50,17 @@ A modern RSS feed aggregator with daily email digest, built with Next.js 15, Pos
 - **Immediate Fetch**: New feeds are automatically fetched upon creation or import
 - **Auto Cleanup**: Automatically maintains up to 50,000 articles (oldest are removed)
 
+### New Features & Security
+
+- **Rate Limiting**: Distributed rate limiting using Redis to prevent abuse
+  - Subscriber endpoints: 5 requests per minute per IP
+  - Feed discovery endpoints: Rate limiting with intelligent intervals
+  - Redis-based for multi-instance deployments
+- **HTML Sanitization**: All HTML content from feeds is sanitized to prevent XSS attacks
+- **Security Headers**: Comprehensive security headers including CSP, HSTS, and X-Frame-Options
+- **Input Validation**: Robust input validation on all API endpoints (Zod schemas when implemented)
+- **Structured Logging**: Structured logging system for better debugging and monitoring (when implemented)
+
 ### Technical Stack
 - **Frontend**: Next.js 15 (App Router), React 18, Tailwind CSS
 - **Backend**: Next.js API Routes
@@ -95,13 +106,26 @@ npm run prisma:seed
 ```
 
 5. **Start development servers:**
+
+**Option A: Local Development (without Docker)**
 ```bash
 npm run dev
 ```
 
 This starts both:
+- Web app: http://localhost:7389
+- Worker API: http://localhost:7388
+
+**Option B: Docker Development**
+```bash
+docker compose up -d --build
+```
+
+This starts all services:
 - Web app: http://localhost:8041
 - Worker API: http://localhost:7388
+- PostgreSQL: http://localhost:15432
+- Redis: http://localhost:16379
 
 ### Default Admin Credentials
 
@@ -119,10 +143,10 @@ docker compose up -d --build
 ```
 
 This starts all services:
-- Web app (port 8041)
-- Worker API (port 7388)
-- PostgreSQL (port 5432)
-- Redis (port 6379)
+- **Web app: http://localhost:8041** (porta externa 8041 → interna 3000)
+- **Worker API: http://localhost:7388** (porta externa 7388 → interna 3001)
+- **PostgreSQL: http://localhost:15432** (porta externa 15432 → interna 5432)
+- **Redis: http://localhost:16379** (porta externa 16379 → interna 6379)
 
 ---
 
@@ -156,8 +180,18 @@ DIGEST_TIME=09:00
 
 # SMTP (optional)
 SMTP_HOST=smtp.example.com
+SMTP_PORT=587
+SMTP_SECURE=false
 SMTP_USER=user@example.com
 SMTP_PASS=password
+SMTP_FROM=noreply@example.com
+
+# Worker API Configuration
+WORKER_API_PORT=7388
+
+# Admin (for seed script)
+ADMIN_EMAIL=admin@example.com
+ADMIN_PASSWORD=admin123
 ```
 
 See `.env.example` for all available options.
@@ -252,6 +286,99 @@ The system automatically:
 - Normalizes URLs to prevent duplicates
 - Triggers immediate fetch for all imported feeds
 - Skips feeds that already exist
+
+---
+
+## Troubleshooting
+
+### Common Issues
+
+#### Database Connection Errors
+
+**Problem:** `Error: Can't reach database server`
+
+**Solutions:**
+- Verify PostgreSQL is running: `docker compose ps` or `pg_isready`
+- Check `DATABASE_URL` in `.env` matches your PostgreSQL instance
+- Ensure database exists: `createdb thefeeder` (if using local PostgreSQL)
+- For Docker: Wait for database health check to pass before starting web app
+
+#### Redis Connection Errors
+
+**Problem:** `Error: Redis connection failed`
+
+**Solutions:**
+- Verify Redis is running: `docker compose ps` or `redis-cli ping`
+- Check `REDIS_URL` in `.env` is correct
+- Ensure Redis port is accessible (default: 6379 or 16379 in Docker)
+- Restart Redis: `docker compose restart redis`
+
+#### Port Already in Use
+
+**Problem:** `Error: Port 7389 already in use`
+
+**Solutions:**
+- Change port in `apps/web/package.json`: `"dev": "next dev -p <new-port>"`
+- Kill process using the port:
+  - Windows: `netstat -ano | findstr :7389` then `taskkill /PID <pid> /F`
+  - Linux/Mac: `lsof -ti:7389 | xargs kill`
+- Use different ports for web and worker services
+
+#### Prisma Migration Errors
+
+**Problem:** `Error: Migration failed`
+
+**Solutions:**
+- Reset database: `cd apps/web && npx prisma migrate reset` (⚠️ deletes all data)
+- Check database connection: `npx prisma db pull` to verify schema
+- Generate Prisma client: `npm run prisma:generate`
+- Check for schema conflicts in `apps/web/prisma/schema.prisma`
+
+#### Worker Not Fetching Feeds
+
+**Problem:** Feeds not updating automatically
+
+**Solutions:**
+- Verify worker is running: Check logs with `docker compose logs worker` or `cd apps/worker && npm run dev`
+- Check Redis connection (worker uses Redis for job queue)
+- Verify `WORKER_API_URL` and `WORKER_API_TOKEN` are set correctly
+- Check worker logs for errors: `npm run dev:worker` and look for error messages
+- Manually trigger feed fetch from admin dashboard
+
+#### NextAuth Session Issues
+
+**Problem:** Can't login or session expires immediately
+
+**Solutions:**
+- Verify `NEXTAUTH_SECRET` is set (required for production)
+- Check `NEXTAUTH_URL` matches your domain (including protocol)
+- Clear browser cookies and try again
+- Check database - ensure User table exists and admin user is created
+- Run seed script: `npm run prisma:seed`
+
+#### Build Errors
+
+**Problem:** `Error during build`
+
+**Solutions:**
+- Clear `.next` folder: `rm -rf apps/web/.next` (Linux/Mac) or `rmdir /s apps\web\.next` (Windows)
+- Reinstall dependencies: `rm -rf node_modules apps/web/node_modules apps/worker/node_modules && npm run install:all`
+- Verify Node.js version: `node --version` (requires 20+)
+- Check TypeScript errors: `npm run typecheck`
+
+### Getting Help
+
+If you encounter issues not covered here:
+
+1. Check the [GitHub Issues](https://github.com/runawaydevil/thefeeder/issues)
+2. Review logs: `docker compose logs` or check console output
+3. Verify all environment variables are set correctly
+4. Ensure all prerequisites are installed and up to date
+5. Open a new issue with:
+   - Error messages (full stack trace)
+   - Steps to reproduce
+   - Environment details (OS, Node.js version, etc.)
+   - Relevant log excerpts
 
 ---
 

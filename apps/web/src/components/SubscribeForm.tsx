@@ -56,7 +56,7 @@ export default function SubscribeForm() {
             value={name}
             onChange={(e) => setName(e.target.value)}
             required
-            className="w-full px-2.5 sm:px-3 py-1.5 sm:py-2 text-xs sm:text-sm bg-background/80 border-2 border-vaporwave-cyan/30 rounded-md text-foreground focus:border-vaporwave-cyan focus:outline-none focus:ring-2 focus:ring-vaporwave-cyan/50 transition-all"
+            className="w-full min-h-[44px] px-3 sm:px-4 py-2.5 sm:py-3 text-sm sm:text-base bg-background/80 border-2 border-vaporwave-cyan/30 rounded-md text-foreground focus:border-vaporwave-cyan focus:outline-none focus:ring-2 focus:ring-vaporwave-cyan/50 transition-all"
             placeholder="Your name"
           />
         </div>
@@ -71,7 +71,7 @@ export default function SubscribeForm() {
             value={email}
             onChange={(e) => setEmail(e.target.value)}
             required
-            className="w-full px-2.5 sm:px-3 py-1.5 sm:py-2 text-xs sm:text-sm bg-background/80 border-2 border-vaporwave-cyan/30 rounded-md text-foreground focus:border-vaporwave-cyan focus:outline-none focus:ring-2 focus:ring-vaporwave-cyan/50 transition-all"
+            className="w-full min-h-[44px] px-3 sm:px-4 py-2.5 sm:py-3 text-sm sm:text-base bg-background/80 border-2 border-vaporwave-cyan/30 rounded-md text-foreground focus:border-vaporwave-cyan focus:outline-none focus:ring-2 focus:ring-vaporwave-cyan/50 transition-all"
             placeholder="your@email.com"
           />
         </div>
@@ -91,7 +91,7 @@ export default function SubscribeForm() {
         <button
           type="submit"
           disabled={loading}
-          className="w-full py-1.5 sm:py-2 px-3 sm:px-4 text-[10px] sm:text-xs md:text-sm bg-vaporwave-cyan text-primary-foreground rounded-md font-bold uppercase tracking-wider hover:bg-vaporwave-cyan/90 hover:shadow-[0_0_12px_hsl(180_100%_60%_/_0.5)] disabled:opacity-50 disabled:cursor-not-allowed transition-all border-2 border-vaporwave-cyan"
+          className="w-full min-h-[44px] py-2.5 sm:py-3 px-4 text-xs sm:text-sm md:text-base bg-vaporwave-cyan text-primary-foreground rounded-md font-bold uppercase tracking-wider hover:bg-vaporwave-cyan/90 hover:shadow-[0_0_12px_hsl(180_100%_60%_/_0.5)] disabled:opacity-50 disabled:cursor-not-allowed transition-all border-2 border-vaporwave-cyan touch-manipulation"
         >
           {loading ? "SUBSCRIBING..." : "SUBSCRIBE"}
         </button>
