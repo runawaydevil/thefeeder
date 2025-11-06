@@ -1,5 +1,6 @@
 import nodemailer from "nodemailer";
 import { Item, Feed } from "@prisma/client";
+import { generateUnsubscribeToken } from "./unsubscribe-token.js";
 
 interface TransporterConfig {
   host?: string;
@@ -43,6 +44,9 @@ export async function sendDigestEmail(
   const fromEmail = process.env.SMTP_FROM || "noreply@thefeeder.com";
   const siteUrl = process.env.NEXT_PUBLIC_SITE_URL || "http://localhost:7389";
   const logoUrl = `${siteUrl.replace(/\/$/, "")}/logo.png`;
+  
+  // Generate unsubscribe token from email using HMAC
+  const unsubscribeToken = generateUnsubscribeToken(email);
 
   // Group items by feed
   const itemsByFeed = items.reduce((acc, item) => {
@@ -293,6 +297,7 @@ export async function sendDigestEmail(
     <div class="footer">
       <p>You're receiving this because you subscribed to daily digests.</p>
       <p><a href="${siteUrl}">Visit TheFeeder</a></p>
+      <p><a href="${siteUrl}/unsubscribe/${unsubscribeToken}">Unsubscribe</a></p>
     </div>
   </div>
 </body>
@@ -314,6 +319,8 @@ ${item.summary ? item.summary.substring(0, 200) + "..." : ""}
   .join("\n---\n\n")}
 
 Visit ${siteUrl} for more.
+
+To unsubscribe, visit: ${siteUrl}/unsubscribe/${unsubscribeToken}
   `;
 
   try {

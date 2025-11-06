@@ -48,7 +48,11 @@ export async function processDailyDigest(job: Job<DailyDigestJobData>) {
     let sentCount = 0;
     for (const subscriber of subscribers) {
       try {
-        await sendDigestEmail(subscriber.email, subscriber.name, items);
+        await sendDigestEmail(
+          subscriber.email,
+          subscriber.name,
+          items,
+        );
         sentCount++;
       } catch (error) {
         console.error(`Failed to send digest to ${subscriber.email}:`, error);
