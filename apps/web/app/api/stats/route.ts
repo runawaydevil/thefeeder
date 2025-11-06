@@ -1,18 +1,10 @@
 import { NextResponse } from "next/server";
-import { prisma } from "@/src/lib/prisma";
+import { getStats } from "@/src/lib/server-data";
 
 export async function GET() {
   try {
-    const [feedsCount, itemsCount] = await Promise.all([
-      prisma.feed.count({ where: { isActive: true } }),
-      prisma.item.count(),
-    ]);
-
-    return NextResponse.json({
-      feeds: feedsCount,
-      items: itemsCount,
-      online: 420, // Placeholder
-    });
+    const stats = await getStats();
+    return NextResponse.json(stats);
   } catch (error) {
     console.error("Error fetching stats:", error);
     return NextResponse.json(

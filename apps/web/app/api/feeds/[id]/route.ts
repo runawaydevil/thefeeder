@@ -3,6 +3,7 @@ import { auth } from "@/src/auth";
 import { prisma } from "@/src/lib/prisma";
 import { Role } from "@prisma/client";
 import { scheduleFeed, unscheduleFeed } from "@/src/lib/worker-api";
+import { invalidateAllFeedCache } from "@/src/lib/cache-invalidation";
 
 const MIN_REFRESH_INTERVAL = 10; // minutes
 
@@ -49,6 +50,11 @@ export async function PUT(
     const feed = await prisma.feed.update({
       where: { id },
       data: updateData,
+    });
+
+    // Invalidate cache after updating feed
+    invalidateAllFeedCache().catch((err) => {
+      console.error("Failed to invalidate cache:", err);
     });
 
     // Reschedule feed in worker if interval or active status changed
@@ -149,6 +155,11 @@ export async function DELETE(
     // Delete the feed (items should already be deleted, but cascade will handle any remaining)
     await prisma.feed.delete({
       where: { id },
+    });
+
+    // Invalidate cache after deleting feed
+    invalidateAllFeedCache().catch((err) => {
+      console.error("Failed to invalidate cache:", err);
     });
 
     // Notify worker to unschedule this feed (non-blocking)

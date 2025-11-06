@@ -2,6 +2,7 @@ import { Job } from "bullmq";
 import { prisma } from "../lib/prisma.js";
 import { parseFeed, normalizeFeedItem } from "../lib/rss-parser.js";
 import { getRandomUserAgent } from "../lib/user-agents.js";
+import { cached, cacheKey } from "../lib/cache.js";
 
 export interface FeedFetchJobData {
   feedId: string;
@@ -46,7 +47,15 @@ export async function processFeedFetch(job: Job<FeedFetchJobData>) {
 
     // Use random user agent for each fetch
     const userAgent = getRandomUserAgent();
-    const parsedFeed = await parseFeed(feed.url, userAgent);
+    
+    // Cache parsed feed for 30 minutes (1800 seconds)
+    const parseCacheKey = cacheKey("feed", "parse", feed.url);
+    const parsedFeed = await cached(
+      parseCacheKey,
+      () => parseFeed(feed.url, userAgent),
+      1800, // 30 minutes TTL
+    );
+    
     let itemsCreated = 0;
     let itemsUpdated = 0;
 

@@ -1,4 +1,5 @@
 import { prisma } from "@/src/lib/prisma";
+import { cached, cacheKey } from "@/src/lib/cache";
 
 /**
  * Server-side data fetching functions
@@ -59,31 +60,40 @@ export async function getItems(limit: number = 20, skip: number = 0) {
 }
 
 export async function getStats() {
-  try {
-    const [feedsCount, itemsCount] = await Promise.all([
-      prisma.feed.count({ where: { isActive: true } }),
-      prisma.item.count(),
-    ]);
+  // Cache stats for 5 minutes (300 seconds)
+  const statsKey = cacheKey("stats", "main");
+  
+  return await cached(
+    statsKey,
+    async () => {
+      try {
+        const [feedsCount, itemsCount] = await Promise.all([
+          prisma.feed.count({ where: { isActive: true } }),
+          prisma.item.count(),
+        ]);
 
-    // Log for debugging
-    console.log("[getStats] Real data:", { feeds: feedsCount, items: itemsCount });
+        // Log for debugging
+        console.log("[getStats] Real data:", { feeds: feedsCount, items: itemsCount });
 
-    // Cap items count at MAX_ITEMS_LIMIT for display
-    const displayItemsCount = Math.min(itemsCount, MAX_ITEMS_LIMIT);
+        // Cap items count at MAX_ITEMS_LIMIT for display
+        const displayItemsCount = Math.min(itemsCount, MAX_ITEMS_LIMIT);
 
-    return {
-      feeds: feedsCount,
-      items: displayItemsCount,
-      online: 420, // Placeholder
-    };
-  } catch (error) {
-    console.error("[getStats] Error fetching stats:", error);
-    // Return zeros but log the error for debugging
-    return {
-      feeds: 0,
-      items: 0,
-      online: 420,
-    };
-  }
+        return {
+          feeds: feedsCount,
+          items: displayItemsCount,
+          online: 420, // Placeholder
+        };
+      } catch (error) {
+        console.error("[getStats] Error fetching stats:", error);
+        // Return zeros but log the error for debugging
+        return {
+          feeds: 0,
+          items: 0,
+          online: 420,
+        };
+      }
+    },
+    300, // 5 minutes TTL
+  );
 }
 

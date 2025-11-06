@@ -3,6 +3,7 @@ import { auth } from "@/src/auth";
 import { prisma } from "@/src/lib/prisma";
 import { Role } from "@prisma/client";
 import { normalizeFeedUrl } from "@/src/lib/feed-url";
+import { invalidateAllFeedCache } from "@/src/lib/cache-invalidation";
 
 const MIN_REFRESH_INTERVAL = 10; // minutes
 
@@ -108,6 +109,11 @@ export async function POST(req: NextRequest) {
         siteUrl: siteUrl || null,
         refreshIntervalMinutes,
       },
+    });
+
+    // Invalidate cache after creating feed
+    invalidateAllFeedCache().catch((err) => {
+      console.error("Failed to invalidate cache:", err);
     });
 
     // Schedule feed in worker and trigger immediate fetch (non-blocking)

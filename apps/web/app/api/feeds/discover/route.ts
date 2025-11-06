@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { auth } from "@/src/auth";
 import { Role } from "@prisma/client";
 import { discoverFeeds } from "@/src/lib/feed-discovery";
+import { cached, cacheKey } from "@/src/lib/cache";
 
 // POST - Discover feeds from a website URL
 export async function POST(req: NextRequest) {
@@ -22,8 +23,19 @@ export async function POST(req: NextRequest) {
       );
     }
 
-    // Discover feeds
-    const feeds = await discoverFeeds(url);
+    // Normalize URL for cache key
+    let normalizedUrl = url.trim();
+    if (!normalizedUrl.startsWith("http://") && !normalizedUrl.startsWith("https://")) {
+      normalizedUrl = `https://${normalizedUrl}`;
+    }
+
+    // Cache discovery results for 1 hour (3600 seconds)
+    const cacheKeyForUrl = cacheKey("discover", normalizedUrl);
+    const feeds = await cached(
+      cacheKeyForUrl,
+      () => discoverFeeds(normalizedUrl),
+      3600, // 1 hour TTL
+    );
 
     return NextResponse.json({ feeds });
   } catch (error: any) {
