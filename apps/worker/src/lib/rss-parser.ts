@@ -43,14 +43,12 @@ export interface ParsedFeed {
 
 export async function parseFeed(feedUrl: string, customUserAgent?: string): Promise<ParsedFeed> {
   // Try with multiple User-Agents if we get 403
-  const userAgents = customUserAgent 
-    ? [customUserAgent]
-    : [
-        getRandomUserAgent(), // Random from pool
-        'Feedly/1.0 (+http://www.feedly.com/fetcher.html; like FeedFetcher-Google)', // Feed reader
-        'Mozilla/5.0 (compatible; Googlebot/2.1; +http://www.google.com/bot.html)', // Googlebot
-        'curl/7.68.0', // Simple curl
-      ];
+  const userAgents = [
+    customUserAgent || getRandomUserAgent(), // Custom or random from pool
+    'Feedly/1.0 (+http://www.feedly.com/fetcher.html; like FeedFetcher-Google)', // Feed reader
+    'Mozilla/5.0 (compatible; Googlebot/2.1; +http://www.google.com/bot.html)', // Googlebot
+    'curl/7.68.0', // Simple curl
+  ];
   
   let lastError: any = null;
   
