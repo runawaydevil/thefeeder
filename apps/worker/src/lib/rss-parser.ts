@@ -107,9 +107,48 @@ export async function parseFeed(feedUrl: string, customUserAgent?: string): Prom
     }
   }
   
-  // All attempts failed - try proxy services if it looks like blocking
+  // All attempts failed - try direct fetch with custom headers (like curl)
   if (isLikelyBlocked(lastError)) {
-    console.warn(`[RSS Parser] Feed appears to be blocked, trying proxy services...`);
+    console.warn(`[RSS Parser] Feed appears to be blocked, trying direct fetch with curl-like headers...`);
+    
+    try {
+      const response = await fetch(feedUrl, {
+        headers: {
+          "User-Agent": "curl/7.68.0",
+          "Accept": "*/*",
+        },
+      });
+      
+      if (response.ok) {
+        const text = await response.text();
+        const parser = new Parser({
+          customFields: {
+            item: [
+              ["media:content", "mediaContent"],
+              ["media:thumbnail", "mediaThumbnail"],
+              ["content:encoded", "contentEncoded"],
+              ["content", "contentEncoded"],
+              ["pubdate", "pubDate"],
+            ],
+          },
+        });
+        
+        const feed = await parser.parseString(text);
+        
+        console.log(`[RSS Parser] ✓ Successfully parsed feed via direct fetch: ${feed.title || 'Untitled'}`);
+        
+        return {
+          title: feed.title || "Untitled Feed",
+          link: feed.link,
+          items: feed.items || [],
+        };
+      }
+    } catch (fetchError) {
+      console.warn(`[RSS Parser] Direct fetch failed:`, fetchError instanceof Error ? fetchError.message : fetchError);
+    }
+    
+    // If direct fetch failed, try proxy services
+    console.warn(`[RSS Parser] Trying proxy services...`);
     
     const proxyUrls = generateProxyUrls(feedUrl);
     

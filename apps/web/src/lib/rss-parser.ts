@@ -196,9 +196,59 @@ export async function parseFeed(feedUrl: string, customUserAgent?: string): Prom
     }
   }
   
-  // All attempts failed - try proxy services if it looks like blocking
+  // All attempts failed - try direct fetch with custom headers (like curl)
   if (isLikelyBlocked(lastError)) {
-    console.warn(`[RSS Parser] Feed appears to be blocked, trying proxy services...`);
+    console.warn(`[RSS Parser] Feed appears to be blocked, trying direct fetch with curl-like headers...`);
+    
+    try {
+      const response = await fetch(feedUrl, {
+        headers: {
+          "User-Agent": "curl/7.68.0",
+          "Accept": "*/*",
+        },
+      });
+      
+      if (response.ok) {
+        const text = await response.text();
+        const parser = new Parser({ customFields });
+        
+        const feed = await parser.parseString(text);
+        
+        const validItems: FeedItem[] = (feed.items || [])
+          .filter((item: any) => {
+            return !!item && typeof item.title === "string" && typeof item.link === "string";
+          })
+          .map((item: any) => ({
+            title: item.title as string,
+            link: item.link as string,
+            contentSnippet: item.contentSnippet,
+            content: item.content,
+            contentEncoded: item.contentEncoded,
+            isoDate: item.isoDate,
+            pubDate: item.pubDate,
+            creator: item.creator,
+            author: item.author,
+            "dc:creator": item["dc:creator"],
+            mediaContent: item.mediaContent,
+            mediaThumbnail: item.mediaThumbnail,
+            guid: item.guid,
+            id: item.id,
+          } as FeedItem));
+        
+        console.log(`[RSS Parser] ✓ Successfully parsed feed via direct fetch: ${feed.title || 'Untitled'}`);
+        
+        return {
+          title: feed.title || "Untitled Feed",
+          link: feed.link,
+          items: validItems,
+        };
+      }
+    } catch (fetchError) {
+      console.warn(`[RSS Parser] Direct fetch failed:`, fetchError instanceof Error ? fetchError.message : fetchError);
+    }
+    
+    // If direct fetch failed, try proxy services
+    console.warn(`[RSS Parser] Trying proxy services...`);
     
     const proxyUrls = generateProxyUrls(feedUrl);
     
