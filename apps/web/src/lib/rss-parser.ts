@@ -47,59 +47,90 @@ export interface ParsedFeed {
 }
 
 export async function parseFeed(feedUrl: string, customUserAgent?: string): Promise<ParsedFeed> {
-  try {
-    // Use custom user agent if provided, otherwise use random one from parser config
-    const feedParser = customUserAgent
-      ? new Parser({
-          customFields,
-          requestOptions: {
-            headers: {
-              "User-Agent": customUserAgent,
-              "Accept": "application/rss+xml, application/atom+xml, application/xml, text/xml, application/json, text/html, */*",
-            },
+  // Try with multiple User-Agents if we get 403
+  const userAgents = customUserAgent 
+    ? [customUserAgent]
+    : [
+        getRandomUserAgent(), // Random from pool
+        'Feedly/1.0 (+http://www.feedly.com/fetcher.html; like FeedFetcher-Google)', // Feed reader
+        'Mozilla/5.0 (compatible; Googlebot/2.1; +http://www.google.com/bot.html)', // Googlebot
+        'curl/7.68.0', // Simple curl
+      ];
+  
+  let lastError: any = null;
+  
+  for (let i = 0; i < userAgents.length; i++) {
+    try {
+      console.log(`[RSS Parser] Parsing feed (attempt ${i + 1}/${userAgents.length}): ${feedUrl}`);
+      
+      const feedParser = new Parser({
+        customFields,
+        requestOptions: {
+          headers: {
+            "User-Agent": userAgents[i],
+            "Accept": "application/rss+xml, application/atom+xml, application/xml, text/xml, application/json, text/html, */*",
+            "Accept-Language": "en-US,en;q=0.9",
+            "Cache-Control": "no-cache",
           },
+        },
+      });
+      
+      const feed = await feedParser.parseURL(feedUrl);
+
+      // Filter and map items to ensure they have valid title and link
+      const validItems: FeedItem[] = (feed.items || [])
+        .filter((item: any) => {
+          return !!item && typeof item.title === "string" && typeof item.link === "string";
         })
-      : parser;
-    
-    const feed = await feedParser.parseURL(feedUrl);
+        .map((item: any) => ({
+          title: item.title as string,
+          link: item.link as string,
+          contentSnippet: item.contentSnippet,
+          content: item.content,
+          contentEncoded: item.contentEncoded,
+          isoDate: item.isoDate,
+          pubDate: item.pubDate,
+          creator: item.creator,
+          author: item.author,
+          "dc:creator": item["dc:creator"],
+          mediaContent: item.mediaContent,
+          mediaThumbnail: item.mediaThumbnail,
+          guid: item.guid,
+          id: item.id,
+        } as FeedItem));
 
-    // Filter and map items to ensure they have valid title and link
-    const validItems: FeedItem[] = (feed.items || [])
-      .filter((item: any) => {
-        return !!item && typeof item.title === "string" && typeof item.link === "string";
-      })
-      .map((item: any) => ({
-        title: item.title as string,
-        link: item.link as string,
-        contentSnippet: item.contentSnippet,
-        content: item.content,
-        contentEncoded: item.contentEncoded,
-        isoDate: item.isoDate,
-        pubDate: item.pubDate,
-        creator: item.creator,
-        author: item.author,
-        "dc:creator": item["dc:creator"],
-        mediaContent: item.mediaContent,
-        mediaThumbnail: item.mediaThumbnail,
-        guid: item.guid,
-        id: item.id,
-      } as FeedItem));
+      console.log(`[RSS Parser] ✓ Successfully parsed feed: ${feed.title || 'Untitled'}`);
 
-    return {
-      title: feed.title || "Untitled Feed",
-      link: feed.link,
-      items: validItems,
-    };
-  } catch (error) {
+      return {
+        title: feed.title || "Untitled Feed",
+        link: feed.link,
+        items: validItems,
+      };
+    } catch (error: any) {
+      lastError = error;
+      
+      // If it's a 403, try next User-Agent
+      if (error.message?.includes("403") || error.message?.includes("Forbidden")) {
+        console.warn(`[RSS Parser] Got 403 with User-Agent ${i + 1}, trying next...`);
+        continue;
+      }
+      
+      // For other errors, break the loop
+      break;
+    }
+  }
+  
+  // All attempts failed - try fallback for contentType errors
+  if (lastError) {
     // Check if error is related to contentType
-    const errorMessage = error instanceof Error ? error.message : String(error);
+    const errorMessage = lastError instanceof Error ? lastError.message : String(lastError);
     if (errorMessage.includes("contentType") || errorMessage.includes("Expected contentType string")) {
       console.warn(`ContentType error parsing feed ${feedUrl}, attempting fallback:`, errorMessage);
       // Try to parse anyway by fetching raw content
       try {
         const response = await fetch(feedUrl, {
           headers: {
-            "User-Agent": customUserAgent || getRandomUserAgent(),
+            "User-Agent": userAgents[0],
             "Accept": "application/rss+xml, application/atom+xml, application/xml, text/xml, application/json, text/html, */*",
           },
         });
@@ -116,7 +147,7 @@ export async function parseFeed(feedUrl: string, customUserAgent?: string): Prom
           customFields: customFields,
           requestOptions: {
             headers: {
-              "User-Agent": customUserAgent || getRandomUserAgent(),
+              "User-Agent": userAgents[0],
               "Accept": contentType,
             },
           },
@@ -156,8 +187,8 @@ export async function parseFeed(feedUrl: string, customUserAgent?: string): Prom
       }
     }
     
-    console.error(`Error parsing feed ${feedUrl}:`, error);
-    throw new Error(`Failed to parse feed: ${error instanceof Error ? error.message : "Unknown error"}`);
+    console.error(`[RSS Parser] ✗ Failed to parse feed ${feedUrl} after ${userAgents.length} attempts:`, lastError);
+    throw new Error(`Failed to parse feed: ${lastError instanceof Error ? lastError.message : "Unknown error"}`);
   }
 }
 
