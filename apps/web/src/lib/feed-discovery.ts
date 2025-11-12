@@ -274,13 +274,13 @@ export async function discoverFeeds(siteUrl: string): Promise<DiscoveredFeed[]> 
 
     const urlObj = new URL(normalizedUrl);
     
-    console.log(`[Feed Discovery] Starting discovery for: ${normalizedUrl}`);
+    console.log(`[Feed Discovery] ===== STARTING DISCOVERY FOR: ${normalizedUrl} =====`);
     
     // LEVEL 1: Try direct feed validation first
-    console.log(`[Feed Discovery] Level 1: Trying direct validation...`);
+    console.log(`[Feed Discovery] → Level 1: Trying direct validation...`);
     const directValidation = await validateFeedDirect(normalizedUrl);
     if (directValidation.isValid && directValidation.feedInfo) {
-      console.log(`[Feed Discovery] ✓ Direct feed detected!`);
+      console.log(`[Feed Discovery] ✓ Level 1 SUCCESS: Direct feed detected!`);
       discoveredFeeds.push({
         url: normalizedUrl,
         title: directValidation.feedInfo.title,
@@ -291,7 +291,7 @@ export async function discoverFeeds(siteUrl: string): Promise<DiscoveredFeed[]> 
         discoveryMethod: "direct",
       });
       const duration = Date.now() - startTime;
-      console.log(`[Feed Discovery] Completed in ${duration}ms - Found 1 feed (direct)`);
+      console.log(`[Feed Discovery] ===== COMPLETED in ${duration}ms - Found 1 feed (direct) =====`);
       return discoveredFeeds;
     }
     
@@ -323,13 +323,13 @@ export async function discoverFeeds(siteUrl: string): Promise<DiscoveredFeed[]> 
     }
 
     // LEVEL 2: Try to fetch the page and discover feeds via HTML
-    console.log(`[Feed Discovery] Level 2: Searching HTML for feed links...`);
+    console.log(`[Feed Discovery] → Level 2: Searching HTML for feed links...`);
     const htmlFeeds = await discoverFeedsFromHTML(normalizedUrl);
     discoveredFeeds.push(...htmlFeeds);
 
     // LEVEL 3: If no feeds found in HTML, try common feed paths
     if (discoveredFeeds.length === 0) {
-      console.log(`[Feed Discovery] Level 3: Trying common feed paths...`);
+      console.log(`[Feed Discovery] → Level 3: Trying common feed paths...`);
       const commonFeeds = await discoverCommonFeeds(normalizedUrl);
       discoveredFeeds.push(...commonFeeds);
     }
@@ -343,9 +343,9 @@ export async function discoverFeeds(siteUrl: string): Promise<DiscoveredFeed[]> 
     });
     
     const duration = Date.now() - startTime;
-    console.log(`[Feed Discovery] Completed in ${duration}ms - Found ${discoveredFeeds.length} feed(s)`);
+    console.log(`[Feed Discovery] ===== COMPLETED in ${duration}ms - Found ${discoveredFeeds.length} feed(s) =====`);
   } catch (error) {
-    console.error("[Feed Discovery] Error discovering feeds:", error);
+    console.error("[Feed Discovery] ✗ Error discovering feeds:", error);
   }
 
   return discoveredFeeds;

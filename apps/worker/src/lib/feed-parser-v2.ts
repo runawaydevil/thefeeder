@@ -1,0 +1,201 @@
+/**
+ * Robust Feed Parser V2
+ * Custom XML parser that bypasses xml2js/sax limitations
+ * Handles malformed XML, BOM, whitespace, and blocking mechanisms
+ */
+
+import { fetchFeed } from "./http-client.js";
+
+export interface ParsedFeedV2 {
+  title: string;
+  link?: string;
+  description?: string;
+  items: FeedItemV2[];
+}
+
+export interface FeedItemV2 {
+  title: string;
+  link: string;
+  description?: string;
+  content?: string;
+  pubDate?: string;
+  author?: string;
+  guid?: string;
+}
+
+/**
+ * Extract text content from XML node
+ * Handles CDATA sections and nested tags
+ */
+function extractText(xmlString: string, tagName: string): string | undefined {
+  const regex = new RegExp(`<${tagName}[^>]*>([\\s\\S]*?)<\\/${tagName}>`, 'i');
+  const match = xmlString.match(regex);
+  if (match) {
+    return match[1]
+      .replace(/<!\[CDATA\[([\s\S]*?)\]\]>/g, '$1') // Remove CDATA
+      .replace(/<[^>]+>/g, '') // Remove HTML tags
+      .trim();
+  }
+  return undefined;
+}
+
+/**
+ * Extract attribute from XML tag
+ */
+function extractAttribute(xmlString: string, tagName: string, attribute: string): string | undefined {
+  const regex = new RegExp(`<${tagName}[^>]*${attribute}=["']([^"']*?)["'][^>]*>`, 'i');
+  const match = xmlString.match(regex);
+  return match ? match[1] : undefined;
+}
+
+/**
+ * Parse RSS feed using regex-based extraction
+ */
+function parseRSS(xmlContent: string): ParsedFeedV2 {
+  console.log('[Feed Parser V2] Parsing as RSS');
+  
+  // Extract feed-level metadata
+  const title = extractText(xmlContent, 'title') || 'Untitled RSS Feed';
+  const link = extractText(xmlContent, 'link');
+  const description = extractText(xmlContent, 'description');
+  
+  // Extract items
+  const itemRegex = /<item[^>]*>([\s\S]*?)<\/item>/gi;
+  const items: FeedItemV2[] = [];
+  let itemMatch;
+  
+  while ((itemMatch = itemRegex.exec(xmlContent)) !== null) {
+    const itemXml = itemMatch[1];
+    
+    const itemTitle = extractText(itemXml, 'title');
+    const itemLink = extractText(itemXml, 'link');
+    
+    // Only add items with both title and link
+    if (itemTitle && itemLink) {
+      items.push({
+        title: itemTitle,
+        link: itemLink,
+        description: extractText(itemXml, 'description'),
+        content: extractText(itemXml, 'content:encoded') || extractText(itemXml, 'content'),
+        pubDate: extractText(itemXml, 'pubDate') || extractText(itemXml, 'dc:date'),
+        author: extractText(itemXml, 'author') || extractText(itemXml, 'dc:creator'),
+        guid: extractText(itemXml, 'guid'),
+      });
+    }
+  }
+  
+  console.log(`[Feed Parser V2] RSS parsed: ${title} (${items.length} items)`);
+  
+  return { title, link, description, items };
+}
+
+/**
+ * Parse Atom feed using regex-based extraction
+ */
+function parseAtom(xmlContent: string): ParsedFeedV2 {
+  console.log('[Feed Parser V2] Parsing as Atom');
+  
+  // Extract feed-level metadata
+  const title = extractText(xmlContent, 'title') || 'Untitled Atom Feed';
+  const linkMatch = xmlContent.match(/<link[^>]*href=["']([^"']*?)["'][^>]*>/i);
+  const link = linkMatch ? linkMatch[1] : undefined;
+  const description = extractText(xmlContent, 'subtitle') || extractText(xmlContent, 'summary');
+  
+  // Extract entries
+  const entryRegex = /<entry[^>]*>([\s\S]*?)<\/entry>/gi;
+  const items: FeedItemV2[] = [];
+  let entryMatch;
+  
+  while ((entryMatch = entryRegex.exec(xmlContent)) !== null) {
+    const entryXml = entryMatch[1];
+    
+    const entryTitle = extractText(entryXml, 'title');
+    const entryLinkMatch = entryXml.match(/<link[^>]*href=["']([^"']*?)["'][^>]*>/i);
+    const entryLink = entryLinkMatch ? entryLinkMatch[1] : undefined;
+    
+    // Only add entries with both title and link
+    if (entryTitle && entryLink) {
+      items.push({
+        title: entryTitle,
+        link: entryLink,
+        description: extractText(entryXml, 'summary'),
+        content: extractText(entryXml, 'content'),
+        pubDate: extractText(entryXml, 'published') || extractText(entryXml, 'updated'),
+        author: extractText(entryXml, 'author'),
+        guid: extractText(entryXml, 'id'),
+      });
+    }
+  }
+  
+  console.log(`[Feed Parser V2] Atom parsed: ${title} (${items.length} items)`);
+  
+  return { title, link, description, items };
+}
+
+/**
+ * Detect feed type and parse accordingly
+ */
+function detectAndParse(xmlContent: string): ParsedFeedV2 {
+  const content = xmlContent.toLowerCase();
+  
+  if (content.includes('<rss') || content.includes('<channel>')) {
+    return parseRSS(xmlContent);
+  } else if (content.includes('<feed') || content.includes('xmlns="http://www.w3.org/2005/atom"')) {
+    return parseAtom(xmlContent);
+  } else {
+    // Default to RSS if unsure
+    console.log('[Feed Parser V2] Unknown format, trying RSS');
+    return parseRSS(xmlContent);
+  }
+}
+
+/**
+ * Main parsing function - replaces rss-parser completely
+ * Fetches feed content and parses with custom XML parser
+ */
+export async function parseFeedV2(feedUrl: string): Promise<ParsedFeedV2> {
+  console.log(`[Feed Parser V2] ===== PARSING FEED: ${feedUrl} =====`);
+  
+  try {
+    // Use robust HTTP client to fetch feed
+    const xmlContent = await fetchFeed(feedUrl);
+    
+    // XML cleanup
+    let cleanXml = xmlContent;
+    
+    // Remove BOM (Byte Order Mark)
+    if (cleanXml.charCodeAt(0) === 0xFEFF) {
+      console.log(`[Feed Parser V2] Removing BOM`);
+      cleanXml = cleanXml.substring(1);
+    }
+    
+    // Trim whitespace
+    cleanXml = cleanXml.trim();
+    
+    // Remove any leading garbage before XML declaration
+    const xmlStart = cleanXml.search(/<\?xml|<rss|<feed/i);
+    if (xmlStart > 0) {
+      console.log(`[Feed Parser V2] Removing ${xmlStart} chars before XML start`);
+      cleanXml = cleanXml.substring(xmlStart);
+    }
+    
+    // Log first 200 chars for debugging
+    console.log(`[Feed Parser V2] Clean XML first 200 chars:`, cleanXml.substring(0, 200));
+    
+    // Validate it looks like XML
+    if (!cleanXml.startsWith('<?xml') && !cleanXml.startsWith('<rss') && !cleanXml.startsWith('<feed')) {
+      console.error(`[Feed Parser V2] Content doesn't look like XML. First 200 chars:`, cleanXml.substring(0, 200));
+      throw new Error('Response is not valid XML/RSS feed');
+    }
+    
+    // Parse the feed
+    const result = detectAndParse(cleanXml);
+    
+    console.log(`[Feed Parser V2] ✓ Successfully parsed: ${result.title} (${result.items.length} items)`);
+    
+    return result;
+  } catch (error) {
+    console.error(`[Feed Parser V2] ✗ Failed to parse ${feedUrl}:`, error);
+    throw new Error(`Failed to parse feed: ${error instanceof Error ? error.message : 'Unknown error'}`);
+  }
+}
