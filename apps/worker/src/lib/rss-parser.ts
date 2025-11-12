@@ -38,7 +38,7 @@ export interface FeedItem {
 export interface ParsedFeed {
   title: string;
   link?: string;
-  items: FeedItem[];
+  items: any[]; // Using any[] to avoid type conflicts with rss-parser
 }
 
 export async function parseFeed(feedUrl: string, customUserAgent?: string): Promise<ParsedFeed> {
@@ -75,7 +75,7 @@ export async function parseFeed(feedUrl: string, customUserAgent?: string): Prom
   }
 }
 
-export function normalizeFeedItem(item: FeedItem) {
+export function normalizeFeedItem(item: any) {
   const title = item.title || "Untitled";
   const url = item.link || item.guid || item.id || "";
   const summary = item.contentSnippet || item.content?.substring(0, 500) || undefined;
