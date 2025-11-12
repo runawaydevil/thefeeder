@@ -186,10 +186,11 @@ export async function parseFeed(feedUrl: string, customUserAgent?: string): Prom
         throw new Error(`Failed to parse feed: ${fallbackError instanceof Error ? fallbackError.message : "Unknown error"}`);
       }
     }
-    
-    console.error(`[RSS Parser] ✗ Failed to parse feed ${feedUrl} after ${userAgents.length} attempts:`, lastError);
-    throw new Error(`Failed to parse feed: ${lastError instanceof Error ? lastError.message : "Unknown error"}`);
   }
+  
+  // This should never happen, but TypeScript needs it
+  console.error(`[RSS Parser] ✗ Failed to parse feed ${feedUrl} after ${userAgents.length} attempts:`, lastError);
+  throw new Error(`Failed to parse feed: ${lastError instanceof Error ? lastError.message : "Unknown error"}`);
 }
 
 export function normalizeFeedItem(item: FeedItem): {
