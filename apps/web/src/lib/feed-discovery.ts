@@ -26,9 +26,11 @@ export interface FeedValidationResult {
 // Create parser instance with timeout and custom fields
 const parser = new Parser({
   timeout: 10000,
-  headers: {
-    'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
-    'Accept': 'application/rss+xml, application/atom+xml, application/xml, text/xml, */*',
+  requestOptions: {
+    headers: {
+      'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
+      'Accept': 'application/rss+xml, application/atom+xml, application/xml, text/xml, */*',
+    },
   },
   customFields: {
     feed: ["subtitle", "updated"],
@@ -145,11 +147,13 @@ export async function validateFeedDirect(url: string): Promise<FeedValidationRes
       // Create a parser with specific User-Agent for this attempt
       const parserWithUA = new Parser({
         timeout: 10000,
-        headers: {
-          'User-Agent': userAgents[i],
-          'Accept': 'application/rss+xml, application/atom+xml, application/xml, text/xml, */*',
-          'Accept-Language': 'en-US,en;q=0.9',
-          'Cache-Control': 'no-cache',
+        requestOptions: {
+          headers: {
+            'User-Agent': userAgents[i],
+            'Accept': 'application/rss+xml, application/atom+xml, application/xml, text/xml, */*',
+            'Accept-Language': 'en-US,en;q=0.9',
+            'Cache-Control': 'no-cache',
+          },
         },
         customFields: {
           feed: ["subtitle", "updated"],
