@@ -37,17 +37,33 @@ export default function SubscribeForm() {
   };
 
   return (
-    <div className="p-3 sm:p-4 md:p-5">
-      <h2 className="text-xs sm:text-sm md:text-base font-bold text-vaporwave-cyan neon-glow-cyan mb-1.5 sm:mb-2 uppercase tracking-wider">
+    <div 
+      className="p-3 sm:p-4 md:p-5"
+      style={{ background: 'var(--color-bg-secondary)' }}
+    >
+      <h2 
+        className="text-xs sm:text-sm md:text-base font-bold mb-1.5 sm:mb-2 uppercase tracking-wider"
+        style={{
+          color: 'var(--color-accent-secondary)',
+          textShadow: 'var(--shadow-glow)'
+        }}
+      >
         Get Daily Digest
       </h2>
-      <p className="text-[10px] sm:text-[11px] md:text-xs text-muted-foreground mb-3 sm:mb-4">
+      <p 
+        className="text-[10px] sm:text-[11px] md:text-xs mb-3 sm:mb-4"
+        style={{ color: 'var(--color-text-secondary)' }}
+      >
         Subscribe to receive a daily email digest with the latest articles from all feeds.
       </p>
       
       <form onSubmit={handleSubmit} className="space-y-2.5 sm:space-y-3">
         <div>
-          <label htmlFor="name" className="block text-[9px] sm:text-[10px] md:text-xs font-medium mb-1 sm:mb-1.5 text-vaporwave-cyan uppercase tracking-wider">
+          <label 
+            htmlFor="name" 
+            className="block text-[9px] sm:text-[10px] md:text-xs font-medium mb-1 sm:mb-1.5 uppercase tracking-wider"
+            style={{ color: 'var(--color-accent-secondary)' }}
+          >
             Name
           </label>
           <input
@@ -56,13 +72,22 @@ export default function SubscribeForm() {
             value={name}
             onChange={(e) => setName(e.target.value)}
             required
-            className="w-full min-h-[44px] px-3 sm:px-4 py-2.5 sm:py-3 text-sm sm:text-base bg-background/80 border-2 border-vaporwave-cyan/30 rounded-md text-foreground focus:border-vaporwave-cyan focus:outline-none focus:ring-2 focus:ring-vaporwave-cyan/50 transition-all"
+            className="w-full min-h-[44px] px-3 sm:px-4 py-2.5 sm:py-3 text-sm sm:text-base border-2 rounded-md focus:outline-none focus:ring-2 transition-all"
             placeholder="Your name"
+            style={{
+              background: 'var(--color-bg-primary)',
+              borderColor: 'var(--color-border)',
+              color: 'var(--color-text-primary)'
+            }}
           />
         </div>
 
         <div>
-          <label htmlFor="email" className="block text-[9px] sm:text-[10px] md:text-xs font-medium mb-1 sm:mb-1.5 text-vaporwave-cyan uppercase tracking-wider">
+          <label 
+            htmlFor="email" 
+            className="block text-[9px] sm:text-[10px] md:text-xs font-medium mb-1 sm:mb-1.5 uppercase tracking-wider"
+            style={{ color: 'var(--color-accent-secondary)' }}
+          >
             Email
           </label>
           <input
@@ -71,8 +96,13 @@ export default function SubscribeForm() {
             value={email}
             onChange={(e) => setEmail(e.target.value)}
             required
-            className="w-full min-h-[44px] px-3 sm:px-4 py-2.5 sm:py-3 text-sm sm:text-base bg-background/80 border-2 border-vaporwave-cyan/30 rounded-md text-foreground focus:border-vaporwave-cyan focus:outline-none focus:ring-2 focus:ring-vaporwave-cyan/50 transition-all"
+            className="w-full min-h-[44px] px-3 sm:px-4 py-2.5 sm:py-3 text-sm sm:text-base border-2 rounded-md focus:outline-none focus:ring-2 transition-all"
             placeholder="your@email.com"
+            style={{
+              background: 'var(--color-bg-primary)',
+              borderColor: 'var(--color-border)',
+              color: 'var(--color-text-primary)'
+            }}
           />
         </div>
 
@@ -91,7 +121,12 @@ export default function SubscribeForm() {
         <button
           type="submit"
           disabled={loading}
-          className="w-full min-h-[44px] py-2.5 sm:py-3 px-4 text-xs sm:text-sm md:text-base bg-vaporwave-cyan text-primary-foreground rounded-md font-bold uppercase tracking-wider hover:bg-vaporwave-cyan/90 hover:shadow-[0_0_12px_hsl(180_100%_60%_/_0.5)] disabled:opacity-50 disabled:cursor-not-allowed transition-all border-2 border-vaporwave-cyan touch-manipulation"
+          className="w-full min-h-[44px] py-2.5 sm:py-3 px-4 text-xs sm:text-sm md:text-base rounded-md font-bold uppercase tracking-wider disabled:opacity-50 disabled:cursor-not-allowed transition-all border-2 touch-manipulation"
+          style={{
+            background: 'var(--color-accent-primary)',
+            color: 'var(--color-bg-primary)',
+            borderColor: 'var(--color-accent-primary)'
+          }}
         >
           {loading ? "SUBSCRIBING..." : "SUBSCRIBE"}
         </button>

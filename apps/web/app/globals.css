@@ -8,13 +8,20 @@
   }
 
   body {
-    @apply bg-background text-foreground;
-    font-family: system-ui, -apple-system, Segoe UI, Roboto, Ubuntu, Cantarell, Noto Sans, Helvetica Neue, Arial, "Apple Color Emoji", "Segoe UI Emoji";
-    overflow-x: hidden; /* Prevent horizontal overflow */
+    font-family: var(--font-body);
+    overflow-x: hidden;
+    background: var(--color-bg-primary);
+    color: var(--color-text-primary);
+    transition: var(--theme-transition);
   }
 
   html {
-    overflow-x: hidden; /* Prevent horizontal overflow */
+    overflow-x: hidden;
+  }
+  
+  h1, h2, h3, h4, h5, h6 {
+    font-family: var(--font-heading);
+    transition: var(--theme-transition);
   }
 }
 
@@ -87,23 +94,60 @@
 
 /* Background grid and effects */
 @layer utilities {
-  .vaporwave-grid { position:absolute; bottom:0; left:0; right:0; height:100%; background-image: linear-gradient(0deg, transparent 24%, hsl(320 100% 65% / 0.3) 25%, hsl(320 100% 65% / 0.3) 26%, transparent 27%, transparent 74%, hsl(320 100% 65% / 0.3) 75%, hsl(320 100% 65% / 0.3) 76%, transparent 77%, transparent), linear-gradient(90deg, transparent 24%, hsl(180 100% 60% / 0.3) 25%, hsl(180 100% 60% / 0.3) 26%, transparent 27%, transparent 74%, hsl(180 100% 60% / 0.3) 75%, hsl(180 100% 60% / 0.3) 76%, transparent 77%, transparent); background-size:100px 100px; background-position:center bottom; transform:perspective(500px) rotateX(60deg); transform-origin:bottom; opacity:.4; }
-  .neon-glow-pink { text-shadow: 0 0 10px hsl(var(--vaporwave-pink)), 0 0 20px hsl(var(--vaporwave-pink)), 0 0 30px hsl(var(--vaporwave-pink)), 0 0 40px hsl(var(--vaporwave-pink)); }
-  .neon-glow-cyan { text-shadow: 0 0 10px hsl(var(--vaporwave-cyan)), 0 0 20px hsl(var(--vaporwave-cyan)), 0 0 30px hsl(var(--vaporwave-cyan)); }
-  .neon-border { border:2px solid hsl(var(--vaporwave-pink)); box-shadow: 0 0 10px hsl(var(--vaporwave-pink)), 0 0 20px hsl(var(--vaporwave-pink) / .5), inset 0 0 10px hsl(var(--vaporwave-pink) / .2); }
-  .cyber-card { background: linear-gradient(135deg, hsl(280 50% 12% / .8), hsl(270 40% 10% / .9)); border:2px solid hsl(var(--vaporwave-cyan)); box-shadow: 0 0 20px hsl(var(--vaporwave-cyan) / .5), 0 0 40px hsl(var(--vaporwave-purple) / .3), inset 0 0 20px hsl(var(--vaporwave-pink) / .1); }
-  .scanlines { position:relative; overflow:hidden; }
-  .scanlines::after { content:''; position:absolute; inset:0; background:repeating-linear-gradient(0deg, rgba(0,0,0,.1), rgba(0,0,0,.1) 1px, transparent 1px, transparent 3px); pointer-events:none; z-index:1000; }
+  .vaporwave-grid { 
+    display: var(--effect-grid);
+    position:absolute; bottom:0; left:0; right:0; height:100%; 
+    background-image: linear-gradient(0deg, transparent 24%, hsl(320 100% 65% / 0.3) 25%, hsl(320 100% 65% / 0.3) 26%, transparent 27%, transparent 74%, hsl(320 100% 65% / 0.3) 75%, hsl(320 100% 65% / 0.3) 76%, transparent 77%, transparent), linear-gradient(90deg, transparent 24%, hsl(180 100% 60% / 0.3) 25%, hsl(180 100% 60% / 0.3) 26%, transparent 27%, transparent 74%, hsl(180 100% 60% / 0.3) 75%, hsl(180 100% 60% / 0.3) 76%, transparent 77%, transparent); 
+    background-size:100px 100px; background-position:center bottom; 
+    transform:perspective(500px) rotateX(60deg); transform-origin:bottom; opacity:.4; 
+  }
   
-  .font-orbitron { font-family: 'Orbitron', sans-serif; }
+  .neon-glow-pink { 
+    color: var(--color-accent-primary);
+    text-shadow: var(--shadow-glow-strong);
+  }
+  
+  .neon-glow-cyan { 
+    color: var(--color-accent-secondary);
+    text-shadow: var(--shadow-glow);
+  }
+  
+  .neon-border { 
+    border:2px solid var(--color-accent-primary); 
+    box-shadow: var(--shadow-card);
+  }
+  
+  .cyber-card { 
+    background: var(--gradient-card);
+    border:2px solid var(--color-accent-secondary); 
+    box-shadow: var(--shadow-card);
+    transition: var(--theme-transition);
+  }
+  
+  .scanlines { 
+    position:relative; 
+    overflow:hidden; 
+  }
+  
+  .scanlines::after { 
+    content:''; 
+    position:absolute; 
+    inset:0; 
+    background:repeating-linear-gradient(0deg, rgba(0,0,0,.1), rgba(0,0,0,.1) 1px, transparent 1px, transparent 3px); 
+    pointer-events:none; 
+    z-index:1000;
+    display: var(--effect-scanlines);
+  }
+  
+  .font-orbitron { font-family: var(--font-heading); }
   .font-audiowide { font-family: 'Audiowide', cursive; }
   
   @keyframes glow-soft {
     0%, 100% { 
-      filter: brightness(1) drop-shadow(0 0 15px hsl(320 100% 65%));
+      filter: brightness(1) drop-shadow(0 0 15px var(--color-accent-primary));
     }
     50% { 
-      filter: brightness(1.2) drop-shadow(0 0 30px hsl(320 100% 65%));
+      filter: brightness(1.2) drop-shadow(0 0 30px var(--color-accent-primary));
     }
   }
   

@@ -43,17 +43,28 @@ export default function Pagination({ currentPage, totalItems, itemsPerPage }: Pa
         <button
           onClick={handlePrevious}
           disabled={isFirstPage}
-          className={`px-3 py-1.5 text-xs sm:text-sm rounded-md transition-all uppercase tracking-wider font-bold border-2 ${
-            isFirstPage
-              ? "bg-card/30 text-muted-foreground border-vaporwave-cyan/20 cursor-not-allowed opacity-50"
-              : "bg-vaporwave-cyan text-primary-foreground border-vaporwave-cyan hover:bg-vaporwave-cyan/90 hover:shadow-[0_0_12px_hsl(180_100%_60%_/_0.5)]"
-          }`}
+          className="px-3 py-1.5 text-xs sm:text-sm rounded-md transition-all uppercase tracking-wider font-bold border-2"
+          style={{
+            background: isFirstPage ? 'var(--color-bg-secondary)' : 'var(--color-accent-secondary)',
+            color: isFirstPage ? 'var(--color-text-secondary)' : 'var(--color-bg-primary)',
+            borderColor: isFirstPage ? 'var(--color-border)' : 'var(--color-accent-secondary)',
+            opacity: isFirstPage ? 0.5 : 1,
+            cursor: isFirstPage ? 'not-allowed' : 'pointer'
+          }}
         >
           ← Previous
         </button>
 
         {/* Page Info */}
-        <div className="px-4 py-1.5 text-xs sm:text-sm text-vaporwave-cyan neon-glow-cyan uppercase tracking-wider font-bold border-2 border-vaporwave-cyan/50 rounded-md bg-card/50 backdrop-blur-md">
+        <div 
+          className="px-4 py-1.5 text-xs sm:text-sm uppercase tracking-wider font-bold border-2 rounded-md backdrop-blur-md"
+          style={{
+            color: 'var(--color-accent-secondary)',
+            textShadow: 'var(--shadow-glow)',
+            borderColor: 'var(--color-border)',
+            background: 'var(--color-bg-secondary)'
+          }}
+        >
           Page {currentPage} of {totalPages}
         </div>
 
@@ -61,18 +72,24 @@ export default function Pagination({ currentPage, totalItems, itemsPerPage }: Pa
         <button
           onClick={handleNext}
           disabled={isLastPage}
-          className={`px-3 py-1.5 text-xs sm:text-sm rounded-md transition-all uppercase tracking-wider font-bold border-2 ${
-            isLastPage
-              ? "bg-card/30 text-muted-foreground border-vaporwave-pink/20 cursor-not-allowed opacity-50"
-              : "bg-vaporwave-pink text-primary-foreground border-vaporwave-pink hover:bg-vaporwave-pink/90 hover:shadow-[0_0_12px_hsl(320_100%_65%_/_0.5)]"
-          }`}
+          className="px-3 py-1.5 text-xs sm:text-sm rounded-md transition-all uppercase tracking-wider font-bold border-2"
+          style={{
+            background: isLastPage ? 'var(--color-bg-secondary)' : 'var(--color-accent-primary)',
+            color: isLastPage ? 'var(--color-text-secondary)' : 'var(--color-bg-primary)',
+            borderColor: isLastPage ? 'var(--color-border)' : 'var(--color-accent-primary)',
+            opacity: isLastPage ? 0.5 : 1,
+            cursor: isLastPage ? 'not-allowed' : 'pointer'
+          }}
         >
           Next →
         </button>
       </div>
 
       {/* Items Info */}
-      <p className="text-[10px] sm:text-xs text-muted-foreground text-center">
+      <p 
+        className="text-[10px] sm:text-xs text-center"
+        style={{ color: 'var(--color-text-secondary)' }}
+      >
         Showing {((currentPage - 1) * itemsPerPage) + 1} - {Math.min(currentPage * itemsPerPage, totalItems)} of {totalItems} articles
       </p>
     </div>

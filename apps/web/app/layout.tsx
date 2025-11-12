@@ -1,8 +1,10 @@
 import type { Metadata, Viewport } from "next";
 import "./globals.css";
+import "./themes.css";
 import { ReactNode } from "react";
 import ServiceWorkerCleanup from "@/src/components/ServiceWorkerCleanup";
 import ServiceWorkerRegistration from "@/src/components/ServiceWorkerRegistration";
+import { ThemeProvider } from "@/src/contexts/ThemeContext";
 import { getBaseUrl, getAbsoluteUrl, getDefaultOgImage } from "@/src/lib/seo-utils";
 
 const siteUrl = getBaseUrl();
@@ -78,10 +80,28 @@ export const viewport: Viewport = {
 export default function RootLayout({ children }: { children: ReactNode }) {
   return (
     <html lang="en" suppressHydrationWarning>
+      <head>
+        <script
+          dangerouslySetInnerHTML={{
+            __html: `
+              (function() {
+                try {
+                  const theme = localStorage.getItem('theme') || 'vaporwave';
+                  if (theme === 'vaporwave' || theme === 'clean') {
+                    document.documentElement.setAttribute('data-theme', theme);
+                  }
+                } catch (e) {}
+              })();
+            `,
+          }}
+        />
+      </head>
       <body className="font-orbitron" suppressHydrationWarning>
-        <ServiceWorkerCleanup />
-        <ServiceWorkerRegistration />
-        {children}
+        <ThemeProvider>
+          <ServiceWorkerCleanup />
+          <ServiceWorkerRegistration />
+          {children}
+        </ThemeProvider>
       </body>
     </html>
   );

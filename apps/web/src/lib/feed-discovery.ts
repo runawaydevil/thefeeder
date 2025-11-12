@@ -1,16 +1,204 @@
 import { getRandomUserAgent } from "./user-agents";
+import Parser from "rss-parser";
 
 export interface DiscoveredFeed {
   url: string;
   title: string;
   type: "rss" | "atom" | "json";
+  description?: string;
+  itemCount?: number;
+  lastItemDate?: Date;
+  discoveryMethod?: "direct" | "html" | "common-path" | "special";
+}
+
+export interface FeedValidationResult {
+  isValid: boolean;
+  feedInfo?: {
+    title: string;
+    description?: string;
+    itemCount: number;
+    lastItemDate?: Date;
+    type: "rss" | "atom" | "json";
+  };
+  error?: string;
+}
+
+// Create parser instance with timeout and custom fields
+const parser = new Parser({
+  timeout: 10000,
+  customFields: {
+    feed: ["subtitle", "updated"],
+    item: [
+      ["media:content", "mediaContent"],
+      ["media:thumbnail", "mediaThumbnail"],
+      ["content:encoded", "contentEncoded"],
+    ],
+  },
+});
+
+// Cache for feed validation results (5 minutes TTL)
+interface CacheEntry {
+  result: FeedValidationResult;
+  timestamp: number;
+}
+
+const validationCache = new Map<string, CacheEntry>();
+const CACHE_TTL = 5 * 60 * 1000; // 5 minutes
+
+/**
+ * Clean expired cache entries
+ */
+function cleanCache() {
+  const now = Date.now();
+  for (const [key, entry] of validationCache.entries()) {
+    if (now - entry.timestamp > CACHE_TTL) {
+      validationCache.delete(key);
+    }
+  }
+  // Limit cache size to 100 entries
+  if (validationCache.size > 100) {
+    const entriesToDelete = validationCache.size - 100;
+    let deleted = 0;
+    for (const key of validationCache.keys()) {
+      if (deleted >= entriesToDelete) break;
+      validationCache.delete(key);
+      deleted++;
+    }
+  }
+}
+
+/**
+ * Extract feed information from parsed feed
+ */
+function extractFeedInfo(feed: any): FeedValidationResult["feedInfo"] {
+  const itemCount = feed.items?.length || 0;
+  let lastItemDate: Date | undefined;
+  
+  if (feed.items && feed.items.length > 0) {
+    const firstItem = feed.items[0];
+    if (firstItem.pubDate) {
+      lastItemDate = new Date(firstItem.pubDate);
+    } else if (firstItem.isoDate) {
+      lastItemDate = new Date(firstItem.isoDate);
+    }
+  }
+  
+  // Detect feed type
+  let type: "rss" | "atom" | "json" = "rss";
+  if (feed.feedUrl?.includes(".atom") || feed.link?.includes("/atom")) {
+    type = "atom";
+  } else if (feed.feedUrl?.includes(".json") || feed.link?.includes("/json")) {
+    type = "json";
+  }
+  
+  return {
+    title: feed.title || "Untitled Feed",
+    description: feed.description || feed.subtitle,
+    itemCount,
+    lastItemDate,
+    type,
+  };
+}
+
+/**
+ * Validate if a URL points to a valid RSS/Atom/JSON feed
+ * Uses rss-parser to validate feed structure
+ * 
+ * @param url - URL to validate
+ * @returns Validation result with feed info if valid
+ * 
+ * @example
+ * const result = await validateFeedDirect('https://example.com/feed');
+ * if (result.isValid) {
+ *   console.log(`Found feed: ${result.feedInfo.title}`);
+ * }
+ */
+export async function validateFeedDirect(url: string): Promise<FeedValidationResult> {
+  const startTime = Date.now();
+  
+  // Check cache first
+  cleanCache();
+  const cached = validationCache.get(url);
+  if (cached && Date.now() - cached.timestamp < CACHE_TTL) {
+    console.log(`[Feed Discovery] Cache hit for ${url}`);
+    return cached.result;
+  }
+  
+  try {
+    console.log(`[Feed Discovery] Validating direct feed: ${url}`);
+    
+    // Try to parse the feed
+    const feed = await parser.parseURL(url);
+    
+    if (!feed.items || feed.items.length === 0) {
+      console.warn(`[Feed Discovery] Feed ${url} has no items`);
+    }
+    
+    const feedInfo = extractFeedInfo(feed);
+    const result: FeedValidationResult = {
+      isValid: true,
+      feedInfo,
+    };
+    
+    // Cache the result
+    validationCache.set(url, {
+      result,
+      timestamp: Date.now(),
+    });
+    
+    const duration = Date.now() - startTime;
+    console.log(`[Feed Discovery] ✓ Valid feed found: ${result.feedInfo?.title} (${result.feedInfo?.itemCount} items) - ${duration}ms`);
+    
+    return result;
+  } catch (error: any) {
+    const duration = Date.now() - startTime;
+    let errorMessage = "Invalid feed format";
+    
+    if (error.code === "ETIMEDOUT" || error.message?.includes("timeout")) {
+      errorMessage = "Feed validation timeout";
+      console.error(`[Feed Discovery] ✗ Timeout validating ${url} - ${duration}ms`);
+    } else if (error.code === "ENOTFOUND") {
+      errorMessage = "Feed URL not found";
+      console.error(`[Feed Discovery] ✗ URL not found: ${url} - ${duration}ms`);
+    } else if (error.code === "ECONNREFUSED") {
+      errorMessage = "Connection refused";
+      console.error(`[Feed Discovery] ✗ Connection refused: ${url} - ${duration}ms`);
+    } else {
+      console.error(`[Feed Discovery] ✗ Parse error for ${url}: ${error.message} - ${duration}ms`);
+    }
+    
+    const result: FeedValidationResult = {
+      isValid: false,
+      error: errorMessage,
+    };
+    
+    // Cache negative results too (but for shorter time)
+    validationCache.set(url, {
+      result,
+      timestamp: Date.now(),
+    });
+    
+    return result;
+  }
+}
+
+/**
+ * Validate multiple feed URLs in parallel
+ */
+export async function validateMultipleFeeds(urls: string[]): Promise<FeedValidationResult[]> {
+  return Promise.all(urls.map(url => validateFeedDirect(url)));
 }
 
 /**
  * Discover RSS/Atom feeds from a website URL
+ * Uses 3-level fallback strategy:
+ * 1. Direct validation - Try to parse URL as feed
+ * 2. HTML discovery - Search for feed links in HTML
+ * 3. Common paths - Try standard feed URLs
  */
 export async function discoverFeeds(siteUrl: string): Promise<DiscoveredFeed[]> {
   const discoveredFeeds: DiscoveredFeed[] = [];
+  const startTime = Date.now();
 
   try {
     // Normalize URL
@@ -20,6 +208,27 @@ export async function discoverFeeds(siteUrl: string): Promise<DiscoveredFeed[]> 
     }
 
     const urlObj = new URL(normalizedUrl);
+    
+    console.log(`[Feed Discovery] Starting discovery for: ${normalizedUrl}`);
+    
+    // LEVEL 1: Try direct feed validation first
+    console.log(`[Feed Discovery] Level 1: Trying direct validation...`);
+    const directValidation = await validateFeedDirect(normalizedUrl);
+    if (directValidation.isValid && directValidation.feedInfo) {
+      console.log(`[Feed Discovery] ✓ Direct feed detected!`);
+      discoveredFeeds.push({
+        url: normalizedUrl,
+        title: directValidation.feedInfo.title,
+        type: directValidation.feedInfo.type,
+        description: directValidation.feedInfo.description,
+        itemCount: directValidation.feedInfo.itemCount,
+        lastItemDate: directValidation.feedInfo.lastItemDate,
+        discoveryMethod: "direct",
+      });
+      const duration = Date.now() - startTime;
+      console.log(`[Feed Discovery] Completed in ${duration}ms - Found 1 feed (direct)`);
+      return discoveredFeeds;
+    }
     
     // Handle Reddit subreddits
     if (urlObj.hostname.includes("reddit.com")) {
@@ -48,17 +257,30 @@ export async function discoverFeeds(siteUrl: string): Promise<DiscoveredFeed[]> 
       }
     }
 
-    // Try to fetch the page and discover feeds via HTML
+    // LEVEL 2: Try to fetch the page and discover feeds via HTML
+    console.log(`[Feed Discovery] Level 2: Searching HTML for feed links...`);
     const htmlFeeds = await discoverFeedsFromHTML(normalizedUrl);
     discoveredFeeds.push(...htmlFeeds);
 
-    // If no feeds found in HTML, try common feed paths
+    // LEVEL 3: If no feeds found in HTML, try common feed paths
     if (discoveredFeeds.length === 0) {
+      console.log(`[Feed Discovery] Level 3: Trying common feed paths...`);
       const commonFeeds = await discoverCommonFeeds(normalizedUrl);
       discoveredFeeds.push(...commonFeeds);
     }
+    
+    // Sort feeds by discovery method (direct > html > common-path)
+    const methodPriority = { direct: 0, special: 1, html: 2, "common-path": 3 };
+    discoveredFeeds.sort((a, b) => {
+      const aPriority = methodPriority[a.discoveryMethod || "html"] || 99;
+      const bPriority = methodPriority[b.discoveryMethod || "html"] || 99;
+      return aPriority - bPriority;
+    });
+    
+    const duration = Date.now() - startTime;
+    console.log(`[Feed Discovery] Completed in ${duration}ms - Found ${discoveredFeeds.length} feed(s)`);
   } catch (error) {
-    console.error("Error discovering feeds:", error);
+    console.error("[Feed Discovery] Error discovering feeds:", error);
   }
 
   return discoveredFeeds;
@@ -74,13 +296,17 @@ async function discoverRedditFeed(url: string): Promise<DiscoveredFeed | null> {
       const subreddit = pathParts[1];
       const feedUrl = `https://www.reddit.com/r/${subreddit}.rss`;
       
-      // Verify feed exists
-      const isValid = await validateFeed(feedUrl);
-      if (isValid) {
+      // Verify feed exists using direct validation
+      const validation = await validateFeedDirect(feedUrl);
+      if (validation.isValid && validation.feedInfo) {
         return {
           url: feedUrl,
-          title: `Reddit - r/${subreddit}`,
-          type: "rss",
+          title: validation.feedInfo.title || `Reddit - r/${subreddit}`,
+          type: validation.feedInfo.type,
+          description: validation.feedInfo.description,
+          itemCount: validation.feedInfo.itemCount,
+          lastItemDate: validation.feedInfo.lastItemDate,
+          discoveryMethod: "special",
         };
       }
     }
@@ -139,12 +365,16 @@ async function discoverYouTubeFeeds(url: string): Promise<DiscoveredFeed[]> {
     if (channelId) {
       const feedUrl = `https://www.youtube.com/feeds/videos.xml?channel_id=${channelId}`;
       
-      const isValid = await validateFeed(feedUrl);
-      if (isValid) {
+      const validation = await validateFeedDirect(feedUrl);
+      if (validation.isValid && validation.feedInfo) {
         feeds.push({
           url: feedUrl,
-          title: channelTitle || `YouTube Channel - ${channelId}`,
-          type: "atom",
+          title: validation.feedInfo.title || channelTitle || `YouTube Channel - ${channelId}`,
+          type: validation.feedInfo.type,
+          description: validation.feedInfo.description,
+          itemCount: validation.feedInfo.itemCount,
+          lastItemDate: validation.feedInfo.lastItemDate,
+          discoveryMethod: "special",
         });
       }
     }
@@ -323,12 +553,16 @@ async function discoverGitHubFeeds(url: string): Promise<DiscoveredFeed[]> {
       const username = pathParts[0];
       const feedUrl = `https://github.com/${username}.atom`;
       
-      const isValid = await validateFeed(feedUrl);
-      if (isValid) {
+      const validation = await validateFeedDirect(feedUrl);
+      if (validation.isValid && validation.feedInfo) {
         feeds.push({
           url: feedUrl,
-          title: `GitHub - ${username}`,
-          type: "atom",
+          title: validation.feedInfo.title || `GitHub - ${username}`,
+          type: validation.feedInfo.type,
+          description: validation.feedInfo.description,
+          itemCount: validation.feedInfo.itemCount,
+          lastItemDate: validation.feedInfo.lastItemDate,
+          discoveryMethod: "special",
         });
       }
     }
@@ -339,12 +573,16 @@ async function discoverGitHubFeeds(url: string): Promise<DiscoveredFeed[]> {
       const repo = pathParts[1];
       const releasesFeedUrl = `https://github.com/${username}/${repo}/releases.atom`;
       
-      const isValid = await validateFeed(releasesFeedUrl);
-      if (isValid) {
+      const validation = await validateFeedDirect(releasesFeedUrl);
+      if (validation.isValid && validation.feedInfo) {
         feeds.push({
           url: releasesFeedUrl,
-          title: `GitHub - ${username}/${repo} Releases`,
-          type: "atom",
+          title: validation.feedInfo.title || `GitHub - ${username}/${repo} Releases`,
+          type: validation.feedInfo.type,
+          description: validation.feedInfo.description,
+          itemCount: validation.feedInfo.itemCount,
+          lastItemDate: validation.feedInfo.lastItemDate,
+          discoveryMethod: "special",
         });
       }
     }
@@ -424,12 +662,16 @@ async function discoverFeedsFromHTML(siteUrl: string): Promise<DiscoveredFeed[]>
           }
           
           // Validate feed
-          const isValid = await validateFeed(feedUrl);
-          if (isValid) {
+          const validation = await validateFeedDirect(feedUrl);
+          if (validation.isValid && validation.feedInfo) {
             feeds.push({
               url: feedUrl,
-              title: `Feed (${feedType.toUpperCase()})`,
-              type: feedType,
+              title: validation.feedInfo.title || `Feed (${feedType.toUpperCase()})`,
+              type: validation.feedInfo.type,
+              description: validation.feedInfo.description,
+              itemCount: validation.feedInfo.itemCount,
+              lastItemDate: validation.feedInfo.lastItemDate,
+              discoveryMethod: "html",
             });
           }
         }
@@ -482,109 +724,31 @@ async function discoverCommonFeeds(siteUrl: string): Promise<DiscoveredFeed[]> {
     "/rss.aspx",
   ];
   
-  for (const path of commonPaths) {
-    try {
-      const feedUrl = `${baseUrl.origin}${path}`;
-      const isValid = await validateFeed(feedUrl);
-      
-      if (isValid) {
-        const feedType = path.includes("atom") ? "atom" : path.includes("json") ? "json" : "rss";
-        feeds.push({
-          url: feedUrl,
-          title: `Feed (${feedType.toUpperCase()})`,
-          type: feedType,
-        });
-        // Don't break - continue to find all possible feeds
-      }
-    } catch (error) {
-      // Continue trying other paths
+  // Build all URLs to test
+  const urlsToTest = commonPaths.map(path => `${baseUrl.origin}${path}`);
+  
+  // Validate all URLs in parallel
+  const validations = await validateMultipleFeeds(urlsToTest);
+  
+  // Process results
+  for (let i = 0; i < validations.length; i++) {
+    const validation = validations[i];
+    if (validation.isValid && validation.feedInfo) {
+      feeds.push({
+        url: urlsToTest[i],
+        title: validation.feedInfo.title || `Feed (${validation.feedInfo.type.toUpperCase()})`,
+        type: validation.feedInfo.type,
+        description: validation.feedInfo.description,
+        itemCount: validation.feedInfo.itemCount,
+        lastItemDate: validation.feedInfo.lastItemDate,
+        discoveryMethod: "common-path",
+      });
     }
   }
   
   return feeds;
 }
 
-async function validateFeed(feedUrl: string): Promise<boolean> {
-  const acceptHeader = "application/rss+xml, application/atom+xml, application/xml, text/xml, application/json, text/html, */*";
-  
-  // Try HEAD first
-  try {
-    const response = await fetch(feedUrl, {
-      method: "HEAD",
-      headers: {
-        "User-Agent": getRandomUserAgent(),
-        "Accept": acceptHeader,
-      },
-      signal: AbortSignal.timeout(5000), // 5 second timeout
-    });
 
-    if (response.ok) {
-      const contentType = response.headers.get("content-type") || "";
-      
-      // Check if it's a valid feed content type
-      if (
-        contentType.includes("application/rss+xml") ||
-        contentType.includes("application/atom+xml") ||
-        contentType.includes("application/xml") ||
-        contentType.includes("text/xml") ||
-        contentType.includes("application/json")
-      ) {
-        return true;
-      }
-    }
-  } catch (error) {
-    // HEAD failed, will try GET as fallback
-  }
-
-  // Fallback to GET if HEAD failed or didn't return valid content-type
-  try {
-    const response = await fetch(feedUrl, {
-      method: "GET",
-      headers: {
-        "User-Agent": getRandomUserAgent(),
-        "Accept": acceptHeader,
-      },
-      signal: AbortSignal.timeout(8000), // 8 second timeout for GET
-    });
-
-    if (!response.ok) {
-      return false;
-    }
-
-    const contentType = response.headers.get("content-type") || "";
-    
-    // Check if it's a valid feed content type
-    if (
-      contentType.includes("application/rss+xml") ||
-      contentType.includes("application/atom+xml") ||
-      contentType.includes("application/xml") ||
-      contentType.includes("text/xml") ||
-      contentType.includes("application/json")
-    ) {
-      // Also verify the content starts with feed-like structure
-      try {
-        const text = await response.text();
-        const firstChars = text.trim().substring(0, 100).toLowerCase();
-        
-        // Check for RSS, Atom, or JSON feed signatures
-        return (
-          firstChars.includes("<rss") ||
-          firstChars.includes("<?xml") ||
-          firstChars.includes("<feed") ||
-          firstChars.includes("{") ||
-          firstChars.includes("atom")
-        );
-      } catch (e) {
-        // If we can't read content, trust the content-type
-        return true;
-      }
-    }
-  } catch (error) {
-    // Both HEAD and GET failed
-    return false;
-  }
-
-  return false;
-}
 
 

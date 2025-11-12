@@ -52,7 +52,7 @@ jobs:
       with:
         node-version: '20'
     
-    - name: Cache node modules
+    - name: Cache web node modules
       uses: actions/cache@v4
       id: cache-web
       with:
@@ -61,7 +61,16 @@ jobs:
         restore-keys: |
           ${{ runner.os }}-web-
     
-    - name: Install dependencies
+    - name: Cache worker node modules
+      uses: actions/cache@v4
+      id: cache-worker
+      with:
+        path: apps/worker/node_modules
+        key: ${{ runner.os }}-worker-${{ hashFiles('apps/worker/package-lock.json') }}
+        restore-keys: |
+          ${{ runner.os }}-worker-
+    
+    - name: Install web dependencies
       run: |
         cd apps/web
         if [ -f package-lock.json ]; then
@@ -70,10 +79,36 @@ jobs:
           npm install
         fi
     
-    - name: Run TypeScript check
+    - name: Install worker dependencies
+      run: |
+        cd apps/worker
+        if [ -f package-lock.json ]; then
+          npm ci
+        else
+          npm install
+        fi
+    
+    - name: Generate Prisma Client for Web
+      run: |
+        cd apps/web
+        npm run prisma:generate
+    
+    - name: Copy Prisma schema to Worker and Generate Client
+      run: |
+        mkdir -p apps/worker/prisma
+        cp apps/web/prisma/schema.prisma apps/worker/prisma/schema.prisma
+        cd apps/worker
+        npx prisma generate
+    
+    - name: Run TypeScript check on Web
       run: |
         cd apps/web
         npm run typecheck || echo "Type checking completed with warnings"
+    
+    - name: Run TypeScript check on Worker
+      run: |
+        cd apps/worker
+        npx tsc --noEmit || echo "Type checking completed with warnings"
 
   build:
     runs-on: ubuntu-latest
@@ -110,13 +145,25 @@ jobs:
           npm install || echo "Worker dependencies install skipped"
         fi
     
-    - name: Generate Prisma Client
+    - name: Generate Prisma Client for Web
       run: |
         cd apps/web
         npm run prisma:generate
+    
+    - name: Copy Prisma schema to Worker and Generate Client
+      run: |
+        mkdir -p apps/worker/prisma
+        cp apps/web/prisma/schema.prisma apps/worker/prisma/schema.prisma
+        cd apps/worker
+        npx prisma generate
     
     - name: Build web app
       run: |
         cd apps/web
         npm run build
+    
+    - name: TypeCheck worker
+      run: |
+        cd apps/worker
+        npx tsc --noEmit || echo "Worker type checking completed with warnings"
 

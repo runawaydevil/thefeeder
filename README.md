@@ -27,7 +27,7 @@ A modern RSS feed aggregator with daily email digest, built with Next.js 15, Pos
 ## Features
 
 ### Core Features
-- 🎨 **Retro/Vaporwave Design**: Beautiful neon-themed UI with cyber aesthetic
+- 🎨 **Dual Theme System**: Switch between Vaporwave (retro neon) and Clean (modern minimal) themes
 - 📰 **RSS/Atom Feed Aggregation**: Supports RSS, Atom, and JSON feeds
 - 🔍 **Auto Discovery**: Automatically discovers feeds from websites, Reddit, YouTube, GitHub
 - 📧 **Daily Email Digest**: Send curated daily digests to subscribers
@@ -68,6 +68,53 @@ A modern RSS feed aggregator with daily email digest, built with Next.js 15, Pos
 - **Queue**: BullMQ with Redis
 - **Email**: Nodemailer
 - **Auth**: NextAuth v5
+
+---
+
+## Theme System
+
+TheFeeder includes a dual-theme system that allows users to switch between two distinct visual styles:
+
+### Available Themes
+
+#### Vaporwave Theme (Default)
+- Retro 80s/90s aesthetic with neon colors
+- Pink (#ff006e) and cyan (#00d9ff) accents
+- Dark purple gradient background
+- Orbitron font for headings
+- Glowing text effects and scanlines
+- Grid and star visual effects
+
+#### Clean Theme
+- Modern, minimal design
+- Blue (#0066CC) and black accents
+- White background with subtle grays
+- System fonts for optimal readability
+- Subtle shadows and clean borders
+- No visual effects for distraction-free reading
+
+### How to Switch Themes
+
+1. Look for the **THEME** button in the footer of any page
+2. Click to toggle between Vaporwave (🎨) and Clean (📄) themes
+3. Your preference is automatically saved to localStorage
+4. The theme persists across browser sessions and tabs
+
+### Theme Features
+
+- **Instant switching**: No page reload required
+- **Smooth transitions**: 300ms animated color changes
+- **Cross-tab sync**: Theme changes sync across all open tabs
+- **Accessibility**: Respects `prefers-reduced-motion` for users who need it
+- **No flash**: Theme loads before page render to prevent flashing
+
+### For Developers
+
+The theme system uses CSS variables for easy customization. See the [Developer Guide](.kiro/specs/theme-switcher/design.md) for details on:
+- Adding new themes
+- Customizing existing themes
+- Using theme variables in components
+- Theme architecture and implementation
 
 ---
 
@@ -195,6 +242,141 @@ ADMIN_PASSWORD=admin123
 ```
 
 See `.env.example` for all available options.
+
+---
+
+## Email Configuration
+
+TheFeeder sends daily digest emails to subscribers. Proper email configuration is essential for deliverability and avoiding spam filters.
+
+### SMTP Settings
+
+Configure these environment variables in your `.env` file:
+
+```env
+# SMTP Server Configuration
+SMTP_HOST=smtp.example.com          # Your SMTP server hostname
+SMTP_PORT=587                        # Port (587 for TLS, 465 for SSL)
+SMTP_SECURE=false                    # Use SSL (true for port 465, false for 587)
+SMTP_USER=user@example.com          # SMTP username
+SMTP_PASS=your-password-here        # SMTP password
+SMTP_FROM=noreply@example.com       # From email address
+```
+
+**Common SMTP Providers:**
+
+- **Gmail**: `smtp.gmail.com:587` (requires App Password)
+- **SendGrid**: `smtp.sendgrid.net:587`
+- **Mailgun**: `smtp.mailgun.org:587`
+- **Amazon SES**: `email-smtp.us-east-1.amazonaws.com:587`
+- **Postmark**: `smtp.postmarkapp.com:587`
+
+### DNS Configuration for Deliverability
+
+To avoid spam filters and improve email deliverability, configure these DNS records for your domain:
+
+#### 1. SPF Record
+
+SPF (Sender Policy Framework) authorizes which mail servers can send email on behalf of your domain.
+
+Add a TXT record to your domain's DNS:
+
+```
+Type: TXT
+Name: @
+Value: v=spf1 include:_spf.yourmailprovider.com ~all
+```
+
+**Examples:**
+- Gmail: `v=spf1 include:_spf.google.com ~all`
+- SendGrid: `v=spf1 include:sendgrid.net ~all`
+- Mailgun: `v=spf1 include:mailgun.org ~all`
+
+#### 2. DKIM Record
+
+DKIM (DomainKeys Identified Mail) adds a digital signature to your emails.
+
+1. Contact your SMTP provider to get your DKIM keys
+2. Add the TXT record they provide to your DNS
+
+**Example:**
+```
+Type: TXT
+Name: default._domainkey
+Value: k=rsa; p=MIGfMA0GCSqGSIb3DQEBAQUAA4GNADCBiQKBgQC...
+```
+
+#### 3. DMARC Record
+
+DMARC (Domain-based Message Authentication) tells receiving servers what to do with emails that fail SPF/DKIM checks.
+
+Add a TXT record:
+
+```
+Type: TXT
+Name: _dmarc
+Value: v=DMARC1; p=quarantine; rua=mailto:dmarc@yourdomain.com; pct=100; adkim=s; aspf=s
+```
+
+**Policy Options:**
+- `p=none` - Monitor only (recommended for testing)
+- `p=quarantine` - Send suspicious emails to spam
+- `p=reject` - Reject suspicious emails entirely
+
+### Testing Email Delivery
+
+#### 1. Test with Mail Tester
+
+[Mail Tester](https://www.mail-tester.com) provides a comprehensive spam score:
+
+1. Send a test digest to the address provided by Mail Tester
+2. Check your score (aim for 8/10 or higher)
+3. Review recommendations for improvement
+
+#### 2. Check Authentication
+
+Verify your SPF, DKIM, and DMARC records are working:
+
+1. Send a test email to your Gmail account
+2. Open the email and click "Show original"
+3. Look for:
+   - `SPF: PASS`
+   - `DKIM: PASS`
+   - `DMARC: PASS`
+
+#### 3. Development Mode
+
+When `SMTP_HOST` is not configured, emails are logged to the console instead of being sent. This is useful for development and testing.
+
+### Email Features
+
+TheFeeder's email system includes:
+
+- **Table-based HTML layout** - Compatible with all email clients including Outlook
+- **Inline CSS** - Ensures styles render correctly
+- **Plain text version** - Improves deliverability and accessibility
+- **Responsive design** - Optimized for mobile devices
+- **List-Unsubscribe header** - One-click unsubscribe in Gmail and other clients
+- **Proper headers** - Message-ID, Precedence, and other anti-spam headers
+- **Vaporwave theme** - Matches the website's aesthetic
+
+### Troubleshooting
+
+**Emails not sending:**
+- Check SMTP credentials are correct
+- Verify SMTP_HOST and SMTP_PORT are set
+- Check worker logs for errors: `docker compose logs worker`
+
+**Emails going to spam:**
+- Configure SPF, DKIM, and DMARC records
+- Test with Mail Tester
+- Ensure FROM address matches your domain
+- Check that SMTP provider allows your sending volume
+
+**Emails not rendering correctly:**
+- The new email system uses table-based layout for maximum compatibility
+- Test in multiple email clients (Gmail, Outlook, Apple Mail)
+- Check HTML is valid
 
 ---
 

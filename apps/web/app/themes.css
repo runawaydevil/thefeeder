@@ -1,0 +1,76 @@
+/* Theme System for TheFeeder */
+
+:root {
+  /* Transition for smooth theme changes */
+  --theme-transition: color 0.3s ease-in-out, 
+                      background-color 0.3s ease-in-out,
+                      border-color 0.3s ease-in-out,
+                      box-shadow 0.3s ease-in-out;
+}
+
+/* Vaporwave Theme (Default) */
+[data-theme="vaporwave"] {
+  --color-bg-primary: hsl(280, 60%, 8%);
+  --color-bg-secondary: hsl(260, 50%, 5%);
+  --color-text-primary: #ffffff;
+  --color-text-secondary: rgba(255, 255, 255, 0.9);
+  --color-text-muted: rgba(255, 255, 255, 0.7);
+  --color-accent-primary: hsl(320, 100%, 65%); /* Pink */
+  --color-accent-secondary: hsl(180, 100%, 60%); /* Cyan */
+  --color-border: rgba(0, 217, 255, 0.2);
+  
+  --font-heading: 'Orbitron', 'Arial Black', sans-serif;
+  --font-body: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
+  
+  --shadow-glow: 0 0 10px currentColor;
+  --shadow-glow-strong: 0 0 10px currentColor, 0 0 20px currentColor, 0 0 30px currentColor;
+  --shadow-card: 0 0 20px hsla(180, 100%, 60%, 0.5), 0 0 40px hsla(270, 100%, 70%, 0.3);
+  
+  --effect-scanlines: block;
+  --effect-grid: block;
+  --effect-stars: block;
+  
+  --gradient-bg: linear-gradient(180deg, hsl(280, 60%, 8%), hsl(260, 50%, 5%));
+  --gradient-bg-overlay: radial-gradient(circle at 50% 0%, hsl(320 100% 50% / 0.4), transparent 50%), radial-gradient(circle at 80% 80%, hsl(270 100% 50% / 0.3), transparent 50%);
+  --gradient-card: linear-gradient(135deg, hsla(280, 50%, 12%, 0.8), hsla(270, 40%, 10%, 0.9));
+}
+
+/* Clean Theme */
+[data-theme="clean"] {
+  --color-bg-primary: #FFFFFF;
+  --color-bg-secondary: #F5F5F5;
+  --color-text-primary: #1A1A1A;
+  --color-text-secondary: #4A4A4A;
+  --color-text-muted: #6A6A6A;
+  --color-accent-primary: #0066CC; /* Blue */
+  --color-accent-secondary: #000000; /* Black */
+  --color-border: #E0E0E0;
+  
+  --font-heading: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
+  --font-body: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
+  
+  --shadow-glow: none;
+  --shadow-glow-strong: none;
+  --shadow-card: 0 1px 3px rgba(0, 0, 0, 0.1);
+  
+  --effect-scanlines: none;
+  --effect-grid: none;
+  --effect-stars: none;
+  
+  --gradient-bg: #FFFFFF;
+  --gradient-bg-overlay: transparent;
+  --gradient-card: #FAFAFA;
+}
+
+/* Disable transitions on initial load */
+.no-transitions * {
+  transition: none !important;
+}
+
+/* Respect user's motion preferences */
+@media (prefers-reduced-motion: reduce) {
+  * {
+    transition: none !important;
+    animation: none !important;
+  }
+}
