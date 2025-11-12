@@ -42,37 +42,68 @@ export interface ParsedFeed {
 }
 
 export async function parseFeed(feedUrl: string, customUserAgent?: string): Promise<ParsedFeed> {
-  try {
-    // Use custom user agent if provided, otherwise use random one from parser config
-    const feedParser = customUserAgent
-      ? new Parser({
-          customFields: {
-            item: [
-              ["media:content", "mediaContent"],
-              ["media:thumbnail", "mediaThumbnail"],
-              ["content:encoded", "contentEncoded"],
-              ["content", "contentEncoded"],
-              ["pubdate", "pubDate"],
-            ],
+  // Try with multiple User-Agents if we get 403
+  const userAgents = customUserAgent 
+    ? [customUserAgent]
+    : [
+        getRandomUserAgent(), // Random from pool
+        'Feedly/1.0 (+http://www.feedly.com/fetcher.html; like FeedFetcher-Google)', // Feed reader
+        'Mozilla/5.0 (compatible; Googlebot/2.1; +http://www.google.com/bot.html)', // Googlebot
+        'curl/7.68.0', // Simple curl
+      ];
+  
+  let lastError: any = null;
+  
+  for (let i = 0; i < userAgents.length; i++) {
+    try {
+      console.log(`[RSS Parser] Parsing feed (attempt ${i + 1}/${userAgents.length}): ${feedUrl}`);
+      
+      const feedParser = new Parser({
+        customFields: {
+          item: [
+            ["media:content", "mediaContent"],
+            ["media:thumbnail", "mediaThumbnail"],
+            ["content:encoded", "contentEncoded"],
+            ["content", "contentEncoded"],
+            ["pubdate", "pubDate"],
+          ],
+        },
+        requestOptions: {
+          headers: {
+            "User-Agent": userAgents[i],
+            "Accept": "application/rss+xml, application/atom+xml, application/xml, text/xml, */*",
+            "Accept-Language": "en-US,en;q=0.9",
+            "Cache-Control": "no-cache",
           },
-          requestOptions: {
-            headers: {
-              "User-Agent": customUserAgent,
-            },
-          },
-        })
-      : parser;
-    
-    const feed = await feedParser.parseURL(feedUrl);
-    return {
-      title: feed.title || "Untitled Feed",
-      link: feed.link,
-      items: feed.items || [],
-    };
-  } catch (error) {
-    console.error(`Error parsing feed ${feedUrl}:`, error);
-    throw new Error(`Failed to parse feed: ${error instanceof Error ? error.message : "Unknown error"}`);
+        },
+      });
+      
+      const feed = await feedParser.parseURL(feedUrl);
+      
+      console.log(`[RSS Parser] ✓ Successfully parsed feed: ${feed.title || 'Untitled'}`);
+      
+      return {
+        title: feed.title || "Untitled Feed",
+        link: feed.link,
+        items: feed.items || [],
+      };
+    } catch (error: any) {
+      lastError = error;
+      
+      // If it's a 403, try next User-Agent
+      if (error.message?.includes("403") || error.message?.includes("Forbidden")) {
+        console.warn(`[RSS Parser] Got 403 with User-Agent ${i + 1}, trying next...`);
+        continue;
+      }
+      
+      // For other errors, break the loop
+      break;
+    }
   }
+  
+  // All attempts failed
+  console.error(`[RSS Parser] ✗ Failed to parse feed ${feedUrl} after ${userAgents.length} attempts:`, lastError);
+  throw new Error(`Failed to parse feed: ${lastError instanceof Error ? lastError.message : "Unknown error"}`);
 }
 
 export function normalizeFeedItem(item: any) {
