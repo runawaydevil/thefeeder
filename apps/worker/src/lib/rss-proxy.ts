@@ -14,9 +14,36 @@ export interface ProxyConfig {
  */
 export const RSS_PROXIES: ProxyConfig[] = [
   {
+    name: "RSS.app",
+    buildUrl: (feedUrl: string) => {
+      // RSS.app provides a simple proxy service
+      const encoded = encodeURIComponent(feedUrl);
+      return `https://rss.app/feeds/${Buffer.from(feedUrl).toString('base64').replace(/=/g, '')}`;
+    },
+    enabled: true,
+  },
+  {
+    name: "FetchRSS",
+    buildUrl: (feedUrl: string) => {
+      // FetchRSS can generate feeds from any URL
+      const encoded = encodeURIComponent(feedUrl);
+      return `https://fetchrss.com/rss/${encoded}`;
+    },
+    enabled: true,
+  },
+  {
     name: "OpenRSS",
     buildUrl: (feedUrl: string) => `https://openrss.org/${encodeURIComponent(feedUrl)}`,
     enabled: true,
+  },
+  {
+    name: "RSS2JSON",
+    buildUrl: (feedUrl: string) => {
+      // RSS2JSON converts RSS to JSON, but we can still parse it
+      const encoded = encodeURIComponent(feedUrl);
+      return `https://api.rss2json.com/v1/api.json?rss_url=${encoded}`;
+    },
+    enabled: false, // Returns JSON format, needs special handling
   },
   {
     name: "RSS Bridge (Public)",
@@ -26,20 +53,6 @@ export const RSS_PROXIES: ProxyConfig[] = [
       return `https://rss-bridge.org/bridge01/?action=display&bridge=FeedExpander&url=${encoded}&format=Atom`;
     },
     enabled: false, // Disabled by default as it may not work for all feeds
-  },
-  {
-    name: "FeedBurner Proxy",
-    buildUrl: (feedUrl: string) => {
-      // Try to extract domain and create a feedburner-style URL
-      try {
-        const url = new URL(feedUrl);
-        const domain = url.hostname.replace(/^www\./, '');
-        return `https://feeds.feedburner.com/${domain}`;
-      } catch {
-        return feedUrl;
-      }
-    },
-    enabled: false, // Only works for feeds already on FeedBurner
   },
 ];
 
