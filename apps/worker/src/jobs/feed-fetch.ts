@@ -24,7 +24,13 @@ export async function processFeedFetch(job: Job<FeedFetchJobData>) {
     const feed = await prisma.feed.findUnique({ where: { id: feedId } });
 
     if (!feed) {
-      throw new Error(`Feed ${feedId} not found`);
+      console.warn(`Feed ${feedId} not found - removing orphaned job`);
+      // Remove the repeat job if it exists
+      if (job.opts?.repeat) {
+        await job.remove();
+      }
+      // Return success to prevent retries
+      return { skipped: true, reason: "feed_not_found" };
     }
 
     if (!feed.isActive) {

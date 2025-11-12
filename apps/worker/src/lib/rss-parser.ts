@@ -54,6 +54,11 @@ export async function parseFeed(feedUrl: string, customUserAgent?: string): Prom
   
   for (let i = 0; i < userAgents.length; i++) {
     try {
+      // Add delay between attempts to avoid rate limiting
+      if (i > 0) {
+        await new Promise(resolve => setTimeout(resolve, 1000)); // 1 second delay
+      }
+      
       console.log(`[RSS Parser] Parsing feed (attempt ${i + 1}/${userAgents.length}): ${feedUrl}`);
       
       const feedParser = new Parser({
@@ -71,7 +76,9 @@ export async function parseFeed(feedUrl: string, customUserAgent?: string): Prom
             "User-Agent": userAgents[i],
             "Accept": "application/rss+xml, application/atom+xml, application/xml, text/xml, */*",
             "Accept-Language": "en-US,en;q=0.9",
+            "Accept-Encoding": "gzip, deflate, br",
             "Cache-Control": "no-cache",
+            "Connection": "keep-alive",
           },
         },
       });
