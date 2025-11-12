@@ -1,6 +1,7 @@
 import Parser from "rss-parser";
 import { Feed, Item } from "@prisma/client";
 import { getRandomUserAgent } from "./user-agents";
+import { generateProxyUrls, isLikelyBlocked } from "./rss-proxy";
 
 const customFields = {
   item: [
@@ -195,8 +196,65 @@ export async function parseFeed(feedUrl: string, customUserAgent?: string): Prom
     }
   }
   
+  // All attempts failed - try proxy services if it looks like blocking
+  if (isLikelyBlocked(lastError)) {
+    console.warn(`[RSS Parser] Feed appears to be blocked, trying proxy services...`);
+    
+    const proxyUrls = generateProxyUrls(feedUrl);
+    
+    for (const { proxy, url } of proxyUrls) {
+      try {
+        console.log(`[RSS Parser] Trying ${proxy}: ${url}`);
+        
+        const proxyParser = new Parser({
+          customFields,
+          requestOptions: {
+            headers: {
+              "User-Agent": getRandomUserAgent(),
+              "Accept": "application/rss+xml, application/atom+xml, application/xml, text/xml, */*",
+            },
+          },
+        });
+        
+        const feed = await proxyParser.parseURL(url);
+        
+        const validItems: FeedItem[] = (feed.items || [])
+          .filter((item: any) => {
+            return !!item && typeof item.title === "string" && typeof item.link === "string";
+          })
+          .map((item: any) => ({
+            title: item.title as string,
+            link: item.link as string,
+            contentSnippet: item.contentSnippet,
+            content: item.content,
+            contentEncoded: item.contentEncoded,
+            isoDate: item.isoDate,
+            pubDate: item.pubDate,
+            creator: item.creator,
+            author: item.author,
+            "dc:creator": item["dc:creator"],
+            mediaContent: item.mediaContent,
+            mediaThumbnail: item.mediaThumbnail,
+            guid: item.guid,
+            id: item.id,
+          } as FeedItem));
+        
+        console.log(`[RSS Parser] ✓ Successfully parsed feed via ${proxy}: ${feed.title || 'Untitled'}`);
+        
+        return {
+          title: feed.title || "Untitled Feed",
+          link: feed.link,
+          items: validItems,
+        };
+      } catch (proxyError) {
+        console.warn(`[RSS Parser] ${proxy} failed:`, proxyError instanceof Error ? proxyError.message : proxyError);
+        continue;
+      }
+    }
+  }
+  
   // This should never happen, but TypeScript needs it
-  console.error(`[RSS Parser] ✗ Failed to parse feed ${feedUrl} after ${userAgents.length} attempts:`, lastError);
+  console.error(`[RSS Parser] ✗ Failed to parse feed ${feedUrl} after ${userAgents.length} attempts and ${generateProxyUrls(feedUrl).length} proxy attempts:`, lastError);
   throw new Error(`Failed to parse feed: ${lastError instanceof Error ? lastError.message : "Unknown error"}`);
 }
 

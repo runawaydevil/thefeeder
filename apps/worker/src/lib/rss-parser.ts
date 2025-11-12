@@ -1,5 +1,6 @@
 import Parser from "rss-parser";
 import { getRandomUserAgent } from "./user-agents.js";
+import { generateProxyUrls, isLikelyBlocked } from "./rss-proxy.js";
 
 const parser = new Parser({
   customFields: {
@@ -106,8 +107,51 @@ export async function parseFeed(feedUrl: string, customUserAgent?: string): Prom
     }
   }
   
-  // All attempts failed
-  console.error(`[RSS Parser] ✗ Failed to parse feed ${feedUrl} after ${userAgents.length} attempts:`, lastError);
+  // All attempts failed - try proxy services if it looks like blocking
+  if (isLikelyBlocked(lastError)) {
+    console.warn(`[RSS Parser] Feed appears to be blocked, trying proxy services...`);
+    
+    const proxyUrls = generateProxyUrls(feedUrl);
+    
+    for (const { proxy, url } of proxyUrls) {
+      try {
+        console.log(`[RSS Parser] Trying ${proxy}: ${url}`);
+        
+        const proxyParser = new Parser({
+          customFields: {
+            item: [
+              ["media:content", "mediaContent"],
+              ["media:thumbnail", "mediaThumbnail"],
+              ["content:encoded", "contentEncoded"],
+              ["content", "contentEncoded"],
+              ["pubdate", "pubDate"],
+            ],
+          },
+          requestOptions: {
+            headers: {
+              "User-Agent": getRandomUserAgent(),
+              "Accept": "application/rss+xml, application/atom+xml, application/xml, text/xml, */*",
+            },
+          },
+        });
+        
+        const feed = await proxyParser.parseURL(url);
+        
+        console.log(`[RSS Parser] ✓ Successfully parsed feed via ${proxy}: ${feed.title || 'Untitled'}`);
+        
+        return {
+          title: feed.title || "Untitled Feed",
+          link: feed.link,
+          items: feed.items || [],
+        };
+      } catch (proxyError) {
+        console.warn(`[RSS Parser] ${proxy} failed:`, proxyError instanceof Error ? proxyError.message : proxyError);
+        continue;
+      }
+    }
+  }
+  
+  console.error(`[RSS Parser] ✗ Failed to parse feed ${feedUrl} after ${userAgents.length} attempts and ${generateProxyUrls(feedUrl).length} proxy attempts:`, lastError);
   throw new Error(`Failed to parse feed: ${lastError instanceof Error ? lastError.message : "Unknown error"}`);
 }
 
