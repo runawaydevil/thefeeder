@@ -1,5 +1,11 @@
 // Pool of realistic user agents to rotate through for feed fetching
 export const USER_AGENTS = [
+  // Feed readers - these are often whitelisted by sites
+  "Feedly/1.0 (+http://www.feedly.com/fetcher.html; like FeedFetcher-Google)",
+  "NewsBlur Feed Fetcher - 1 subscriber - https://newsblur.com",
+  "Feedbin feed-id:1 - 1 subscribers",
+  "Inoreader.com (1 subscribers)",
+  
   // Chrome on Windows
   "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36",
   "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/119.0.0.0 Safari/537.36",

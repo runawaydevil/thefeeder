@@ -26,6 +26,10 @@ export interface FeedValidationResult {
 // Create parser instance with timeout and custom fields
 const parser = new Parser({
   timeout: 10000,
+  headers: {
+    'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
+    'Accept': 'application/rss+xml, application/atom+xml, application/xml, text/xml, */*',
+  },
   customFields: {
     feed: ["subtitle", "updated"],
     item: [
@@ -124,62 +128,119 @@ export async function validateFeedDirect(url: string): Promise<FeedValidationRes
     return cached.result;
   }
   
-  try {
-    console.log(`[Feed Discovery] Validating direct feed: ${url}`);
-    
-    // Try to parse the feed
-    const feed = await parser.parseURL(url);
-    
-    if (!feed.items || feed.items.length === 0) {
-      console.warn(`[Feed Discovery] Feed ${url} has no items`);
+  // Try with multiple User-Agents if we get 403
+  const userAgents = [
+    getRandomUserAgent(), // Random from pool
+    'Feedly/1.0 (+http://www.feedly.com/fetcher.html; like FeedFetcher-Google)', // Feed reader
+    'Mozilla/5.0 (compatible; Googlebot/2.1; +http://www.google.com/bot.html)', // Googlebot
+    'curl/7.68.0', // Simple curl
+  ];
+  
+  let lastError: any = null;
+  
+  for (let i = 0; i < userAgents.length; i++) {
+    try {
+      console.log(`[Feed Discovery] Validating direct feed (attempt ${i + 1}/${userAgents.length}): ${url}`);
+      
+      // Create a parser with specific User-Agent for this attempt
+      const parserWithUA = new Parser({
+        timeout: 10000,
+        headers: {
+          'User-Agent': userAgents[i],
+          'Accept': 'application/rss+xml, application/atom+xml, application/xml, text/xml, */*',
+          'Accept-Language': 'en-US,en;q=0.9',
+          'Cache-Control': 'no-cache',
+        },
+        customFields: {
+          feed: ["subtitle", "updated"],
+          item: [
+            ["media:content", "mediaContent"],
+            ["media:thumbnail", "mediaThumbnail"],
+            ["content:encoded", "contentEncoded"],
+          ],
+        },
+      });
+      
+      // Try to parse the feed
+      const feed = await parserWithUA.parseURL(url);
+      
+      if (!feed.items || feed.items.length === 0) {
+        console.warn(`[Feed Discovery] Feed ${url} has no items`);
+      }
+      
+      const feedInfo = extractFeedInfo(feed);
+      const result: FeedValidationResult = {
+        isValid: true,
+        feedInfo,
+      };
+      
+      // Cache the result
+      validationCache.set(url, {
+        result,
+        timestamp: Date.now(),
+      });
+      
+      const duration = Date.now() - startTime;
+      console.log(`[Feed Discovery] ✓ Valid feed found: ${result.feedInfo?.title} (${result.feedInfo?.itemCount} items) - ${duration}ms`);
+      
+      return result;
+    } catch (error: any) {
+      lastError = error;
+      
+      // If it's a 403, try next User-Agent
+      if (error.message?.includes("403") || error.message?.includes("Forbidden")) {
+        console.warn(`[Feed Discovery] Got 403 with User-Agent ${i + 1}, trying next...`);
+        continue;
+      }
+      
+      // For other errors, break the loop
+      break;
     }
-    
-    const feedInfo = extractFeedInfo(feed);
-    const result: FeedValidationResult = {
-      isValid: true,
-      feedInfo,
-    };
-    
-    // Cache the result
-    validationCache.set(url, {
-      result,
-      timestamp: Date.now(),
-    });
-    
-    const duration = Date.now() - startTime;
-    console.log(`[Feed Discovery] ✓ Valid feed found: ${result.feedInfo?.title} (${result.feedInfo?.itemCount} items) - ${duration}ms`);
-    
-    return result;
-  } catch (error: any) {
-    const duration = Date.now() - startTime;
-    let errorMessage = "Invalid feed format";
-    
-    if (error.code === "ETIMEDOUT" || error.message?.includes("timeout")) {
+  }
+  
+  // All attempts failed
+  const duration = Date.now() - startTime;
+  let errorMessage = "Invalid feed format";
+  
+  if (lastError) {
+    if (lastError.code === "ETIMEDOUT" || lastError.message?.includes("timeout")) {
       errorMessage = "Feed validation timeout";
       console.error(`[Feed Discovery] ✗ Timeout validating ${url} - ${duration}ms`);
-    } else if (error.code === "ENOTFOUND") {
+    } else if (lastError.code === "ENOTFOUND") {
       errorMessage = "Feed URL not found";
       console.error(`[Feed Discovery] ✗ URL not found: ${url} - ${duration}ms`);
-    } else if (error.code === "ECONNREFUSED") {
+    } else if (lastError.code === "ECONNREFUSED") {
       errorMessage = "Connection refused";
       console.error(`[Feed Discovery] ✗ Connection refused: ${url} - ${duration}ms`);
+    } else if (lastError.code === "ECONNRESET" || lastError.code === "EPIPE") {
+      errorMessage = "Connection reset by server";
+      console.error(`[Feed Discovery] ✗ Connection reset: ${url} - ${duration}ms`);
+    } else if (lastError.code === "CERT_HAS_EXPIRED" || lastError.message?.includes("certificate")) {
+      errorMessage = "SSL certificate error";
+      console.error(`[Feed Discovery] ✗ SSL error: ${url} - ${duration}ms`);
+    } else if (lastError.message?.includes("403") || lastError.message?.includes("Forbidden")) {
+      errorMessage = "Access forbidden (403) - tried multiple User-Agents";
+      console.error(`[Feed Discovery] ✗ Access forbidden after ${userAgents.length} attempts: ${url} - ${duration}ms`);
+    } else if (lastError.message?.includes("404") || lastError.message?.includes("Not Found")) {
+      errorMessage = "Feed not found (404)";
+      console.error(`[Feed Discovery] ✗ Not found: ${url} - ${duration}ms`);
     } else {
-      console.error(`[Feed Discovery] ✗ Parse error for ${url}: ${error.message} - ${duration}ms`);
+      console.error(`[Feed Discovery] ✗ Parse error for ${url}: ${lastError.message} - ${duration}ms`, lastError);
     }
-    
-    const result: FeedValidationResult = {
-      isValid: false,
-      error: errorMessage,
-    };
-    
-    // Cache negative results too (but for shorter time)
-    validationCache.set(url, {
-      result,
-      timestamp: Date.now(),
-    });
-    
-    return result;
   }
+  
+  const result: FeedValidationResult = {
+    isValid: false,
+    error: errorMessage,
+  };
+  
+  // Cache negative results too (but for shorter time)
+  validationCache.set(url, {
+    result,
+    timestamp: Date.now(),
+  });
+  
+  return result;
 }
 
 /**
