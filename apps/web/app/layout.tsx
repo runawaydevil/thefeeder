@@ -87,10 +87,13 @@ export default function RootLayout({ children }: { children: ReactNode }) {
               (function() {
                 try {
                   const theme = localStorage.getItem('theme') || 'vaporwave';
-                  if (theme === 'vaporwave' || theme === 'clean') {
-                    document.documentElement.setAttribute('data-theme', theme);
+                  document.documentElement.setAttribute('data-theme', theme);
+                  if (!localStorage.getItem('theme')) {
+                    localStorage.setItem('theme', 'vaporwave');
                   }
-                } catch (e) {}
+                } catch (e) {
+                  document.documentElement.setAttribute('data-theme', 'vaporwave');
+                }
               })();
             `,
           }}

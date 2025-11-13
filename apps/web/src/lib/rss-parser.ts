@@ -434,11 +434,74 @@ export function normalizeFeedItem(item: FeedItem): {
   };
 }
 
+/**
+ * Decode HTML entities
+ */
+function decodeHtmlEntities(text: string): string {
+  const entities: Record<string, string> = {
+    '&amp;': '&',
+    '&lt;': '<',
+    '&gt;': '>',
+    '&quot;': '"',
+    '&#39;': "'",
+    '&apos;': "'",
+    '&nbsp;': ' ',
+    '&copy;': '©',
+    '&reg;': '®',
+    '&trade;': '™',
+    '&euro;': '€',
+    '&pound;': '£',
+    '&yen;': '¥',
+    '&cent;': '¢',
+    '&sect;': '§',
+    '&para;': '¶',
+    '&middot;': '·',
+    '&bull;': '•',
+    '&hellip;': '…',
+    '&prime;': '′',
+    '&Prime;': '″',
+    '&lsaquo;': '‹',
+    '&rsaquo;': '›',
+    '&laquo;': '«',
+    '&raquo;': '»',
+    '&ndash;': '–',
+    '&mdash;': '—',
+    '&lsquo;': ''',
+    '&rsquo;': ''',
+    '&sbquo;': '‚',
+    '&ldquo;': '"',
+    '&rdquo;': '"',
+    '&bdquo;': '„',
+  };
+  
+  let decoded = text;
+  
+  // Replace named entities
+  Object.keys(entities).forEach(entity => {
+    decoded = decoded.replace(new RegExp(entity, 'g'), entities[entity]);
+  });
+  
+  // Replace numeric entities (&#123; or &#xAB;)
+  decoded = decoded.replace(/&#(\d+);/g, (match, dec) => {
+    return String.fromCharCode(parseInt(dec, 10));
+  });
+  decoded = decoded.replace(/&#x([0-9a-fA-F]+);/g, (match, hex) => {
+    return String.fromCharCode(parseInt(hex, 16));
+  });
+  
+  return decoded;
+}
+
 function sanitizeHtml(html: string): string {
-  // Basic HTML sanitization - remove script tags and dangerous attributes
-  return html
+  // First decode HTML entities
+  let clean = decodeHtmlEntities(html);
+  
+  // Then sanitize dangerous content
+  clean = clean
     .replace(/<script\b[^<]*(?:(?!<\/script>)<[^<]*)*<\/script>/gi, "")
     .replace(/on\w+\s*=\s*["'][^"']*["']/gi, "")
     .replace(/javascript:/gi, "");
+  
+  return clean;
 }
 
