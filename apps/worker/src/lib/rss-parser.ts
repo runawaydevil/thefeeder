@@ -332,11 +332,11 @@ function decodeHtmlEntities(text: string): string {
     '&raquo;': '»',
     '&ndash;': '–',
     '&mdash;': '—',
-    '&lsquo;': ''',
-    '&rsquo;': ''',
+    '&lsquo;': '\u2018',
+    '&rsquo;': '\u2019',
     '&sbquo;': '‚',
-    '&ldquo;': '"',
-    '&rdquo;': '"',
+    '&ldquo;': '\u201C',
+    '&rdquo;': '\u201D',
     '&bdquo;': '„',
   };
   
