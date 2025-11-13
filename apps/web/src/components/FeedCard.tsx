@@ -2,6 +2,7 @@
 
 import { FeedIcon } from "@/src/lib/feed-icon";
 import { formatDateTime } from "@/src/lib/date-utils";
+import { sanitizeForDisplay } from "@/src/lib/html-utils";
 
 interface FeedCardProps {
   id: string;
@@ -65,7 +66,7 @@ export default function FeedCard({
               textShadow: 'var(--shadow-glow)'
             }}
           >
-            {title}
+            {sanitizeForDisplay(title)}
           </a>
         </h3>
 
@@ -75,7 +76,7 @@ export default function FeedCard({
             className="text-[10px] sm:text-[11px] md:text-xs line-clamp-2 leading-relaxed"
             style={{ color: 'var(--color-text-secondary)' }}
           >
-            {summary}
+            {sanitizeForDisplay(summary)}
           </p>
         )}
 
