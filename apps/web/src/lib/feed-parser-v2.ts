@@ -24,6 +24,38 @@ export interface FeedItemV2 {
 }
 
 /**
+ * Decode HTML entities
+ */
+function decodeHtmlEntities(text: string): string {
+  const entities: Record<string, string> = {
+    '&amp;': '&',
+    '&lt;': '<',
+    '&gt;': '>',
+    '&quot;': '"',
+    '&#39;': "'",
+    '&apos;': "'",
+    '&nbsp;': ' ',
+  };
+  
+  let decoded = text;
+  
+  // Replace named entities
+  Object.keys(entities).forEach(entity => {
+    decoded = decoded.replace(new RegExp(entity, 'g'), entities[entity]);
+  });
+  
+  // Replace numeric entities (&#123; or &#xAB;)
+  decoded = decoded.replace(/&#(\d+);/g, (match, dec) => {
+    return String.fromCharCode(parseInt(dec, 10));
+  });
+  decoded = decoded.replace(/&#x([0-9a-fA-F]+);/g, (match, hex) => {
+    return String.fromCharCode(parseInt(hex, 16));
+  });
+  
+  return decoded;
+}
+
+/**
  * Extract text content from XML node
  * Handles CDATA sections and nested tags
  */
@@ -31,10 +63,15 @@ function extractText(xmlString: string, tagName: string): string | undefined {
   const regex = new RegExp(`<${tagName}[^>]*>([\\s\\S]*?)<\\/${tagName}>`, 'i');
   const match = xmlString.match(regex);
   if (match) {
-    return match[1]
+    let text = match[1]
       .replace(/<!\[CDATA\[([\s\S]*?)\]\]>/g, '$1') // Remove CDATA
       .replace(/<[^>]+>/g, '') // Remove HTML tags
       .trim();
+    
+    // Decode HTML entities
+    text = decodeHtmlEntities(text);
+    
+    return text;
   }
   return undefined;
 }
