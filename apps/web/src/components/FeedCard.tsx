@@ -65,9 +65,8 @@ export default function FeedCard({
               color: 'var(--color-text-primary)',
               textShadow: 'var(--shadow-glow)'
             }}
-          >
-            {sanitizeForDisplay(title)}
-          </a>
+            dangerouslySetInnerHTML={{ __html: sanitizeForDisplay(title) }}
+          />
         </h3>
 
         {/* Summary */}
@@ -75,9 +74,8 @@ export default function FeedCard({
           <p 
             className="text-[10px] sm:text-[11px] md:text-xs line-clamp-2 leading-relaxed"
             style={{ color: 'var(--color-text-secondary)' }}
-          >
-            {sanitizeForDisplay(summary)}
-          </p>
+            dangerouslySetInnerHTML={{ __html: sanitizeForDisplay(summary) }}
+          />
         )}
 
         {/* Meta */}
