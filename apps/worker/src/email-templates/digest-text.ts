@@ -1,10 +1,15 @@
 import { DigestTextOptions } from "./types.js";
 
 /**
- * Format date in Brazilian Portuguese format
+ * Format date in English format
  */
 function formatDate(date: Date, timezone: string): string {
-  return date.toLocaleDateString("pt-BR", { timeZone: timezone });
+  return date.toLocaleDateString("en-US", { 
+    timeZone: timezone,
+    year: 'numeric',
+    month: 'long',
+    day: 'numeric'
+  });
 }
 
 /**
@@ -77,8 +82,8 @@ export function generateDigestText(options: DigestTextOptions): string {
   text += `  ${currentDate}\n`;
   text += '═══════════════════════════════════════════════════════════\n\n';
   
-  text += `Olá ${name},\n\n`;
-  text += 'Aqui estão as últimas atualizações dos seus feeds:\n\n';
+  text += `Hello ${name},\n\n`;
+  text += 'Here are the latest updates from your feeds:\n\n';
   
   // Feed sections
   for (const [feedTitle, feedItems] of Object.entries(itemsByFeed)) {
@@ -103,7 +108,7 @@ export function generateDigestText(options: DigestTextOptions): string {
       // Meta information
       const metaParts: string[] = [];
       if (item.author) {
-        metaParts.push(`Por: ${item.author}`);
+        metaParts.push(`By: ${item.author}`);
       }
       if (item.publishedAt) {
         metaParts.push(formatDate(new Date(item.publishedAt), timezone));
@@ -119,10 +124,10 @@ export function generateDigestText(options: DigestTextOptions): string {
   text += '───────────────────────────────────────────────────────────\n\n';
   
   // Footer
-  text += `Visite TheFeeder: ${siteUrl}\n\n`;
-  text += `Para cancelar sua inscrição: ${unsubscribeUrl}\n\n`;
+  text += `Visit TheFeeder: ${siteUrl}\n\n`;
+  text += `To unsubscribe: ${unsubscribeUrl}\n\n`;
   text += '═══════════════════════════════════════════════════════════\n';
-  text += 'TheFeeder - Agregador RSS Moderno\n';
+  text += 'TheFeeder - Modern RSS Aggregator\n';
   text += '═══════════════════════════════════════════════════════════\n';
   
   return text;

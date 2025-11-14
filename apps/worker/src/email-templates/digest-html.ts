@@ -15,10 +15,15 @@ function escapeHtml(text: string): string {
 }
 
 /**
- * Format date in Brazilian Portuguese format
+ * Format date in English format
  */
 function formatDate(date: Date, timezone: string): string {
-  return date.toLocaleDateString("pt-BR", { timeZone: timezone });
+  return date.toLocaleDateString("en-US", { 
+    timeZone: timezone,
+    year: 'numeric',
+    month: 'long',
+    day: 'numeric'
+  });
 }
 
 /**
@@ -60,7 +65,7 @@ export function generateDigestHtml(options: DigestHtmlOptions): string {
   const currentDate = formatDate(new Date(), timezone);
 
   return `<!DOCTYPE html>
-<html lang="pt-BR">
+<html lang="en">
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -100,7 +105,7 @@ export function generateDigestHtml(options: DigestHtmlOptions): string {
           <!-- View in browser link -->
           <tr>
             <td align="center" style="padding: 10px 20px; font-size: 11px; color: rgba(255, 255, 255, 0.6);">
-              Problemas para visualizar? <a href="${viewInBrowserUrl}" target="_blank" rel="noopener noreferrer" style="color: #ff006e; text-decoration: none;">Abra no navegador</a>
+              Having trouble viewing? <a href="${viewInBrowserUrl}" target="_blank" rel="noopener noreferrer" style="color: #ff006e; text-decoration: none;">Open in browser</a>
             </td>
           </tr>
           ` : ''}
@@ -121,7 +126,7 @@ export function generateDigestHtml(options: DigestHtmlOptions): string {
                 </tr>
                 <tr>
                   <td align="center" style="font-size: 14px; color: rgba(255, 255, 255, 0.9); line-height: 1.5;">
-                    Olá ${escapeHtml(name)}, aqui estão as últimas atualizações dos seus feeds
+                    Hello ${escapeHtml(name)}, here are the latest updates from your feeds
                   </td>
                 </tr>
                 <tr>
@@ -201,26 +206,26 @@ export function generateDigestHtml(options: DigestHtmlOptions): string {
               <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0">
                 <tr>
                   <td align="center" style="font-size: 12px; color: rgba(255, 255, 255, 0.7); padding-bottom: 10px;">
-                    Você está recebendo este email porque se inscreveu no TheFeeder
+                    You're receiving this email because you subscribed to TheFeeder
                   </td>
                 </tr>
                 <tr>
                   <td align="center" style="padding: 10px 0;">
                     <a href="${siteUrl}" target="_blank" rel="noopener noreferrer" style="display: inline-block; padding: 12px 30px; background: linear-gradient(135deg, #ff006e 0%, #d6006e 100%); color: #ffffff; text-decoration: none; border-radius: 4px; font-weight: bold; font-size: 14px; text-shadow: 0 0 8px rgba(255, 0, 110, 0.5); min-height: 44px; line-height: 20px;">
-                      Visitar TheFeeder
+                      Visit TheFeeder
                     </a>
                   </td>
                 </tr>
                 <tr>
                   <td align="center" style="padding-top: 15px;">
-                    <a href="${unsubscribeUrl}" target="_blank" rel="noopener noreferrer" style="color: #ff006e; text-decoration: none; font-size: 12px; font-weight: bold;">
-                      Cancelar inscrição
+                    <a href="${unsubscribeUrl}" target="_blank" rel="noopener noreferrer" style="display: inline-block; padding: 8px 20px; color: #ff006e; text-decoration: none; font-size: 12px; font-weight: bold; border: 1px solid #ff006e; border-radius: 4px; min-height: 32px; line-height: 16px;">
+                      Unsubscribe
                     </a>
                   </td>
                 </tr>
                 <tr>
                   <td align="center" style="font-size: 11px; color: rgba(255, 255, 255, 0.5); padding-top: 15px;">
-                    TheFeeder - Agregador RSS Moderno
+                    TheFeeder - Modern RSS Aggregator
                   </td>
                 </tr>
               </table>

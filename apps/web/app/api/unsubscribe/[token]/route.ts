@@ -1,58 +1,64 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/src/lib/prisma";
-import { SubscriptionStatus } from "@prisma/client";
-import { validateUnsubscribeToken } from "@/src/lib/unsubscribe-token";
+import { verifyUnsubscribeToken } from "@/src/lib/unsubscribe-token";
 
-// GET - Unsubscribe using token (public)
-export async function GET(
-  req: NextRequest,
-  { params }: { params: Promise<{ token: string }> },
+export async function POST(
+  request: NextRequest,
+  { params }: { params: Promise<{ token: string }> }
 ) {
   try {
     const { token } = await params;
-
-    if (!token) {
-      return NextResponse.json({ error: "Token is required" }, { status: 400 });
+    
+    // Verify and decode token
+    const email = verifyUnsubscribeToken(token);
+    
+    if (!email) {
+      return NextResponse.json(
+        { error: "Invalid or expired unsubscribe link" },
+        { status: 400 }
+      );
     }
 
-    // Since HMAC is not reversible, we need to check all active subscribers
-    // This is acceptable since unsubscribe is an infrequent operation
-    const subscribers = await prisma.subscriber.findMany({
-      where: { 
-        status: { in: [SubscriptionStatus.pending, SubscriptionStatus.approved] }
-      },
+    // Find subscriber
+    const subscriber = await prisma.subscriber.findUnique({
+      where: { email },
     });
-
-    // Find subscriber whose email matches the token
-    let subscriber = null;
-    for (const sub of subscribers) {
-      if (validateUnsubscribeToken(token, sub.email)) {
-        subscriber = sub;
-        break;
-      }
-    }
 
     if (!subscriber) {
-      return NextResponse.json({ error: "Invalid unsubscribe token" }, { status: 404 });
+      return NextResponse.json(
+        { error: "Subscriber not found" },
+        { status: 404 }
+      );
     }
 
-    // Update status to rejected (maintains history)
+    // Update subscriber status to unsubscribed
     await prisma.subscriber.update({
-      where: { id: subscriber.id },
-      data: {
-        status: SubscriptionStatus.rejected,
+      where: { email },
+      data: { 
+        status: "unsubscribed",
+        updatedAt: new Date(),
       },
     });
 
-    // Redirect to confirmation page
-    const siteUrl = process.env.NEXT_PUBLIC_SITE_URL || "http://localhost:3000";
-    return NextResponse.redirect(`${siteUrl}/unsubscribe/${token}/success`);
+    console.log(`[Unsubscribe] Successfully unsubscribed: ${email}`);
+
+    return NextResponse.json({
+      success: true,
+      message: "You have been successfully unsubscribed from TheFeeder daily digest.",
+    });
   } catch (error) {
-    console.error("Error unsubscribing:", error);
+    console.error("[Unsubscribe] Error:", error);
     return NextResponse.json(
-      { error: "Internal server error" },
-      { status: 500 },
+      { error: "Failed to process unsubscribe request" },
+      { status: 500 }
     );
   }
 }
 
+// Also support GET for direct link clicks
+export async function GET(
+  request: NextRequest,
+  { params }: { params: Promise<{ token: string }> }
+) {
+  return POST(request, { params });
+}
