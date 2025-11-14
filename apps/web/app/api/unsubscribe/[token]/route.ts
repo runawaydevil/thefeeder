@@ -1,7 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/src/lib/prisma";
 import { verifyUnsubscribeToken } from "@/src/lib/unsubscribe-token";
-import { SubscriptionStatus } from "@prisma/client";
 
 // Force Node.js runtime (not Edge)
 export const runtime = 'nodejs';
@@ -39,7 +38,7 @@ export async function POST(
     await prisma.subscriber.update({
       where: { email },
       data: { 
-        status: SubscriptionStatus.unsubscribed,
+        status: "unsubscribed" as const,
       },
     });
 
