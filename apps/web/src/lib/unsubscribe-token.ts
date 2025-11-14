@@ -43,18 +43,33 @@ export function validateUnsubscribeToken(token: string, email: string): boolean 
 }
 
 /**
- * Find subscriber by validating token against all approved subscribers
- * This is less efficient but necessary since we can't reverse HMAC
- * In practice, this should only be called during unsubscribe, which is infrequent
+ * Verify unsubscribe token and return email if valid
+ * This requires checking against all subscribers since HMAC can't be reversed
  * 
- * @param token - The token to validate
- * @returns The email address if a valid subscriber is found, null otherwise
+ * @param token - The token to verify
+ * @returns The email address if valid, null otherwise
  */
-export async function findEmailByToken(token: string): Promise<string | null> {
-  // This function requires database access, so we'll implement it in the route handler
-  // where we have access to prisma
-  throw new Error(
-    "Use validateUnsubscribeToken with email lookup in route handler instead",
-  );
+export async function verifyUnsubscribeToken(token: string): Promise<string | null> {
+  // Import prisma here to avoid circular dependencies
+  const { prisma } = await import("./prisma");
+  
+  try {
+    // Get all subscribers
+    const subscribers = await prisma.subscriber.findMany({
+      select: { email: true },
+    });
+    
+    // Check token against each subscriber
+    for (const subscriber of subscribers) {
+      if (validateUnsubscribeToken(token, subscriber.email)) {
+        return subscriber.email;
+      }
+    }
+    
+    return null;
+  } catch (error) {
+    console.error("[Unsubscribe Token] Error verifying token:", error);
+    return null;
+  }
 }
 

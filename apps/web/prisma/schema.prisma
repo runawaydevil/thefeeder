@@ -62,6 +62,7 @@ enum SubscriptionStatus {
   pending
   approved
   rejected
+  unsubscribed
 }
 
 model DailyDigestLog {

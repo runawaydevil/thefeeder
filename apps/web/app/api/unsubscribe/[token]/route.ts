@@ -1,6 +1,10 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/src/lib/prisma";
 import { verifyUnsubscribeToken } from "@/src/lib/unsubscribe-token";
+import { SubscriptionStatus } from "@prisma/client";
+
+// Force Node.js runtime (not Edge)
+export const runtime = 'nodejs';
 
 export async function POST(
   request: NextRequest,
@@ -10,7 +14,7 @@ export async function POST(
     const { token } = await params;
     
     // Verify and decode token
-    const email = verifyUnsubscribeToken(token);
+    const email = await verifyUnsubscribeToken(token);
     
     if (!email) {
       return NextResponse.json(
@@ -35,8 +39,7 @@ export async function POST(
     await prisma.subscriber.update({
       where: { email },
       data: { 
-        status: "unsubscribed",
-        updatedAt: new Date(),
+        status: SubscriptionStatus.unsubscribed,
       },
     });
 
