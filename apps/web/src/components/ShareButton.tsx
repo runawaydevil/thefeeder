@@ -107,7 +107,7 @@ export default function ShareButton({ itemId, title, url }: ShareButtonProps) {
       }
     } catch (error) {
       console.error("Failed to copy link:", error);
-      alert("Falha ao copiar link. Tente novamente.");
+      alert("Failed to copy link. Please try again.");
     }
   };
 
@@ -118,16 +118,16 @@ export default function ShareButton({ itemId, title, url }: ShareButtonProps) {
         ref={buttonRef}
         onClick={() => setIsOpen(!isOpen)}
         className="share-button"
-        aria-label="Compartilhar artigo"
+        aria-label="Share article"
         aria-haspopup="menu"
         aria-expanded={isOpen}
         style={{
           display: "flex",
           alignItems: "center",
-          gap: "0.375rem",
-          padding: "0.375rem 0.75rem",
-          borderRadius: "0.5rem",
-          fontSize: "0.875rem",
+          gap: "0.25rem",
+          padding: "0.25rem 0.5rem",
+          borderRadius: "0.375rem",
+          fontSize: "0.75rem",
           fontWeight: "500",
           cursor: "pointer",
           transition: "all 0.2s ease",
@@ -140,7 +140,7 @@ export default function ShareButton({ itemId, title, url }: ShareButtonProps) {
         }}
       >
         <span aria-hidden="true">🔗</span>
-        <span className="hidden sm:inline">Compartilhar</span>
+        <span className="hidden sm:inline">Share</span>
       </button>
 
       {/* Share Menu */}
@@ -148,7 +148,7 @@ export default function ShareButton({ itemId, title, url }: ShareButtonProps) {
         <div
           ref={menuRef}
           role="menu"
-          aria-label="Opções de compartilhamento"
+          aria-label="Share options"
           style={{
             position: "absolute",
             top: "calc(100% + 0.5rem)",
@@ -325,7 +325,7 @@ export default function ShareButton({ itemId, title, url }: ShareButtonProps) {
             }}
           >
             <span aria-hidden="true">📋</span>
-            <span>Copiar Link</span>
+            <span>Copy Link</span>
           </button>
         </div>
       )}
@@ -348,7 +348,7 @@ export default function ShareButton({ itemId, title, url }: ShareButtonProps) {
             animation: "slideIn 0.3s ease",
           }}
         >
-          ✓ Link copiado!
+          ✓ Link copied!
         </div>
       )}
 

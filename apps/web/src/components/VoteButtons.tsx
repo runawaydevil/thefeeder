@@ -177,9 +177,9 @@ export default function VoteButtons({
             const errorData = await response.json();
             
             if (response.status === 429) {
-              alert("Muitas ações. Aguarde um momento.");
+              alert("Too many actions. Please wait a moment.");
             } else {
-              alert("Falha ao registrar voto. Tente novamente.");
+              alert("Failed to register vote. Please try again.");
             }
             
             throw new Error(errorData.error || "Failed to vote");
@@ -214,40 +214,42 @@ export default function VoteButtons({
 
   const { likes, dislikes, userVote, isLoading } = state;
 
+  const buttonStyle = (isActive: boolean) => ({
+    display: "flex",
+    alignItems: "center",
+    gap: "0.25rem",
+    padding: "0.25rem 0.5rem",
+    borderRadius: "0.375rem",
+    fontSize: "0.75rem",
+    fontWeight: "500",
+    cursor: isLoading ? "not-allowed" : "pointer",
+    transition: "all 0.2s ease",
+    minWidth: "44px",
+    minHeight: "44px",
+    background: isActive 
+      ? "var(--color-accent-primary)" 
+      : "var(--gradient-card)",
+    border: `2px solid ${isActive ? "var(--color-accent-primary)" : "var(--color-border)"}`,
+    color: isActive ? "#FFFFFF" : "var(--color-text-primary)",
+    boxShadow: isActive 
+      ? "0 0 20px var(--color-accent-primary)" 
+      : "var(--shadow-card)",
+    opacity: isLoading ? 0.6 : 1,
+  });
+
   return (
-    <div className="flex items-center gap-2 sm:gap-3">
+    <div className="flex items-center gap-1.5 sm:gap-2">
       {/* Like Button */}
       <button
         onClick={() => handleVote("like")}
         disabled={isLoading}
         className={`vote-button ${userVote === "like" ? "active" : ""} ${isLoading ? "loading" : ""}`}
-        aria-label={`Curtir artigo (${likes} curtidas)`}
+        aria-label={`Like article (${likes} likes)`}
         aria-pressed={userVote === "like"}
-        style={{
-          display: "flex",
-          alignItems: "center",
-          gap: "0.375rem",
-          padding: "0.375rem 0.75rem",
-          borderRadius: "0.5rem",
-          fontSize: "0.875rem",
-          fontWeight: "500",
-          cursor: isLoading ? "not-allowed" : "pointer",
-          transition: "all 0.2s ease",
-          minWidth: "44px",
-          minHeight: "44px",
-          background: userVote === "like" 
-            ? "var(--color-accent-primary)" 
-            : "var(--gradient-card)",
-          border: `2px solid ${userVote === "like" ? "var(--color-accent-primary)" : "var(--color-border)"}`,
-          color: userVote === "like" ? "#FFFFFF" : "var(--color-text-primary)",
-          boxShadow: userVote === "like" 
-            ? "0 0 20px var(--color-accent-primary)" 
-            : "var(--shadow-card)",
-          opacity: isLoading ? 0.6 : 1,
-        }}
+        style={buttonStyle(userVote === "like")}
       >
         <span aria-hidden="true">👍</span>
-        <span>{likes}</span>
+        <span className="text-xs">{likes}</span>
       </button>
 
       {/* Dislike Button */}
@@ -255,33 +257,12 @@ export default function VoteButtons({
         onClick={() => handleVote("dislike")}
         disabled={isLoading}
         className={`vote-button ${userVote === "dislike" ? "active" : ""} ${isLoading ? "loading" : ""}`}
-        aria-label={`Não curtir artigo (${dislikes} não curtidas)`}
+        aria-label={`Dislike article (${dislikes} dislikes)`}
         aria-pressed={userVote === "dislike"}
-        style={{
-          display: "flex",
-          alignItems: "center",
-          gap: "0.375rem",
-          padding: "0.375rem 0.75rem",
-          borderRadius: "0.5rem",
-          fontSize: "0.875rem",
-          fontWeight: "500",
-          cursor: isLoading ? "not-allowed" : "pointer",
-          transition: "all 0.2s ease",
-          minWidth: "44px",
-          minHeight: "44px",
-          background: userVote === "dislike" 
-            ? "var(--color-accent-primary)" 
-            : "var(--gradient-card)",
-          border: `2px solid ${userVote === "dislike" ? "var(--color-accent-primary)" : "var(--color-border)"}`,
-          color: userVote === "dislike" ? "#FFFFFF" : "var(--color-text-primary)",
-          boxShadow: userVote === "dislike" 
-            ? "0 0 20px var(--color-accent-primary)" 
-            : "var(--shadow-card)",
-          opacity: isLoading ? 0.6 : 1,
-        }}
+        style={buttonStyle(userVote === "dislike")}
       >
         <span aria-hidden="true">👎</span>
-        <span>{dislikes}</span>
+        <span className="text-xs">{dislikes}</span>
       </button>
     </div>
   );
