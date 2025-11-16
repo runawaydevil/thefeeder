@@ -30,6 +30,11 @@ A modern RSS feed aggregator with daily email digest, built with Next.js 15, Pos
 - 🎨 **Dual Theme System**: Switch between Vaporwave (retro neon) and Clean (modern minimal) themes
 - 📰 **RSS/Atom Feed Aggregation**: Supports RSS, Atom, and JSON feeds
 - 🔍 **Auto Discovery**: Automatically discovers feeds from websites, Reddit, YouTube, GitHub
+- 👍 **Article Interactions**: Like/dislike articles and share on social media (no login required)
+  - Anonymous voting system with localStorage persistence
+  - Share to Twitter, Facebook, LinkedIn, WhatsApp
+  - Copy link to clipboard with one click
+  - Rate limiting to prevent abuse
 - 📧 **Daily Email Digest**: Send curated daily digests to subscribers
 - 👤 **Admin Dashboard**: Full CRUD interface for managing feeds
 - 🔐 **Secure Authentication**: NextAuth with role-based access control
@@ -50,16 +55,30 @@ A modern RSS feed aggregator with daily email digest, built with Next.js 15, Pos
 - **Immediate Fetch**: New feeds are automatically fetched upon creation or import
 - **Auto Cleanup**: Automatically maintains up to 50,000 articles (oldest are removed)
 
-### New Features & Security
+### Article Interactions
+
+- **Like/Dislike System**: Vote on articles without creating an account
+  - One vote per person (tracked via localStorage)
+  - Switch between like and dislike
+  - Real-time vote count updates
+  - Persistent across page reloads
+- **Social Sharing**: Share articles on multiple platforms
+  - Twitter, Facebook, LinkedIn, WhatsApp
+  - Copy link to clipboard with one click
+  - Mobile-friendly share menu
+  - Keyboard accessible
+
+### Security Features
 
 - **Rate Limiting**: Distributed rate limiting using Redis to prevent abuse
   - Subscriber endpoints: 5 requests per minute per IP
+  - Vote endpoints: 5 requests per minute per IP
   - Feed discovery endpoints: Rate limiting with intelligent intervals
   - Redis-based for multi-instance deployments
 - **HTML Sanitization**: All HTML content from feeds is sanitized to prevent XSS attacks
 - **Security Headers**: Comprehensive security headers including CSP, HSTS, and X-Frame-Options
-- **Input Validation**: Robust input validation on all API endpoints (Zod schemas when implemented)
-- **Structured Logging**: Structured logging system for better debugging and monitoring (when implemented)
+- **Input Validation**: Robust input validation on all API endpoints
+- **Vote Protection**: Basic anti-spam measures for voting system
 
 ### Technical Stack
 - **Frontend**: Next.js 15 (App Router), React 18, Tailwind CSS

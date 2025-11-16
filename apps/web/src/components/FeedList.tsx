@@ -9,6 +9,8 @@ interface Item {
   summary?: string;
   publishedAt?: string;
   author?: string;
+  likes?: number;
+  dislikes?: number;
   feed?: {
     title: string;
     url?: string;

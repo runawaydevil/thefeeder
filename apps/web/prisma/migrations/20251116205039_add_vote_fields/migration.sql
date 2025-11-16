@@ -1,0 +1,9 @@
+-- DropForeignKey
+ALTER TABLE "Item" DROP CONSTRAINT "Item_feedId_fkey";
+
+-- AlterTable
+ALTER TABLE "Item" ADD COLUMN     "dislikes" INTEGER NOT NULL DEFAULT 0,
+ADD COLUMN     "likes" INTEGER NOT NULL DEFAULT 0;
+
+-- AddForeignKey
+ALTER TABLE "Item" ADD CONSTRAINT "Item_feedId_fkey" FOREIGN KEY ("feedId") REFERENCES "Feed"("id") ON DELETE CASCADE ON UPDATE CASCADE;

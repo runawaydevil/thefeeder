@@ -3,6 +3,8 @@
 import { FeedIcon } from "@/src/lib/feed-icon";
 import { formatDateTime } from "@/src/lib/date-utils";
 import { sanitizeForDisplay } from "@/src/lib/html-utils";
+import VoteButtons from "./VoteButtons";
+import ShareButton from "./ShareButton";
 
 interface FeedCardProps {
   id: string;
@@ -15,15 +17,20 @@ interface FeedCardProps {
     title: string;
     url?: string;
   };
+  likes?: number;
+  dislikes?: number;
 }
 
 export default function FeedCard({
+  id,
   title,
   url,
   summary,
   publishedAt,
   author,
   feed,
+  likes = 0,
+  dislikes = 0,
 }: FeedCardProps) {
   return (
     <article 
@@ -104,6 +111,12 @@ export default function FeedCard({
               <span className="truncate">{formatDateTime(publishedAt)}</span>
             </time>
           )}
+        </div>
+
+        {/* Interaction Buttons */}
+        <div className="flex items-center justify-between gap-2 pt-2 border-t" style={{ borderColor: 'var(--color-border)' }}>
+          <VoteButtons itemId={id} initialLikes={likes} initialDislikes={dislikes} />
+          <ShareButton itemId={id} title={title} url={url} />
         </div>
       </div>
     </article>

@@ -47,6 +47,8 @@ model Item {
   publishedAt DateTime?
   sourceGuid  String?  @unique
   createdAt   DateTime @default(now())
+  likes       Int      @default(0)
+  dislikes    Int      @default(0)
 }
 
 model Subscriber {

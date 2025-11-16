@@ -40,6 +40,8 @@ export async function getItems(limit: number = 20, skip: number = 0) {
       author: item.author ?? undefined,
       imageUrl: item.imageUrl ?? undefined,
       publishedAt: item.publishedAt ? item.publishedAt.toISOString() : undefined,
+      likes: item.likes,
+      dislikes: item.dislikes,
       feed: item.feed ? {
         title: item.feed.title,
         url: item.feed.url,
