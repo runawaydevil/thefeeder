@@ -38,6 +38,3 @@ docker-compose.override.yml
 # Misc
 *.bak
 *.tmp
-
-
-.kiro
