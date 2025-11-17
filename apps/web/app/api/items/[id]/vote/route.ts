@@ -1,7 +1,8 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/src/lib/prisma";
 import { rateLimit } from "@/src/lib/rate-limit";
-import { cached, cacheKey, del } from "@/src/lib/cache";
+import { cacheKey, del } from "@/src/lib/cache";
+import { getVoterId } from "@/src/lib/voter-id";
 
 type VoteAction = "like" | "dislike" | "remove_like" | "remove_dislike";
 
@@ -13,6 +14,7 @@ interface VoteResponse {
   success: boolean;
   likes: number;
   dislikes: number;
+  userVote: "like" | "dislike" | null;
 }
 
 // POST - Vote on an item
@@ -22,6 +24,9 @@ export async function POST(
 ) {
   try {
     const { id } = await params;
+
+    // Get or create voter ID
+    const voterId = await getVoterId();
 
     // Rate limiting - 5 requests per minute per IP
     const ip = req.headers.get("x-forwarded-for") || req.headers.get("x-real-ip") || "unknown";
@@ -67,70 +72,188 @@ export async function POST(
       );
     }
 
-    // Process vote action
+    // Check for existing vote
+    const existingVote = await prisma.voteTracker.findUnique({
+      where: {
+        voterId_itemId: {
+          voterId,
+          itemId: id,
+        },
+      },
+    });
+
+    // Process vote action with VoteTracker
     let updatedItem;
+    let userVote: "like" | "dislike" | null = null;
     
     switch (action) {
       case "like":
-        updatedItem = await prisma.item.update({
-          where: { id },
-          data: { likes: { increment: 1 } },
-          select: { likes: true, dislikes: true },
+        // Create or update vote tracker
+        await prisma.voteTracker.upsert({
+          where: {
+            voterId_itemId: {
+              voterId,
+              itemId: id,
+            },
+          },
+          create: {
+            voterId,
+            itemId: id,
+            voteType: "like",
+          },
+          update: {
+            voteType: "like",
+          },
         });
+
+        // Update item counter only if this is a new vote or changed from dislike
+        if (!existingVote) {
+          updatedItem = await prisma.item.update({
+            where: { id },
+            data: { likes: { increment: 1 } },
+            select: { likes: true, dislikes: true },
+          });
+        } else if (existingVote.voteType === "dislike") {
+          // Changed from dislike to like
+          updatedItem = await prisma.item.update({
+            where: { id },
+            data: { 
+              likes: { increment: 1 },
+              dislikes: { decrement: 1 },
+            },
+            select: { likes: true, dislikes: true },
+          });
+        } else {
+          // Already liked, no change
+          updatedItem = item;
+        }
+        userVote = "like";
         break;
         
       case "dislike":
-        updatedItem = await prisma.item.update({
-          where: { id },
-          data: { dislikes: { increment: 1 } },
-          select: { likes: true, dislikes: true },
+        // Create or update vote tracker
+        await prisma.voteTracker.upsert({
+          where: {
+            voterId_itemId: {
+              voterId,
+              itemId: id,
+            },
+          },
+          create: {
+            voterId,
+            itemId: id,
+            voteType: "dislike",
+          },
+          update: {
+            voteType: "dislike",
+          },
         });
+
+        // Update item counter only if this is a new vote or changed from like
+        if (!existingVote) {
+          updatedItem = await prisma.item.update({
+            where: { id },
+            data: { dislikes: { increment: 1 } },
+            select: { likes: true, dislikes: true },
+          });
+        } else if (existingVote.voteType === "like") {
+          // Changed from like to dislike
+          updatedItem = await prisma.item.update({
+            where: { id },
+            data: { 
+              likes: { decrement: 1 },
+              dislikes: { increment: 1 },
+            },
+            select: { likes: true, dislikes: true },
+          });
+        } else {
+          // Already disliked, no change
+          updatedItem = item;
+        }
+        userVote = "dislike";
         break;
         
       case "remove_like":
-        updatedItem = await prisma.item.update({
-          where: { id },
-          data: { likes: { decrement: 1 } },
-          select: { likes: true, dislikes: true },
-        });
-        // Ensure likes don't go below 0
-        if (updatedItem.likes < 0) {
+        if (existingVote && existingVote.voteType === "like") {
+          // Delete vote tracker
+          await prisma.voteTracker.delete({
+            where: {
+              voterId_itemId: {
+                voterId,
+                itemId: id,
+              },
+            },
+          });
+
+          // Decrement like counter
           updatedItem = await prisma.item.update({
             where: { id },
-            data: { likes: 0 },
+            data: { likes: { decrement: 1 } },
             select: { likes: true, dislikes: true },
           });
+
+          // Ensure likes don't go below 0
+          if (updatedItem.likes < 0) {
+            updatedItem = await prisma.item.update({
+              where: { id },
+              data: { likes: 0 },
+              select: { likes: true, dislikes: true },
+            });
+          }
+        } else {
+          updatedItem = item;
         }
+        userVote = null;
         break;
         
       case "remove_dislike":
-        updatedItem = await prisma.item.update({
-          where: { id },
-          data: { dislikes: { decrement: 1 } },
-          select: { likes: true, dislikes: true },
-        });
-        // Ensure dislikes don't go below 0
-        if (updatedItem.dislikes < 0) {
+        if (existingVote && existingVote.voteType === "dislike") {
+          // Delete vote tracker
+          await prisma.voteTracker.delete({
+            where: {
+              voterId_itemId: {
+                voterId,
+                itemId: id,
+              },
+            },
+          });
+
+          // Decrement dislike counter
           updatedItem = await prisma.item.update({
             where: { id },
-            data: { dislikes: 0 },
+            data: { dislikes: { decrement: 1 } },
             select: { likes: true, dislikes: true },
           });
+
+          // Ensure dislikes don't go below 0
+          if (updatedItem.dislikes < 0) {
+            updatedItem = await prisma.item.update({
+              where: { id },
+              data: { dislikes: 0 },
+              select: { likes: true, dislikes: true },
+            });
+          }
+        } else {
+          updatedItem = item;
         }
+        userVote = null;
         break;
     }
 
-    // Invalidate cache
+    // Invalidate caches
     const voteCacheKey = cacheKey("vote", id);
+    const userVotesCacheKey = cacheKey("votes", "user", voterId);
     await del(voteCacheKey);
+    await del(userVotesCacheKey);
 
     // Log vote action
-    console.log(`[Vote] ${action} on item ${id} by IP ${ip}`);
+    console.log(`[Vote] ${action} on item ${id} by voter ${voterId} (IP: ${ip})`);
 
     const response: VoteResponse = {
       success: true,
       likes: updatedItem.likes,
       dislikes: updatedItem.dislikes,
+      userVote,
     };
 
     return NextResponse.json(response);

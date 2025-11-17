@@ -11,6 +11,7 @@ interface Item {
   author?: string;
   likes?: number;
   dislikes?: number;
+  userVote?: "like" | "dislike" | null;
   feed?: {
     title: string;
     url?: string;

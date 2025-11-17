@@ -1,5 +1,6 @@
 import { prisma } from "@/src/lib/prisma";
 import { cached, cacheKey } from "@/src/lib/cache";
+import { getExistingVoterId } from "@/src/lib/voter-id";
 
 /**
  * Server-side data fetching functions
@@ -29,6 +30,35 @@ export async function getItems(limit: number = 20, skip: number = 0) {
       },
     });
 
+    // Get user votes if voter ID exists
+    const voterId = await getExistingVoterId();
+    let userVotes: Record<string, "like" | "dislike"> = {};
+
+    if (voterId) {
+      const userVotesCacheKey = cacheKey("votes", "user", voterId);
+      
+      userVotes = await cached(
+        userVotesCacheKey,
+        async () => {
+          const voteRecords = await prisma.voteTracker.findMany({
+            where: { voterId },
+            select: {
+              itemId: true,
+              voteType: true,
+            },
+          });
+
+          const votesMap: Record<string, "like" | "dislike"> = {};
+          for (const vote of voteRecords) {
+            votesMap[vote.itemId] = vote.voteType;
+          }
+
+          return votesMap;
+        },
+        300 // 5 minutes TTL
+      );
+    }
+
     // Transform Prisma null to undefined for TypeScript compatibility
     // Prisma returns null for nullable fields, but components expect undefined
     const transformedItems = items.map((item: typeof items[0]) => ({
@@ -42,6 +72,7 @@ export async function getItems(limit: number = 20, skip: number = 0) {
       publishedAt: item.publishedAt ? item.publishedAt.toISOString() : undefined,
       likes: item.likes,
       dislikes: item.dislikes,
+      userVote: userVotes[item.id] ?? null,
       feed: item.feed ? {
         title: item.feed.title,
         url: item.feed.url,

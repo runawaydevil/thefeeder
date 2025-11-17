@@ -6,6 +6,7 @@ interface VoteButtonsProps {
   itemId: string;
   initialLikes: number;
   initialDislikes: number;
+  initialUserVote?: "like" | "dislike" | null;
 }
 
 type UserVote = "like" | "dislike" | null;
@@ -54,24 +55,36 @@ export default function VoteButtons({
   itemId,
   initialLikes,
   initialDislikes,
+  initialUserVote = null,
 }: VoteButtonsProps) {
   const [state, setState] = useState<VoteState>({
     likes: initialLikes,
     dislikes: initialDislikes,
-    userVote: null,
+    userVote: initialUserVote,
     isLoading: false,
   });
 
-  // Load user's previous vote from localStorage on mount
+  // Load user's previous vote from server (initialUserVote) or localStorage on mount
   useEffect(() => {
-    const votes = getStoredVotes();
-    const userVote = votes[itemId] || null;
-    
-    setState((prev) => ({
-      ...prev,
-      userVote,
-    }));
-  }, [itemId]);
+    // Prefer server-side vote data over localStorage
+    if (initialUserVote !== null) {
+      setState((prev) => ({
+        ...prev,
+        userVote: initialUserVote,
+      }));
+      // Sync localStorage with server state
+      setStoredVote(itemId, initialUserVote);
+    } else {
+      // Fallback to localStorage if no server data
+      const votes = getStoredVotes();
+      const userVote = votes[itemId] || null;
+      
+      setState((prev) => ({
+        ...prev,
+        userVote,
+      }));
+    }
+  }, [itemId, initialUserVote]);
 
   // Debounce helper
   const [debounceTimer, setDebounceTimer] = useState<NodeJS.Timeout | null>(null);
@@ -160,11 +173,11 @@ export default function VoteButtons({
           setState({
             likes: data.likes,
             dislikes: data.dislikes,
-            userVote: optimisticUserVote,
+            userVote: data.userVote ?? optimisticUserVote,
             isLoading: false,
           });
 
-          setStoredVote(itemId, optimisticUserVote);
+          setStoredVote(itemId, data.userVote ?? optimisticUserVote);
         } else {
           // Single action
           const response = await fetch(`/api/items/${itemId}/vote`, {
@@ -190,11 +203,11 @@ export default function VoteButtons({
           setState({
             likes: data.likes,
             dislikes: data.dislikes,
-            userVote: optimisticUserVote,
+            userVote: data.userVote ?? optimisticUserVote,
             isLoading: false,
           });
 
-          setStoredVote(itemId, optimisticUserVote);
+          setStoredVote(itemId, data.userVote ?? optimisticUserVote);
         }
       } catch (error) {
         console.error("Error voting:", error);

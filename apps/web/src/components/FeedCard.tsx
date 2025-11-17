@@ -19,6 +19,7 @@ interface FeedCardProps {
   };
   likes?: number;
   dislikes?: number;
+  userVote?: "like" | "dislike" | null;
 }
 
 export default function FeedCard({
@@ -31,6 +32,7 @@ export default function FeedCard({
   feed,
   likes = 0,
   dislikes = 0,
+  userVote = null,
 }: FeedCardProps) {
   return (
     <article 
@@ -115,7 +117,7 @@ export default function FeedCard({
 
         {/* Interaction Buttons */}
         <div className="flex items-center flex-wrap gap-2 pt-2 border-t" style={{ borderColor: 'var(--color-border)' }}>
-          <VoteButtons itemId={id} initialLikes={likes} initialDislikes={dislikes} />
+          <VoteButtons itemId={id} initialLikes={likes} initialDislikes={dislikes} initialUserVote={userVote} />
           <ShareButton itemId={id} title={title} url={url} />
         </div>
       </div>
