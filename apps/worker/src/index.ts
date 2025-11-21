@@ -5,6 +5,7 @@ import { processFeedFetch, FeedFetchJobData } from "./jobs/feed-fetch.js";
 import { processDailyDigest, DailyDigestJobData } from "./jobs/daily-digest.js";
 import { scheduleFeed } from "./lib/scheduler.js";
 import scheduleRouter from "./api/schedule.js";
+import { monitoringAlertsService } from "./lib/monitoring-alerts.js";
 
 // Configure timezone from environment variable
 const timezone = process.env.TZ || "America/Sao_Paulo";
@@ -109,6 +110,23 @@ async function scheduleDailyDigest() {
   console.log(`Daily digest scheduled for ${digestTime} daily (timezone: ${timezone})`);
 }
 
+// Function to run monitoring checks periodically
+async function startMonitoring() {
+  // Run initial check
+  await monitoringAlertsService.logAlerts();
+  
+  // Run checks every hour
+  setInterval(async () => {
+    try {
+      await monitoringAlertsService.logAlerts();
+    } catch (error) {
+      console.error('[Monitoring] Error running health checks:', error);
+    }
+  }, 60 * 60 * 1000); // 1 hour
+  
+  console.log('📊 Monitoring alerts scheduled (every hour)');
+}
+
 // Initialize
 async function start() {
   console.log("🚀 Starting TheFeeder Worker...");
@@ -118,6 +136,13 @@ async function start() {
     const app = express();
     app.use(express.json());
     app.use("/api/schedule", scheduleRouter);
+    
+    // Import API handlers
+    const { testAlternative } = await import('./api/test-alternative.js');
+    const { getBrowserAutomationStats } = await import('./api/browser-automation-stats.js');
+    
+    app.post("/api/feeds/test-alternative", testAlternative);
+    app.get("/api/browser-automation/stats", getBrowserAutomationStats);
     
     app.get("/health", (req, res) => {
       res.json({ status: "ok" });
@@ -129,6 +154,7 @@ async function start() {
 
     await scheduleFeedFetches();
     await scheduleDailyDigest();
+    await startMonitoring();
     console.log("✅ Worker started successfully");
   } catch (error) {
     console.error("❌ Error starting worker:", error);

@@ -31,7 +31,31 @@ model Feed {
   isActive                Boolean  @default(true)
   createdAt               DateTime @default(now())
   updatedAt               DateTime @updatedAt
+  
+  // Health tracking
+  status                  FeedStatus    @default(active)
+  failureCount            Int           @default(0)
+  consecutiveFailures     Int           @default(0)
+  lastError               String?
+  lastSuccessAt           DateTime?
+  lastAttemptAt           DateTime?
+  
+  // Configuration
+  customTimeout           Int?          // Custom timeout in seconds (10-120)
+  retryStrategy           RetryStrategy @default(standard)
+  requiresBrowser         Boolean       @default(false)
+  metadata                Json?         // Store additional metadata (alternatives, etc.)
+  
+  // Metrics
+  totalAttempts           Int           @default(0)
+  totalSuccesses          Int           @default(0)
+  totalFailures           Int           @default(0)
+  avgResponseTime         Int?          // Average in milliseconds
+  
+  // Relations
   items                   Item[]
+  healthLogs              FeedHealthLog[]
+  notifications           FeedNotification[]
 }
 
 model Item {
@@ -70,6 +94,64 @@ model DailyDigestLog {
   sentAt       DateTime @default(now())
   numRecipients Int
   numItems     Int
+}
+
+enum FeedStatus {
+  active      // Functioning normally
+  degraded    // Occasional failures but still working
+  blocked     // Consistently blocked (403/522)
+  unreachable // Consistently timing out
+  paused      // Manually or automatically paused
+}
+
+enum RetryStrategy {
+  standard     // Normal retry intervals
+  aggressive   // Shorter intervals, more attempts
+  conservative // Longer intervals, fewer attempts
+}
+
+enum NotificationType {
+  warning      // 3 consecutive failures
+  error        // Auto-paused
+  success      // Feed recovered
+  info         // General information
+}
+
+enum NotificationPriority {
+  low
+  normal
+  high
+}
+
+model FeedHealthLog {
+  id            String   @id @default(cuid())
+  feedId        String
+  feed          Feed     @relation(fields: [feedId], references: [id], onDelete: Cascade)
+  
+  attemptedAt   DateTime @default(now())
+  success       Boolean
+  statusCode    Int?
+  errorMessage  String?
+  responseTime  Int?     // Milliseconds
+  strategy      String?  // Which fetch strategy was used
+  
+  @@index([feedId, attemptedAt])
+  @@index([feedId, success])
+}
+
+model FeedNotification {
+  id          String   @id @default(cuid())
+  feedId      String
+  feed        Feed     @relation(fields: [feedId], references: [id], onDelete: Cascade)
+  
+  type        NotificationType
+  priority    NotificationPriority @default(normal)
+  title       String
+  message     String
+  isRead      Boolean  @default(false)
+  createdAt   DateTime @default(now())
+  
+  @@index([isRead, createdAt])
 }
 
 

@@ -1,6 +1,8 @@
 import { Queue } from "bullmq";
 import { prisma } from "./prisma.js";
 import { FeedFetchJobData } from "../jobs/feed-fetch.js";
+import { retryStrategyEngine } from "./retry-strategy.js";
+import type { Feed } from "@prisma/client";
 
 const REDIS_URL = process.env.REDIS_URL || "redis://localhost:6379";
 
@@ -28,6 +30,12 @@ export async function scheduleFeed(feedId: string) {
     return;
   }
 
+  // Don't schedule paused feeds
+  if (feed.status === 'paused') {
+    console.log(`Skipping paused feed: ${feed.title}`);
+    return;
+  }
+
   const jobId = `feed-${feed.id}`;
   
   // Remove existing repeat job if it exists
@@ -37,16 +45,37 @@ export async function scheduleFeed(feedId: string) {
     await queue.removeRepeatableByKey(existing.key);
   }
 
-  const lastFetched = feed.lastFetchedAt
-    ? new Date(feed.lastFetchedAt)
-    : new Date(0);
-  const nextFetch = new Date(
-    lastFetched.getTime() + feed.refreshIntervalMinutes * 60 * 1000,
-  );
-  const now = new Date();
+  // Calculate next fetch time using retry strategy
+  let nextFetch: Date;
+  
+  if (feed.consecutiveFailures > 0 && feed.lastAttemptAt) {
+    // Use retry strategy for failed feeds
+    const lastAttempt = new Date(feed.lastAttemptAt);
+    const errorType = determineErrorType(feed);
+    
+    nextFetch = retryStrategyEngine.calculateNextRetry({
+      feed,
+      errorType,
+    });
+    
+    console.log(`[Scheduler] Feed ${feed.title} has ${feed.consecutiveFailures} failures, using ${errorType} retry strategy`);
+  } else {
+    // Normal scheduling for healthy feeds
+    const lastFetched = feed.lastFetchedAt
+      ? new Date(feed.lastFetchedAt)
+      : new Date(0);
+    nextFetch = new Date(
+      lastFetched.getTime() + feed.refreshIntervalMinutes * 60 * 1000,
+    );
+  }
 
-  // Calculate delay (0 if should run immediately)
+  const now = new Date();
   const delay = nextFetch <= now ? 0 : nextFetch.getTime() - now.getTime();
+
+  // Use custom timeout if configured
+  const timeout = feed.customTimeout 
+    ? feed.customTimeout * 1000 
+    : undefined;
 
   // Use every() for repeat pattern - works for any interval in minutes
   await queue.add(
@@ -55,6 +84,7 @@ export async function scheduleFeed(feedId: string) {
     {
       jobId,
       delay,
+      timeout,
       repeat: {
         every: feed.refreshIntervalMinutes * 60 * 1000, // Convert minutes to milliseconds
       },
@@ -62,9 +92,35 @@ export async function scheduleFeed(feedId: string) {
   );
 
   const delayMinutes = Math.round(delay / 1000 / 60);
-  console.log(
-    `Scheduled feed fetch: ${feed.title} ${delayMinutes === 0 ? "(immediate)" : `(in ${delayMinutes} minutes)`}`,
-  );
+  const delayHours = Math.round(delay / 1000 / 60 / 60);
+  const delayStr = delayMinutes === 0 
+    ? "(immediate)" 
+    : delayHours >= 1 
+      ? `(in ${delayHours} hours)` 
+      : `(in ${delayMinutes} minutes)`;
+  
+  console.log(`Scheduled feed fetch: ${feed.title} ${delayStr}`);
+}
+
+/**
+ * Determine error type from feed's last error
+ */
+function determineErrorType(feed: any): 'timeout' | 'blocked' | 'server_error' | 'other' {
+  const lastError = feed.lastError?.toLowerCase() || '';
+  
+  if (lastError.includes('timeout') || lastError.includes('timed out')) {
+    return 'timeout';
+  }
+  
+  if (lastError.includes('403') || lastError.includes('522')) {
+    return 'blocked';
+  }
+  
+  if (lastError.includes('5') && (lastError.includes('500') || lastError.includes('502') || lastError.includes('503'))) {
+    return 'server_error';
+  }
+  
+  return 'other';
 }
 
 export async function unscheduleFeed(feedId: string) {

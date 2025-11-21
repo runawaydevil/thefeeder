@@ -3,6 +3,10 @@ import { prisma } from "../lib/prisma.js";
 import { parseFeed, normalizeFeedItem } from "../lib/rss-parser.js";
 import { getRandomUserAgent } from "../lib/user-agents.js";
 import { cached, cacheKey } from "../lib/cache.js";
+import { healthTrackingService } from "../lib/health-tracking.js";
+import { autoPauseManager } from "../lib/auto-pause.js";
+import { statusMachine } from "../lib/status-machine.js";
+import { notificationService } from "../lib/notification-service.js";
 
 export interface FeedFetchJobData {
   feedId: string;
@@ -19,6 +23,10 @@ function isRedditFeed(feedUrl: string): boolean {
 
 export async function processFeedFetch(job: Job<FeedFetchJobData>) {
   const { feedId } = job.data;
+  const startTime = Date.now();
+  let statusCode: number | undefined;
+  let errorMessage: string | undefined;
+  let strategy = 'standard';
 
   try {
     const feed = await prisma.feed.findUnique({ where: { id: feedId } });
@@ -38,6 +46,12 @@ export async function processFeedFetch(job: Job<FeedFetchJobData>) {
       return { skipped: true, reason: "inactive" };
     }
 
+    // Check if feed is paused
+    if (feed.status === 'paused') {
+      console.log(`Skipping paused feed: ${feed.title}`);
+      return { skipped: true, reason: "paused" };
+    }
+
     // Rate limiting for Reddit: check only once per hour
     if (isRedditFeed(feed.url)) {
       if (feed.lastFetchedAt) {
@@ -54,13 +68,30 @@ export async function processFeedFetch(job: Job<FeedFetchJobData>) {
     // Use random user agent for each fetch
     const userAgent = getRandomUserAgent();
     
+    // Use custom timeout if configured
+    const customTimeout = feed.customTimeout ? feed.customTimeout * 1000 : undefined;
+    
     // Cache parsed feed for 30 minutes (1800 seconds)
     const parseCacheKey = cacheKey("feed", "parse", feed.url);
     const parsedFeed = await cached(
       parseCacheKey,
-      () => parseFeed(feed.url, userAgent),
+      () => parseFeed(feed.url, userAgent, feed.requiresBrowser || false),
       1800, // 30 minutes TTL
     );
+    
+    // Check if browser automation was used
+    if (parsedFeed._metadata?.usedBrowserAutomation) {
+      strategy = 'browser';
+      
+      // Mark feed as requiring browser automation if not already marked
+      if (!feed.requiresBrowser) {
+        await prisma.feed.update({
+          where: { id: feedId },
+          data: { requiresBrowser: true },
+        });
+        console.log(`[Feed Fetch] ✓ Marked feed ${feed.title} as requiring browser automation`);
+      }
+    }
     
     let itemsCreated = 0;
     let itemsUpdated = 0;
@@ -115,13 +146,43 @@ export async function processFeedFetch(job: Job<FeedFetchJobData>) {
       }
     }
 
+    const responseTime = Date.now() - startTime;
+
+    // Update feed with success
     await prisma.feed.update({
       where: { id: feedId },
-      data: { lastFetchedAt: new Date() },
+      data: { 
+        lastFetchedAt: new Date(),
+        lastSuccessAt: new Date(),
+        consecutiveFailures: 0,
+        lastError: null,
+      },
     });
+
+    // Record successful attempt
+    await healthTrackingService.recordAttempt({
+      feedId,
+      success: true,
+      statusCode: 200,
+      responseTime,
+      strategy,
+    });
+
+    // Update feed status
+    await statusMachine.updateFeedStatus(feedId, {
+      success: true,
+    });
+
+    // Check for recovery notification
+    const updatedFeed = await prisma.feed.findUnique({ where: { id: feedId } });
+    if (updatedFeed) {
+      await notificationService.createRecoveryNotification(updatedFeed);
+    }
 
     // Clean up old items if total exceeds 50k
     await cleanupOldItems();
+
+    console.log(`[Feed Fetch] ✓ Success: ${feed.title} (${itemsCreated} created, ${itemsUpdated} updated, ${responseTime}ms)`);
 
     return {
       success: true,
@@ -129,8 +190,70 @@ export async function processFeedFetch(job: Job<FeedFetchJobData>) {
       itemsUpdated,
       totalItems: parsedFeed.items.length,
     };
-  } catch (error) {
-    console.error(`Error processing feed ${feedId}:`, error);
+  } catch (error: any) {
+    const responseTime = Date.now() - startTime;
+    
+    // Extract error details
+    errorMessage = error.message || 'Unknown error';
+    
+    // Try to extract status code from error message
+    const statusMatch = errorMessage.match(/Status code (\d+)/i);
+    if (statusMatch) {
+      statusCode = parseInt(statusMatch[1], 10);
+    }
+
+    // Determine error type
+    let errorType: 'timeout' | 'blocked' | 'server_error' | 'other' = 'other';
+    if (errorMessage.includes('timeout') || errorMessage.includes('timed out')) {
+      errorType = 'timeout';
+    } else if (statusCode === 403 || statusCode === 522) {
+      errorType = 'blocked';
+    } else if (statusCode && statusCode >= 500) {
+      errorType = 'server_error';
+    }
+
+    // Update feed with failure
+    const feed = await prisma.feed.findUnique({ where: { id: feedId } });
+    if (feed) {
+      const updatedFeed = await prisma.feed.update({
+        where: { id: feedId },
+        data: {
+          consecutiveFailures: feed.consecutiveFailures + 1,
+          failureCount: feed.failureCount + 1,
+          lastError: errorMessage.substring(0, 500), // Limit error message length
+        },
+      });
+
+      // Create warning notification after 3 failures
+      await notificationService.createWarningNotification(updatedFeed);
+
+      // Check if feed should be auto-paused
+      const wasAutoPaused = await autoPauseManager.checkAutoPause(updatedFeed);
+      
+      // Create auto-pause notification if feed was paused
+      if (wasAutoPaused) {
+        await notificationService.createAutoPauseNotification(updatedFeed);
+      }
+    }
+
+    // Record failed attempt
+    await healthTrackingService.recordAttempt({
+      feedId,
+      success: false,
+      statusCode,
+      errorMessage: errorMessage.substring(0, 500),
+      responseTime,
+      strategy,
+    });
+
+    // Update feed status
+    await statusMachine.updateFeedStatus(feedId, {
+      success: false,
+      errorType,
+      statusCode,
+    });
+
+    console.error(`[Feed Fetch] ✗ Failed: ${feedId} (${errorType}, ${responseTime}ms)`, errorMessage);
     throw error;
   }
 }

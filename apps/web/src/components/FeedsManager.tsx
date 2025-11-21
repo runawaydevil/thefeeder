@@ -3,6 +3,8 @@
 import { useState, useEffect, type ChangeEvent, type KeyboardEvent, type FormEvent } from "react";
 import { FeedIcon } from "@/src/lib/feed-icon";
 import { formatDateTime } from "@/src/lib/date-utils";
+import FeedStatusBadge from "./FeedStatusBadge";
+import FeedDetails from "./FeedDetails";
 
 interface Feed {
   id: string;
@@ -12,6 +14,9 @@ interface Feed {
   refreshIntervalMinutes: number;
   lastFetchedAt?: string;
   isActive: boolean;
+  status?: 'active' | 'degraded' | 'blocked' | 'unreachable' | 'paused';
+  consecutiveFailures?: number;
+  lastError?: string | null;
   _count?: {
     items: number;
   };
@@ -24,6 +29,7 @@ export default function FeedsManager() {
   const [editing, setEditing] = useState<Feed | null>(null);
   const [showDiscover, setShowDiscover] = useState(false);
   const [discoverUrl, setDiscoverUrl] = useState("");
+  const [selectedFeedId, setSelectedFeedId] = useState<string | null>(null);
   const [discovering, setDiscovering] = useState(false);
   const [discoveredFeeds, setDiscoveredFeeds] = useState<Array<{ url: string; title: string; type: string }>>([]);
   const [importingOPML, setImportingOPML] = useState(false);
@@ -486,14 +492,23 @@ export default function FeedsManager() {
             className={`cyber-card border-2 ${feed.isActive ? 'border-vaporwave-cyan/50' : 'border-vaporwave-purple/30 opacity-70'} p-3 md:p-4 flex flex-col md:flex-row items-start md:items-center justify-between gap-3 hover:shadow-[0_0_15px_hsl(180_100%_60%_/_0.3)] transition-all`}
           >
             <div className="flex-1">
-              <div className="flex items-center gap-2 mb-1.5">
+              <div className="flex items-center gap-2 mb-1.5 flex-wrap">
                 <FeedIcon url={feed.url} size={16} className="flex-shrink-0" />
                 <h3 className="font-bold text-primary neon-glow-pink text-sm md:text-base">{feed.title}</h3>
+                {feed.status && <FeedStatusBadge status={feed.status} />}
                 {!feed.isActive && (
                   <span className="text-[10px] bg-vaporwave-purple/20 text-vaporwave-purple border border-vaporwave-purple/50 px-1.5 py-0.5 rounded uppercase tracking-wider">Inactive</span>
                 )}
               </div>
               <p className="text-xs text-muted-foreground mb-2 break-all">{feed.url}</p>
+              {feed.consecutiveFailures && feed.consecutiveFailures > 0 && (
+                <div className="mb-2 p-2 rounded border border-red-500/30 bg-red-500/10">
+                  <p className="text-xs text-red-400">
+                    ⚠️ {feed.consecutiveFailures} consecutive failure{feed.consecutiveFailures > 1 ? 's' : ''}
+                    {feed.lastError && `: ${feed.lastError.substring(0, 100)}${feed.lastError.length > 100 ? '...' : ''}`}
+                  </p>
+                </div>
+              )}
               <div className="flex flex-wrap gap-3 text-[10px] md:text-xs text-vaporwave-cyan/70">
                 <span className="flex items-center gap-1">
                   <span className="w-1 h-1 bg-vaporwave-cyan rounded-full" />
@@ -510,6 +525,12 @@ export default function FeedsManager() {
               </div>
             </div>
             <div className="flex gap-2 sm:gap-1.5 flex-wrap w-full sm:w-auto">
+              <button
+                onClick={() => setSelectedFeedId(feed.id)}
+                className="flex-1 sm:flex-initial min-h-[44px] px-3 py-1.5 text-xs sm:text-sm bg-vaporwave-pink/10 text-vaporwave-pink/90 border border-vaporwave-pink/40 rounded hover:bg-vaporwave-pink/20 hover:border-vaporwave-pink/60 hover:shadow-[0_0_6px_hsl(320_100%_65%_/_0.3)] transition-all uppercase tracking-wider font-normal touch-manipulation"
+              >
+                Health
+              </button>
               <button
                 onClick={() => handleFetch(feed.id)}
                 className="flex-1 sm:flex-initial min-h-[44px] px-3 py-1.5 text-xs sm:text-sm bg-vaporwave-cyan/10 text-vaporwave-cyan/90 border border-vaporwave-cyan/40 rounded hover:bg-vaporwave-cyan/20 hover:border-vaporwave-cyan/60 hover:shadow-[0_0_6px_hsl(180_100%_60%_/_0.3)] transition-all uppercase tracking-wider font-normal touch-manipulation"
@@ -549,6 +570,14 @@ export default function FeedsManager() {
             </div>
           </div>
         </div>
+      )}
+
+      {/* Feed Details Modal */}
+      {selectedFeedId && (
+        <FeedDetails
+          feedId={selectedFeedId}
+          onClose={() => setSelectedFeedId(null)}
+        />
       )}
     </div>
   );

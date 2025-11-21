@@ -3,6 +3,7 @@ import { getRandomUserAgent } from "./user-agents.js";
 import { generateProxyUrls, isLikelyBlocked } from "./rss-proxy.js";
 import { fetchFeed } from "./http-client.js";
 import { parseFeedV2, type ParsedFeedV2 } from "./feed-parser-v2.js";
+import { browserAutomationService } from "./browser-automation.js";
 
 const parser = new Parser({
   customFields: {
@@ -42,6 +43,9 @@ export interface ParsedFeed {
   title: string;
   link?: string;
   items: any[]; // Using any[] to avoid type conflicts with rss-parser
+  _metadata?: {
+    usedBrowserAutomation?: boolean;
+  };
 }
 
 /**
@@ -67,8 +71,35 @@ function convertV2ToLegacyFormat(v2: ParsedFeedV2): ParsedFeed {
   };
 }
 
-export async function parseFeed(feedUrl: string, customUserAgent?: string): Promise<ParsedFeed> {
+export async function parseFeed(feedUrl: string, customUserAgent?: string, requiresBrowser: boolean = false): Promise<ParsedFeed> {
   console.log(`[RSS Parser] ===== STARTING PARSE FEED: ${feedUrl} =====`);
+  
+  // If feed requires browser automation, use it directly
+  if (requiresBrowser && browserAutomationService.isAvailable()) {
+    try {
+      console.log(`[RSS Parser] Feed requires browser automation, using Puppeteer directly...`);
+      
+      const htmlContent = await browserAutomationService.fetchWithBrowser(feedUrl, {
+        timeout: 60000,
+      });
+      
+      const feed = await parser.parseString(htmlContent);
+      
+      console.log(`[RSS Parser] ✓ Browser automation succeeded: ${feed.title || 'Untitled'}`);
+      
+      return {
+        title: feed.title || "Untitled Feed",
+        link: feed.link,
+        items: feed.items || [],
+        _metadata: {
+          usedBrowserAutomation: true,
+        },
+      };
+    } catch (browserError) {
+      console.error(`[RSS Parser] ✗ Browser automation failed:`, browserError instanceof Error ? browserError.message : browserError);
+      // Fall through to standard methods
+    }
+  }
   
   // STEP 1: Try custom robust parser FIRST (PRIMARY METHOD)
   try {
@@ -243,6 +274,33 @@ export async function parseFeed(feedUrl: string, customUserAgent?: string): Prom
         console.warn(`[RSS Parser] STEP 4: ${proxy} failed:`, proxyError instanceof Error ? proxyError.message : proxyError);
         continue;
       }
+    }
+  }
+  
+  // STEP 5: Try browser automation (last resort for blocked feeds)
+  if (isLikelyBlocked(lastError) && browserAutomationService.isAvailable()) {
+    try {
+      console.log(`[RSS Parser] STEP 5: Trying browser automation (Puppeteer)...`);
+      
+      const htmlContent = await browserAutomationService.fetchWithBrowser(feedUrl, {
+        timeout: 60000,
+      });
+      
+      // Parse the HTML content as XML/RSS
+      const feed = await parser.parseString(htmlContent);
+      
+      console.log(`[RSS Parser] ✓ STEP 5 SUCCESS: Browser automation succeeded: ${feed.title || 'Untitled'}`);
+      
+      return {
+        title: feed.title || "Untitled Feed",
+        link: feed.link,
+        items: feed.items || [],
+        _metadata: {
+          usedBrowserAutomation: true,
+        },
+      };
+    } catch (browserError) {
+      console.error(`[RSS Parser] ✗ STEP 5 FAILED: Browser automation failed:`, browserError instanceof Error ? browserError.message : browserError);
     }
   }
   

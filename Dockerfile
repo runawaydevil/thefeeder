@@ -61,8 +61,20 @@ RUN npm run build
 FROM base AS build-worker
 WORKDIR /worker
 
-# Install OpenSSL for Prisma
-RUN apk add --no-cache openssl openssl-dev
+# Install OpenSSL for Prisma and Chromium dependencies for Puppeteer
+RUN apk add --no-cache \
+    openssl \
+    openssl-dev \
+    chromium \
+    nss \
+    freetype \
+    harfbuzz \
+    ca-certificates \
+    ttf-freefont
+
+# Tell Puppeteer to use installed Chromium
+ENV PUPPETEER_SKIP_CHROMIUM_DOWNLOAD=true \
+    PUPPETEER_EXECUTABLE_PATH=/usr/bin/chromium-browser
 
 # Copy node_modules from deps
 COPY --from=deps-worker /worker/node_modules ./node_modules
@@ -129,8 +141,20 @@ FROM node:20-alpine AS worker
 WORKDIR /worker
 ENV NODE_ENV=production
 
-# Install OpenSSL for Prisma runtime and postgresql-client for pg_isready
-RUN apk add --no-cache openssl postgresql-client
+# Install OpenSSL for Prisma runtime, postgresql-client for pg_isready, and Chromium for Puppeteer
+RUN apk add --no-cache \
+    openssl \
+    postgresql-client \
+    chromium \
+    nss \
+    freetype \
+    harfbuzz \
+    ca-certificates \
+    ttf-freefont
+
+# Tell Puppeteer to use installed Chromium
+ENV PUPPETEER_SKIP_CHROMIUM_DOWNLOAD=true \
+    PUPPETEER_EXECUTABLE_PATH=/usr/bin/chromium-browser
 
 # Copy package files
 COPY --from=build-worker /worker/package.json ./package.json

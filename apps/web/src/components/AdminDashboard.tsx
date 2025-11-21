@@ -4,6 +4,8 @@ import { useState, useEffect } from "react";
 import { signOut } from "next-auth/react";
 import FeedsManager from "./FeedsManager";
 import SubscribersManager from "./SubscribersManager";
+import NotificationBell from "./NotificationBell";
+import BrowserAutomationStats from "./BrowserAutomationStats";
 
 export default function AdminDashboard() {
   const [activeTab, setActiveTab] = useState<"feeds" | "subscribers">("feeds");
@@ -51,13 +53,21 @@ export default function AdminDashboard() {
                 <p className="text-muted-foreground text-xs mt-0.5 truncate">Manage feeds and subscribers</p>
               </div>
             </div>
-            <button
-              onClick={() => signOut({ callbackUrl: "/" })}
-              className="min-h-[44px] px-3 py-1.5 text-xs sm:text-sm bg-destructive/10 text-destructive/90 border border-destructive/40 rounded hover:bg-destructive/20 hover:border-destructive/60 transition-all uppercase tracking-wider font-normal flex-shrink-0 w-full sm:w-auto touch-manipulation"
-            >
-              Sign Out
-            </button>
+            <div className="flex items-center gap-2">
+              <NotificationBell />
+              <button
+                onClick={() => signOut({ callbackUrl: "/" })}
+                className="min-h-[44px] px-3 py-1.5 text-xs sm:text-sm bg-destructive/10 text-destructive/90 border border-destructive/40 rounded hover:bg-destructive/20 hover:border-destructive/60 transition-all uppercase tracking-wider font-normal flex-shrink-0 w-full sm:w-auto touch-manipulation"
+              >
+                Sign Out
+              </button>
+            </div>
           </header>
+
+          {/* Browser Automation Stats */}
+          <div className="mb-4">
+            <BrowserAutomationStats />
+          </div>
 
           {/* Tabs */}
           <div className="flex gap-2 mb-4">
