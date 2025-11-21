@@ -3,7 +3,7 @@
  * Uses Puppeteer to fetch feeds that block standard HTTP clients
  */
 
-// @ts-ignore - Puppeteer types will be available after npm install
+// @ts-ignore - Puppeteer will be available after npm install
 import puppeteer, { Browser, Page } from 'puppeteer';
 
 export interface BrowserFetchOptions {
