@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/src/lib/prisma";
-import { rateLimit } from "@/src/lib/rate-limit";
+import { rateLimitByIP } from "@/src/lib/rate-limit-redis";
+import { getCorsHeaders } from "@/src/lib/cors";
 import { cacheKey, del } from "@/src/lib/cache";
 import { getVoterId } from "@/src/lib/voter-id";
 
@@ -28,17 +29,24 @@ export async function POST(
     // Get or create voter ID
     const voterId = await getVoterId();
 
-    // Rate limiting - 5 requests per minute per IP
+    // Rate limiting - 5 requests per minute per IP (using Redis)
     const ip = req.headers.get("x-forwarded-for") || req.headers.get("x-real-ip") || "unknown";
-    const limit = rateLimit(`vote:${ip}`, 5, 60000); // 5 requests per minute
+    const rateLimit = await rateLimitByIP(ip, 5, 60000, "vote");
     
-    if (!limit.allowed) {
+    if (!rateLimit.allowed) {
       return NextResponse.json(
-        { 
+        {
           error: "Too many vote requests. Please try again later.",
-          code: "RATE_LIMIT"
+          code: "RATE_LIMIT",
+          retryAfter: rateLimit.retryAfter,
         },
-        { status: 429 }
+        {
+          status: 429,
+          headers: {
+            "Retry-After": rateLimit.retryAfter?.toString() || "60",
+            ...getCorsHeaders(req.headers.get("origin")),
+          },
+        },
       );
     }
 
@@ -48,11 +56,11 @@ export async function POST(
 
     if (!action || !["like", "dislike", "remove_like", "remove_dislike"].includes(action)) {
       return NextResponse.json(
-        { 
+        {
           error: "Invalid action. Must be 'like', 'dislike', 'remove_like', or 'remove_dislike'.",
-          code: "INVALID_ACTION"
+          code: "INVALID_ACTION",
         },
-        { status: 400 }
+        { status: 400, headers: getCorsHeaders(req.headers.get("origin")) },
       );
     }
 
@@ -64,11 +72,11 @@ export async function POST(
 
     if (!item) {
       return NextResponse.json(
-        { 
+        {
           error: "Item not found.",
-          code: "NOT_FOUND"
+          code: "NOT_FOUND",
         },
-        { status: 404 }
+        { status: 404, headers: getCorsHeaders(req.headers.get("origin")) },
       );
     }
 
@@ -256,15 +264,21 @@ export async function POST(
       userVote,
     };
 
-    return NextResponse.json(response);
+    return NextResponse.json(response, {
+      headers: {
+        "X-RateLimit-Remaining": rateLimit.remaining.toString(),
+        "X-RateLimit-Reset": new Date(rateLimit.resetAt).toISOString(),
+        ...getCorsHeaders(req.headers.get("origin")),
+      },
+    });
   } catch (error) {
     console.error("Error processing vote:", error);
     return NextResponse.json(
-      { 
+      {
         error: "Internal server error.",
-        code: "SERVER_ERROR"
+        code: "SERVER_ERROR",
       },
-      { status: 500 }
+      { status: 500, headers: getCorsHeaders(req.headers.get("origin")) },
     );
   }
 }

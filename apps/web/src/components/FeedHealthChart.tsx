@@ -76,7 +76,7 @@ export default function FeedHealthChart({ logs }: FeedHealthChartProps) {
                     className="w-full rounded-t transition-all"
                     style={{
                       height: `${failedHeight}%`,
-                      background: '#ef4444',
+                      background: 'hsl(var(--destructive))',
                       minHeight: '4px',
                     }}
                     title={`${day.failed} failed attempts`}

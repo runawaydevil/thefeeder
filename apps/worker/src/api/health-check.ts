@@ -1,6 +1,6 @@
-import { NextResponse } from "next/server";
-import { prisma } from "@/src/lib/prisma";
-import { getHealthStatus as getRedisHealth } from "@/src/lib/cache";
+import { Request, Response } from "express";
+import { prisma } from "../lib/prisma.js";
+import { getHealthStatus as getRedisHealth } from "../lib/cache.js";
 
 export interface HealthCheckResponse {
   status: "healthy" | "degraded" | "unhealthy";
@@ -32,11 +32,24 @@ export interface HealthCheckResponse {
       total: number;
       approved: number;
     };
+    jobs: {
+      feedFetch: {
+        waiting: number;
+        active: number;
+        completed: number;
+        failed: number;
+      };
+      dailyDigest: {
+        waiting: number;
+        active: number;
+        completed: number;
+        failed: number;
+      };
+    };
   };
 }
 
-export async function GET() {
-  const startTime = Date.now();
+export async function getHealthCheck(req: Request, res: Response) {
   const health: HealthCheckResponse = {
     status: "healthy",
     timestamp: new Date().toISOString(),
@@ -63,6 +76,20 @@ export async function GET() {
       subscribers: {
         total: 0,
         approved: 0,
+      },
+      jobs: {
+        feedFetch: {
+          waiting: 0,
+          active: 0,
+          completed: 0,
+          failed: 0,
+        },
+        dailyDigest: {
+          waiting: 0,
+          active: 0,
+          completed: 0,
+          failed: 0,
+        },
       },
     },
   };
@@ -144,7 +171,54 @@ export async function GET() {
     }
   }
 
+  // Get job queue metrics (if Redis is available)
+  if (health.services.redis.connected) {
+    try {
+      const { Queue } = await import("bullmq");
+      const REDIS_URL = process.env.REDIS_URL || "redis://localhost:6379";
+      
+      const feedFetchQueue = new Queue("feed-fetch", {
+        connection: { url: REDIS_URL },
+      });
+      const dailyDigestQueue = new Queue("daily-digest", {
+        connection: { url: REDIS_URL },
+      });
+
+      const [feedFetchJobs, dailyDigestJobs] = await Promise.all([
+        Promise.all([
+          feedFetchQueue.getWaitingCount(),
+          feedFetchQueue.getActiveCount(),
+          feedFetchQueue.getCompletedCount(),
+          feedFetchQueue.getFailedCount(),
+        ]),
+        Promise.all([
+          dailyDigestQueue.getWaitingCount(),
+          dailyDigestQueue.getActiveCount(),
+          dailyDigestQueue.getCompletedCount(),
+          dailyDigestQueue.getFailedCount(),
+        ]),
+      ]);
+
+      health.metrics.jobs.feedFetch = {
+        waiting: feedFetchJobs[0],
+        active: feedFetchJobs[1],
+        completed: feedFetchJobs[2],
+        failed: feedFetchJobs[3],
+      };
+
+      health.metrics.jobs.dailyDigest = {
+        waiting: dailyDigestJobs[0],
+        active: dailyDigestJobs[1],
+        completed: dailyDigestJobs[2],
+        failed: dailyDigestJobs[3],
+      };
+    } catch (error: any) {
+      console.error("[Health Check] Error fetching job metrics:", error);
+    }
+  }
+
   const statusCode = health.status === "healthy" ? 200 : health.status === "degraded" ? 200 : 503;
 
-  return NextResponse.json(health, { status: statusCode });
+  res.status(statusCode).json(health);
 }
+

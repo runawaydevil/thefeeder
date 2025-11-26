@@ -27,69 +27,51 @@
 
 @layer utilities {
   .text-glow-orange {
-    text-shadow: 0 0 10px rgba(255, 107, 53, 0.8), 0 0 20px rgba(255, 107, 53, 0.6);
+    color: hsl(var(--vaporwave-orange));
+    text-shadow: var(--shadow-glow);
   }
 
   .text-glow-pink {
-    text-shadow: 0 0 10px rgba(255, 0, 110, 0.8), 0 0 20px rgba(255, 0, 110, 0.6);
+    color: var(--color-accent-primary);
+    text-shadow: var(--shadow-glow);
   }
 
   .text-glow-cyan {
-    text-shadow: 0 0 10px rgba(0, 217, 255, 0.8), 0 0 20px rgba(0, 217, 255, 0.6);
+    color: var(--color-accent-secondary);
+    text-shadow: var(--shadow-glow);
   }
 
   .neon-border-orange {
-    border: 1px solid rgba(255, 107, 53, 0.5);
-    box-shadow: 0 0 10px rgba(255, 107, 53, 0.3), inset 0 0 10px rgba(255, 107, 53, 0.1);
+    border: 1px solid hsl(var(--vaporwave-orange) / 0.5);
+    box-shadow: var(--shadow-glow);
   }
 
   .neon-border-pink {
-    border: 1px solid rgba(255, 0, 110, 0.5);
-    box-shadow: 0 0 10px rgba(255, 0, 110, 0.3), inset 0 0 10px rgba(255, 0, 110, 0.1);
+    border: 1px solid var(--color-accent-primary);
+    opacity: 0.5;
+    box-shadow: var(--shadow-glow);
   }
 
   .neon-border-cyan {
-    border: 1px solid rgba(0, 217, 255, 0.5);
-    box-shadow: 0 0 10px rgba(0, 217, 255, 0.3), inset 0 0 10px rgba(0, 217, 255, 0.1);
+    border: 1px solid var(--color-accent-secondary);
+    opacity: 0.5;
+    box-shadow: var(--shadow-glow);
   }
 }
 
 /* Retro design tokens and effects from retro theme */
 @layer base {
   :root {
-    --background: 280 60% 8%;
-    --foreground: 300 100% 95%;
-    --card: 280 50% 12%;
-    --card-foreground: 300 100% 95%;
-    --popover: 280 60% 10%;
-    --popover-foreground: 300 100% 95%;
-    --primary: 320 100% 65%;
-    --primary-foreground: 280 60% 8%;
-    --secondary: 180 100% 60%;
-    --secondary-foreground: 280 60% 8%;
-    --muted: 280 30% 20%;
-    --muted-foreground: 300 30% 70%;
-    --accent: 270 100% 70%;
-    --accent-foreground: 280 60% 8%;
-    --destructive: 0 84% 60%;
-    --destructive-foreground: 300 100% 95%;
-    --border: 320 60% 50%;
-    --input: 280 40% 15%;
-    --ring: 320 100% 65%;
     --radius: 1rem;
-    --vaporwave-pink: 320 100% 65%;
-    --vaporwave-cyan: 180 100% 60%;
-    --vaporwave-purple: 270 100% 70%;
-    --vaporwave-orange: 30 100% 60%;
-    --gradient-sunset: linear-gradient(180deg, hsl(320 100% 50%), hsl(270 100% 50%), hsl(240 100% 50%));
-    --gradient-neon: linear-gradient(135deg, hsl(320 100% 65%), hsl(270 100% 70%), hsl(180 100% 60%));
-    --gradient-cyber: radial-gradient(circle at center, hsl(320 100% 65% / 0.3), transparent);
   }
 }
 
 @layer base {
   @import url('https://fonts.googleapis.com/css2?family=Orbitron:wght@400;500;700;900&family=Audiowide&display=swap');
-  body { background: linear-gradient(180deg, hsl(280 60% 8%), hsl(260 50% 5%)); }
+  body { 
+    background: var(--gradient-bg);
+    transition: var(--theme-transition);
+  }
 }
 
 /* Background grid and effects */
@@ -97,9 +79,12 @@
   .vaporwave-grid { 
     display: var(--effect-grid);
     position:absolute; bottom:0; left:0; right:0; height:100%; 
-    background-image: linear-gradient(0deg, transparent 24%, hsl(320 100% 65% / 0.3) 25%, hsl(320 100% 65% / 0.3) 26%, transparent 27%, transparent 74%, hsl(320 100% 65% / 0.3) 75%, hsl(320 100% 65% / 0.3) 76%, transparent 77%, transparent), linear-gradient(90deg, transparent 24%, hsl(180 100% 60% / 0.3) 25%, hsl(180 100% 60% / 0.3) 26%, transparent 27%, transparent 74%, hsl(180 100% 60% / 0.3) 75%, hsl(180 100% 60% / 0.3) 76%, transparent 77%, transparent); 
+    background-image: 
+      linear-gradient(0deg, transparent 24%, hsl(var(--vaporwave-pink) / 0.3) 25%, hsl(var(--vaporwave-pink) / 0.3) 26%, transparent 27%, transparent 74%, hsl(var(--vaporwave-pink) / 0.3) 75%, hsl(var(--vaporwave-pink) / 0.3) 76%, transparent 77%, transparent), 
+      linear-gradient(90deg, transparent 24%, hsl(var(--vaporwave-cyan) / 0.3) 25%, hsl(var(--vaporwave-cyan) / 0.3) 26%, transparent 27%, transparent 74%, hsl(var(--vaporwave-cyan) / 0.3) 75%, hsl(var(--vaporwave-cyan) / 0.3) 76%, transparent 77%, transparent); 
     background-size:100px 100px; background-position:center bottom; 
     transform:perspective(500px) rotateX(60deg); transform-origin:bottom; opacity:.4; 
+    transition: var(--theme-transition);
   }
   
   .neon-glow-pink { 

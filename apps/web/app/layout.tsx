@@ -104,6 +104,8 @@ export default function RootLayout({ children }: { children: ReactNode }) {
           <ServiceWorkerCleanup />
           <ServiceWorkerRegistration />
           {children}
+          <link rel="preconnect" href="https://fonts.googleapis.com" />
+          <link rel="preconnect" href="https://fonts.gstatic.com" crossOrigin="anonymous" />
         </ThemeProvider>
       </body>
     </html>

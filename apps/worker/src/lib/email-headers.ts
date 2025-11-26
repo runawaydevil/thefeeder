@@ -33,14 +33,19 @@ export function generateMessageId(fromEmail: string): string {
 export interface EmailHeaders {
   from: string;
   to: string;
+  replyTo?: string;
   subject: string;
   messageId: string;
   date: Date;
   headers: {
     "List-Unsubscribe": string;
     "List-Unsubscribe-Post": string;
-    "Precedence": string;
+    "MIME-Version": string;
     "X-Mailer": string;
+    "X-Auto-Response-Suppress": string;
+    "Importance": string;
+    "X-Priority": string;
+    "Return-Path"?: string;
   };
 }
 
@@ -77,29 +82,41 @@ export function buildEmailHeaders(
   const currentDate = new Date();
   const formattedDate = currentDate.toLocaleDateString("pt-BR", { timeZone: timezone });
   
-  // Build subject line
+  // Build subject line - use English only to avoid spam filters
+  // Keep it simple and professional
   let subject = "Daily Digest";
   if (itemCount > 0) {
-    subject = `Daily Digest: ${itemCount} ${itemCount === 1 ? 'novo artigo' : 'novos artigos'}`;
+    subject = `Daily Digest: ${itemCount} ${itemCount === 1 ? 'new article' : 'new articles'}`;
   }
   subject += ` - ${formattedDate}`;
   
-  // Limit subject to 50 characters (excluding date)
+  // Limit subject to 70 characters total
   if (subject.length > 70) {
     subject = `Daily Digest - ${formattedDate}`;
   }
   
+  // Sanitize subject to remove any problematic characters
+  subject = subject.replace(/[^\x20-\x7E]/g, '').trim();
+  
+  // Set reply-to to a valid address (prefer support email, fallback to from)
+  const replyToEmail = process.env.SMTP_REPLY_TO || fromEmail;
+  
   return {
-    from: `TheFeeder Daily Digest <${fromEmail}>`,
+    from: `TheFeeder <${fromEmail}>`,
     to,
+    replyTo: replyToEmail,
     subject,
     messageId,
     date: currentDate,
     headers: {
       "List-Unsubscribe": `<${unsubscribeUrl}>, <mailto:unsubscribe@${domain}?subject=Unsubscribe>`,
       "List-Unsubscribe-Post": "List-Unsubscribe=One-Click",
-      "Precedence": "bulk",
-      "X-Mailer": "TheFeeder v2.0",
+      "MIME-Version": "1.0",
+      "X-Mailer": "TheFeeder/2.0",
+      "X-Auto-Response-Suppress": "All",
+      "Importance": "normal",
+      "X-Priority": "3",
+      "Return-Path": fromEmail,
     },
   };
 }

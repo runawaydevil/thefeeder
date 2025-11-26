@@ -4,7 +4,7 @@ import { generateUnsubscribeToken } from "./unsubscribe-token.js";
 import { generateDigestHtml } from "../email-templates/digest-html.js";
 import { generateDigestText } from "../email-templates/digest-text.js";
 import { buildEmailHeaders } from "./email-headers.js";
-import { validateSmtpConfig, isValidEmail, sanitizeEmailAddress } from "./email-validation.js";
+import { validateSmtpConfig, isValidEmail, sanitizeEmailAddress, sanitizeSubject } from "./email-validation.js";
 import { logEmailSent, logEmailError, previewEmail } from "./email-logger.js";
 
 interface TransporterConfig {
@@ -127,11 +127,15 @@ export async function sendDigestEmail(
   const transporter = createTransporter();
   
   try {
+    // Sanitize subject line to prevent header injection
+    const sanitizedSubject = sanitizeSubject(emailHeaders.subject);
+    
     // Set timeout for email sending (30 seconds)
     const sendPromise = transporter.sendMail({
       from: emailHeaders.from,
       to: emailHeaders.to,
-      subject: emailHeaders.subject,
+      replyTo: emailHeaders.replyTo || emailHeaders.from,
+      subject: sanitizedSubject,
       html,
       text,
       messageId: emailHeaders.messageId,

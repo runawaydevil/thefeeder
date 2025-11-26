@@ -1,6 +1,8 @@
 "use client";
 
 import { useState, useEffect } from "react";
+import { useToast } from "@/src/hooks/useToast";
+import { ToastContainer } from "./Toast";
 
 /**
  * Format date deterministically to avoid hydration errors
@@ -30,6 +32,7 @@ interface SubscribersManagerProps {
 export default function SubscribersManager({ onSubscriberUpdate }: SubscribersManagerProps) {
   const [subscribers, setSubscribers] = useState<Subscriber[]>([]);
   const [loading, setLoading] = useState(true);
+  const { toasts, removeToast, success, error } = useToast();
 
   useEffect(() => {
     fetchSubscribers();
@@ -60,13 +63,14 @@ export default function SubscribersManager({ onSubscriberUpdate }: SubscribersMa
       if (res.ok) {
         fetchSubscribers();
         onSubscriberUpdate?.(); // Update pending count in parent
+        success(`Subscriber ${status === "approved" ? "approved" : status === "rejected" ? "rejected" : "revoked"} successfully!`);
       } else {
         const data = await res.json();
-        alert(data.error || "Error updating subscriber");
+        error(data.error || "Error updating subscriber");
       }
-    } catch (error) {
-      console.error("Error updating subscriber:", error);
-      alert("Failed to update subscriber");
+    } catch (err) {
+      console.error("Error updating subscriber:", err);
+      error("Failed to update subscriber");
     }
   };
 
@@ -78,12 +82,13 @@ export default function SubscribersManager({ onSubscriberUpdate }: SubscribersMa
       if (res.ok) {
         fetchSubscribers();
         onSubscriberUpdate?.(); // Update pending count in parent
+        success("Subscriber deleted successfully!");
       } else {
-        alert("Error deleting subscriber");
+        error("Error deleting subscriber");
       }
-    } catch (error) {
-      console.error("Error deleting subscriber:", error);
-      alert("Failed to delete subscriber");
+    } catch (err) {
+      console.error("Error deleting subscriber:", err);
+      error("Failed to delete subscriber");
     }
   };
 
@@ -106,6 +111,7 @@ export default function SubscribersManager({ onSubscriberUpdate }: SubscribersMa
 
   return (
     <div>
+      <ToastContainer toasts={toasts} onRemove={removeToast} />
       <div className="mb-4">
         <h2 className="text-base md:text-lg font-bold text-vaporwave-cyan neon-glow-cyan uppercase tracking-wider mb-3">Subscribers</h2>
         <div className="flex flex-wrap gap-3 text-xs">
@@ -134,7 +140,10 @@ export default function SubscribersManager({ onSubscriberUpdate }: SubscribersMa
                 : subscriber.status === "pending"
                   ? "border-vaporwave-purple/50"
                   : "border-destructive/50 opacity-70"
-            } p-3 md:p-4 hover:shadow-[0_0_15px_hsl(180_100%_60%_/_0.3)] transition-all`}
+            } p-3 md:p-4 transition-all`}
+            style={{ transition: 'var(--theme-transition)' }}
+            onMouseEnter={(e) => { e.currentTarget.style.boxShadow = 'var(--shadow-card)'; }}
+            onMouseLeave={(e) => { e.currentTarget.style.boxShadow = 'var(--shadow-card)'; }}
           >
             <div className="flex flex-col md:flex-row items-start md:items-center justify-between gap-3">
               <div className="flex-1">
@@ -173,13 +182,19 @@ export default function SubscribersManager({ onSubscriberUpdate }: SubscribersMa
                   <>
                     <button
                       onClick={() => handleUpdateStatus(subscriber.id, "approved")}
-                      className="flex-1 sm:flex-initial min-h-[44px] px-3 py-1.5 text-xs sm:text-sm bg-vaporwave-cyan/10 text-vaporwave-cyan/90 border border-vaporwave-cyan/40 rounded hover:bg-vaporwave-cyan/20 hover:border-vaporwave-cyan/60 hover:shadow-[0_0_6px_hsl(180_100%_60%_/_0.3)] transition-all uppercase tracking-wider font-normal touch-manipulation"
+                      className="flex-1 sm:flex-initial min-h-[44px] px-3 py-1.5 text-xs sm:text-sm bg-vaporwave-cyan/10 text-vaporwave-cyan/90 border border-vaporwave-cyan/40 rounded hover:bg-vaporwave-cyan/20 hover:border-vaporwave-cyan/60 transition-all uppercase tracking-wider font-normal touch-manipulation"
+                      style={{ transition: 'var(--theme-transition)' }}
+                      onMouseEnter={(e) => { e.currentTarget.style.boxShadow = 'var(--shadow-glow)'; }}
+                      onMouseLeave={(e) => { e.currentTarget.style.boxShadow = 'none'; }}
                     >
                       Approve
                     </button>
                     <button
                       onClick={() => handleUpdateStatus(subscriber.id, "rejected")}
-                      className="flex-1 sm:flex-initial min-h-[44px] px-3 py-1.5 text-xs sm:text-sm bg-destructive/10 text-destructive/90 border border-destructive/40 rounded hover:bg-destructive/20 hover:border-destructive/60 hover:shadow-[0_0_6px_hsl(0_84%_60%_/_0.3)] transition-all uppercase tracking-wider font-normal touch-manipulation"
+                      className="flex-1 sm:flex-initial min-h-[44px] px-3 py-1.5 text-xs sm:text-sm bg-destructive/10 text-destructive/90 border border-destructive/40 rounded hover:bg-destructive/20 hover:border-destructive/60 transition-all uppercase tracking-wider font-normal touch-manipulation"
+                      style={{ transition: 'var(--theme-transition)' }}
+                      onMouseEnter={(e) => { e.currentTarget.style.boxShadow = 'var(--shadow-glow)'; }}
+                      onMouseLeave={(e) => { e.currentTarget.style.boxShadow = 'none'; }}
                     >
                       Reject
                     </button>
@@ -188,7 +203,10 @@ export default function SubscribersManager({ onSubscriberUpdate }: SubscribersMa
                 {subscriber.status === "approved" && (
                   <button
                     onClick={() => handleUpdateStatus(subscriber.id, "pending")}
-                    className="flex-1 sm:flex-initial min-h-[44px] px-3 py-1.5 text-xs sm:text-sm bg-vaporwave-purple/10 text-vaporwave-purple/90 border border-vaporwave-purple/40 rounded hover:bg-vaporwave-purple/20 hover:border-vaporwave-purple/60 hover:shadow-[0_0_6px_hsl(270_100%_70%_/_0.3)] transition-all uppercase tracking-wider font-normal touch-manipulation"
+                    className="flex-1 sm:flex-initial min-h-[44px] px-3 py-1.5 text-xs sm:text-sm bg-vaporwave-purple/10 text-vaporwave-purple/90 border border-vaporwave-purple/40 rounded hover:bg-vaporwave-purple/20 hover:border-vaporwave-purple/60 transition-all uppercase tracking-wider font-normal touch-manipulation"
+                    style={{ transition: 'var(--theme-transition)' }}
+                    onMouseEnter={(e) => { e.currentTarget.style.boxShadow = 'var(--shadow-glow)'; }}
+                    onMouseLeave={(e) => { e.currentTarget.style.boxShadow = 'none'; }}
                   >
                     Revoke
                   </button>

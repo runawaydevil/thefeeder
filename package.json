@@ -1,7 +1,7 @@
 {
   "name": "thefeeder",
   "private": true,
-  "version": "0.1.0",
+  "version": "2.0.0",
   "scripts": {
     "dev": "concurrently \"npm run dev:web\" \"npm run dev:worker\"",
     "dev:web": "cd apps/web && npm run dev",

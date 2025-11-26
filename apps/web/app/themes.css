@@ -33,6 +33,38 @@
   --gradient-bg: linear-gradient(180deg, hsl(280, 60%, 8%), hsl(260, 50%, 5%));
   --gradient-bg-overlay: radial-gradient(circle at 50% 0%, hsl(320 100% 50% / 0.4), transparent 50%), radial-gradient(circle at 80% 80%, hsl(270 100% 50% / 0.3), transparent 50%);
   --gradient-card: linear-gradient(135deg, hsla(280, 50%, 12%, 0.8), hsla(270, 40%, 10%, 0.9));
+  
+  /* Tailwind color variables */
+  --background: 280 60% 8%;
+  --foreground: 300 100% 95%;
+  --card: 280 50% 12%;
+  --card-foreground: 300 100% 95%;
+  --popover: 280 60% 10%;
+  --popover-foreground: 300 100% 95%;
+  --primary: 320 100% 65%;
+  --primary-foreground: 280 60% 8%;
+  --secondary: 180 100% 60%;
+  --secondary-foreground: 280 60% 8%;
+  --muted: 280 30% 20%;
+  --muted-foreground: 300 30% 70%;
+  --accent: 270 100% 70%;
+  --accent-foreground: 280 60% 8%;
+  --destructive: 0 84% 60%;
+  --destructive-foreground: 300 100% 95%;
+  --border: 320 60% 50%;
+  --input: 280 40% 15%;
+  --ring: 320 100% 65%;
+  
+  /* Vaporwave specific colors */
+  --vaporwave-pink: 320 100% 65%;
+  --vaporwave-cyan: 180 100% 60%;
+  --vaporwave-purple: 270 100% 70%;
+  --vaporwave-orange: 30 100% 60%;
+  
+  /* Gradients */
+  --gradient-sunset: linear-gradient(180deg, hsl(320 100% 50%), hsl(270 100% 50%), hsl(240 100% 50%));
+  --gradient-neon: linear-gradient(135deg, hsl(320 100% 65%), hsl(270 100% 70%), hsl(180 100% 60%));
+  --gradient-cyber: radial-gradient(circle at center, hsl(320 100% 65% / 0.3), transparent);
 }
 
 /* Clean Theme */
@@ -60,6 +92,38 @@
   --gradient-bg: #FFFFFF;
   --gradient-bg-overlay: transparent;
   --gradient-card: #FAFAFA;
+  
+  /* Tailwind color variables */
+  --background: 0 0% 100%;
+  --foreground: 0 0% 10%;
+  --card: 0 0% 98%;
+  --card-foreground: 0 0% 10%;
+  --popover: 0 0% 100%;
+  --popover-foreground: 0 0% 10%;
+  --primary: 210 100% 40%;
+  --primary-foreground: 0 0% 100%;
+  --secondary: 0 0% 0%;
+  --secondary-foreground: 0 0% 100%;
+  --muted: 0 0% 95%;
+  --muted-foreground: 0 0% 40%;
+  --accent: 210 100% 40%;
+  --accent-foreground: 0 0% 100%;
+  --destructive: 0 84% 60%;
+  --destructive-foreground: 0 0% 100%;
+  --border: 0 0% 88%;
+  --input: 0 0% 96%;
+  --ring: 210 100% 40%;
+  
+  /* Clean theme equivalent colors (neutral tones) */
+  --vaporwave-pink: 210 100% 40%; /* Blue instead of pink */
+  --vaporwave-cyan: 0 0% 0%; /* Black instead of cyan */
+  --vaporwave-purple: 210 100% 50%; /* Blue variant */
+  --vaporwave-orange: 30 100% 50%; /* Keep orange for consistency */
+  
+  /* Gradients */
+  --gradient-sunset: linear-gradient(180deg, #0066CC, #004499, #002266);
+  --gradient-neon: linear-gradient(135deg, #0066CC, #000000, #333333);
+  --gradient-cyber: radial-gradient(circle at center, rgba(0, 102, 204, 0.1), transparent);
 }
 
 /* Disable transitions on initial load */

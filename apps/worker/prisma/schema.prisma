@@ -71,6 +71,9 @@ model Item {
   publishedAt DateTime?
   sourceGuid  String?  @unique
   createdAt   DateTime @default(now())
+  likes       Int      @default(0)
+  dislikes    Int      @default(0)
+  votes       VoteTracker[]
 }
 
 model Subscriber {
@@ -94,6 +97,26 @@ model DailyDigestLog {
   sentAt       DateTime @default(now())
   numRecipients Int
   numItems     Int
+}
+
+model VoteTracker {
+  id        String   @id @default(cuid())
+  voterId   String
+  itemId    String
+  voteType  VoteType
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  item Item @relation(fields: [itemId], references: [id], onDelete: Cascade)
+
+  @@unique([voterId, itemId])
+  @@index([voterId])
+  @@index([itemId])
+}
+
+enum VoteType {
+  like
+  dislike
 }
 
 enum FeedStatus {
@@ -153,5 +176,4 @@ model FeedNotification {
   
   @@index([isRead, createdAt])
 }
-
 

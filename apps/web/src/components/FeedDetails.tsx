@@ -5,6 +5,8 @@ import FeedStatusBadge from './FeedStatusBadge';
 import FeedHealthMetrics from './FeedHealthMetrics';
 import FeedHealthChart from './FeedHealthChart';
 import FeedAlternatives from './FeedAlternatives';
+import { useToast } from "@/src/hooks/useToast";
+import { ToastContainer } from "./Toast";
 
 interface FeedDetailsProps {
   feedId: string;
@@ -15,6 +17,7 @@ export default function FeedDetails({ feedId, onClose }: FeedDetailsProps) {
   const [loading, setLoading] = useState(true);
   const [data, setData] = useState<any>(null);
   const [retrying, setRetrying] = useState(false);
+  const { toasts, removeToast, success, error } = useToast();
 
   useEffect(() => {
     fetchHealthData();
@@ -41,16 +44,16 @@ export default function FeedDetails({ feedId, onClose }: FeedDetailsProps) {
         method: 'POST',
       });
       if (res.ok) {
-        alert('Feed retry triggered successfully!');
+        success('Feed retry triggered successfully!');
         // Refresh health data after a delay
         setTimeout(fetchHealthData, 2000);
       } else {
         const data = await res.json();
-        alert(data.error || 'Failed to retry feed');
+        error(data.error || 'Failed to retry feed');
       }
-    } catch (error) {
-      console.error('Error retrying feed:', error);
-      alert('Failed to retry feed');
+    } catch (err) {
+      console.error('Error retrying feed:', err);
+      error('Failed to retry feed');
     } finally {
       setRetrying(false);
     }
@@ -59,7 +62,7 @@ export default function FeedDetails({ feedId, onClose }: FeedDetailsProps) {
   if (loading) {
     return (
       <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-50">
-        <div className="bg-background border-2 border-vaporwave-cyan/50 rounded-lg p-6 max-w-4xl w-full mx-4 max-h-[90vh] overflow-y-auto">
+        <div className="bg-background border-2 rounded-lg p-6 max-w-4xl w-full mx-4 max-h-[90vh] overflow-y-auto" style={{ borderColor: 'var(--color-accent-secondary)', transition: 'var(--theme-transition)' }}>
           <p style={{ color: 'var(--color-text-primary)' }}>Loading...</p>
         </div>
       </div>
@@ -74,7 +77,8 @@ export default function FeedDetails({ feedId, onClose }: FeedDetailsProps) {
 
   return (
     <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-50 p-4">
-      <div className="bg-background border-2 border-vaporwave-cyan/50 rounded-lg p-6 max-w-4xl w-full max-h-[90vh] overflow-y-auto">
+      <ToastContainer toasts={toasts} onRemove={removeToast} />
+      <div className="bg-background border-2 rounded-lg p-6 max-w-4xl w-full max-h-[90vh] overflow-y-auto" style={{ borderColor: 'var(--color-accent-secondary)', transition: 'var(--theme-transition)' }}>
         {/* Header */}
         <div className="flex items-start justify-between mb-6">
           <div className="flex-1">

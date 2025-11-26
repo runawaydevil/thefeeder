@@ -27,13 +27,15 @@ export default function StarsEffect() {
       setMounted(true);
       
       // Generate stars only on client side after hydration
+      // Get accent color from CSS variable
+      const accentColor = getComputedStyle(document.documentElement).getPropertyValue('--color-accent-secondary').trim();
       const generatedStars: Star[] = Array.from({ length: 20 }, () => ({
         width: `${Math.random() * 2 + 1}px`,
         height: `${Math.random() * 2 + 1}px`,
         top: `${Math.random() * 100}%`,
         left: `${Math.random() * 100}%`,
         opacity: Math.random() * 0.5 + 0.2,
-        boxShadow: `0 0 ${Math.random() * 8 + 3}px hsl(180 100% 60%)`,
+        boxShadow: `0 0 ${Math.random() * 8 + 3}px ${accentColor}`,
       }));
 
       setStars(generatedStars);
@@ -53,8 +55,10 @@ export default function StarsEffect() {
       {stars.map((star, i) => (
         <div
           key={i}
-          className="absolute rounded-full bg-vaporwave-cyan"
+          className="absolute rounded-full"
           style={{
+            backgroundColor: 'var(--color-accent-secondary)',
+            transition: 'var(--theme-transition)',
             width: star.width,
             height: star.height,
             top: star.top,

@@ -6,6 +6,7 @@ import FeedsManager from "./FeedsManager";
 import SubscribersManager from "./SubscribersManager";
 import NotificationBell from "./NotificationBell";
 import BrowserAutomationStats from "./BrowserAutomationStats";
+import { ThemeToggle } from "./ThemeToggle";
 
 export default function AdminDashboard() {
   const [activeTab, setActiveTab] = useState<"feeds" | "subscribers">("feeds");
@@ -32,10 +33,11 @@ export default function AdminDashboard() {
   }, []);
 
   return (
-    <div className="min-h-screen relative overflow-x-hidden overflow-y-auto scanlines">
+    <div className="min-h-screen relative overflow-x-hidden overflow-y-auto scanlines" style={{ background: 'var(--color-bg-primary)', transition: 'var(--theme-transition)' }}>
       <div className="vaporwave-grid" />
       <div className="absolute inset-0 opacity-30" style={{
-        background: 'radial-gradient(circle at 50% 0%, hsl(320 100% 50% / 0.4), transparent 50%), radial-gradient(circle at 80% 80%, hsl(270 100% 50% / 0.3), transparent 50%)'
+        background: 'var(--gradient-bg-overlay)',
+        transition: 'var(--theme-transition)'
       }} />
       
       <div className="relative z-10 p-3 md:p-4">
@@ -54,6 +56,7 @@ export default function AdminDashboard() {
               </div>
             </div>
             <div className="flex items-center gap-2">
+              <ThemeToggle />
               <NotificationBell />
               <button
                 onClick={() => signOut({ callbackUrl: "/" })}
@@ -75,9 +78,27 @@ export default function AdminDashboard() {
               onClick={() => setActiveTab("feeds")}
               className={`min-h-[44px] px-3 py-1.5 text-xs sm:text-sm rounded transition-all uppercase tracking-wider font-normal border touch-manipulation ${
                 activeTab === "feeds"
-                  ? "bg-vaporwave-pink/20 text-vaporwave-pink border-vaporwave-pink/60 shadow-[0_0_8px_hsl(320_100%_65%_/_0.3)]"
-                  : "bg-card/30 text-muted-foreground border-vaporwave-pink/20 hover:bg-card/50 hover:border-vaporwave-pink/40"
+                  ? "shadow-[var(--shadow-glow)]"
+                  : ""
               }`}
+              style={{
+                backgroundColor: activeTab === "feeds" ? 'hsl(var(--vaporwave-pink) / 0.2)' : 'hsl(var(--card) / 0.3)',
+                color: activeTab === "feeds" ? 'hsl(var(--vaporwave-pink))' : 'var(--color-text-muted)',
+                borderColor: activeTab === "feeds" ? 'hsl(var(--vaporwave-pink) / 0.6)' : 'hsl(var(--vaporwave-pink) / 0.2)',
+                transition: 'var(--theme-transition)'
+              }}
+              onMouseEnter={(e) => {
+                if (activeTab !== "feeds") {
+                  e.currentTarget.style.backgroundColor = 'hsl(var(--card) / 0.5)';
+                  e.currentTarget.style.borderColor = 'hsl(var(--vaporwave-pink) / 0.4)';
+                }
+              }}
+              onMouseLeave={(e) => {
+                if (activeTab !== "feeds") {
+                  e.currentTarget.style.backgroundColor = 'hsl(var(--card) / 0.3)';
+                  e.currentTarget.style.borderColor = 'hsl(var(--vaporwave-pink) / 0.2)';
+                }
+              }}
             >
               Feeds
             </button>
@@ -85,13 +106,35 @@ export default function AdminDashboard() {
               onClick={() => setActiveTab("subscribers")}
               className={`relative min-h-[44px] px-3 py-1.5 text-xs sm:text-sm rounded transition-all uppercase tracking-wider font-normal border touch-manipulation ${
                 activeTab === "subscribers"
-                  ? "bg-vaporwave-pink/20 text-vaporwave-pink border-vaporwave-pink/60 shadow-[0_0_8px_hsl(320_100%_65%_/_0.3)]"
-                  : "bg-card/30 text-muted-foreground border-vaporwave-pink/20 hover:bg-card/50 hover:border-vaporwave-pink/40"
+                  ? "shadow-[var(--shadow-glow)]"
+                  : ""
               }`}
+              style={{
+                backgroundColor: activeTab === "subscribers" ? 'hsl(var(--vaporwave-pink) / 0.2)' : 'hsl(var(--card) / 0.3)',
+                color: activeTab === "subscribers" ? 'hsl(var(--vaporwave-pink))' : 'var(--color-text-muted)',
+                borderColor: activeTab === "subscribers" ? 'hsl(var(--vaporwave-pink) / 0.6)' : 'hsl(var(--vaporwave-pink) / 0.2)',
+                transition: 'var(--theme-transition)'
+              }}
+              onMouseEnter={(e) => {
+                if (activeTab !== "subscribers") {
+                  e.currentTarget.style.backgroundColor = 'hsl(var(--card) / 0.5)';
+                  e.currentTarget.style.borderColor = 'hsl(var(--vaporwave-pink) / 0.4)';
+                }
+              }}
+              onMouseLeave={(e) => {
+                if (activeTab !== "subscribers") {
+                  e.currentTarget.style.backgroundColor = 'hsl(var(--card) / 0.3)';
+                  e.currentTarget.style.borderColor = 'hsl(var(--vaporwave-pink) / 0.2)';
+                }
+              }}
             >
               Subscribers
               {pendingCount > 0 && (
-                <span className="absolute -top-1 -right-1 min-w-[16px] h-[16px] px-1 rounded-full bg-vaporwave-cyan text-primary-foreground text-[9px] font-medium flex items-center justify-center border border-primary shadow-[0_0_6px_hsl(180_100%_50%_/_0.4)] animate-pulse">
+                <span className="absolute -top-1 -right-1 min-w-[16px] h-[16px] px-1 rounded-full text-primary-foreground text-[9px] font-medium flex items-center justify-center border border-primary animate-pulse" style={{
+                  backgroundColor: 'hsl(var(--vaporwave-cyan))',
+                  boxShadow: 'var(--shadow-glow)',
+                  transition: 'var(--theme-transition)'
+                }}>
                   {pendingCount > 99 ? "99+" : pendingCount}
                 </span>
               )}
@@ -99,7 +142,10 @@ export default function AdminDashboard() {
           </div>
 
           {/* Content */}
-          <div className="cyber-card border-2 border-vaporwave-cyan/50 p-4 md:p-5 backdrop-blur-md">
+          <div className="cyber-card border-2 p-4 md:p-5 backdrop-blur-md" style={{
+            borderColor: 'var(--color-accent-secondary)',
+            transition: 'var(--theme-transition)'
+          }}>
             {activeTab === "feeds" && <FeedsManager />}
             {activeTab === "subscribers" && <SubscribersManager onSubscriberUpdate={fetchPendingCount} />}
           </div>

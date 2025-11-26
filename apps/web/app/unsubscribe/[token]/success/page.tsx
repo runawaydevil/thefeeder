@@ -15,10 +15,11 @@ export default async function UnsubscribeSuccessPage({ params }: UnsubscribeSucc
   }
 
   return (
-    <div className="min-h-screen relative overflow-x-hidden overflow-y-auto scanlines">
+    <div className="min-h-screen relative overflow-x-hidden overflow-y-auto scanlines" style={{ background: 'var(--color-bg-primary)', transition: 'var(--theme-transition)' }}>
       <div className="vaporwave-grid" />
       <div className="absolute inset-0 opacity-30" style={{
-        background: 'radial-gradient(circle at 50% 0%, hsl(320 100% 50% / 0.4), transparent 50%), radial-gradient(circle at 80% 80%, hsl(270 100% 50% / 0.3), transparent 50%)'
+        background: 'var(--gradient-bg-overlay)',
+        transition: 'var(--theme-transition)'
       }} />
 
       <div className="relative z-10 min-h-screen flex flex-col items-center justify-center px-4 py-8">
@@ -34,8 +35,10 @@ export default async function UnsubscribeSuccessPage({ params }: UnsubscribeSucc
           </h1>
 
           {/* Message */}
-          <div className="bg-card border-2 border-vaporwave-cyan rounded-lg p-6 mb-6" style={{
-            boxShadow: '0 0 20px hsla(180, 100%, 60%, 0.5), 0 0 40px hsla(270, 100%, 70%, 0.3)'
+          <div className="bg-card border-2 rounded-lg p-6 mb-6" style={{
+            borderColor: 'var(--color-accent-secondary)',
+            boxShadow: 'var(--shadow-card)',
+            transition: 'var(--theme-transition)'
           }}>
             <p className="text-foreground mb-4">
               Você foi removido da lista de emails com sucesso.
@@ -48,10 +51,13 @@ export default async function UnsubscribeSuccessPage({ params }: UnsubscribeSucc
           {/* Link back */}
           <a
             href="/"
-            className="inline-block px-6 py-3 bg-primary text-primary-foreground font-bold rounded-lg hover:opacity-90 transition-opacity"
+            className="inline-block px-6 py-3 font-bold rounded-lg hover:opacity-90 transition-opacity"
             style={{
-              textShadow: '0 0 8px rgba(255, 0, 110, 0.5)',
-              boxShadow: '0 0 15px hsl(320 100% 65%)'
+              backgroundColor: 'var(--color-accent-primary)',
+              color: 'var(--color-bg-primary)',
+              textShadow: 'var(--shadow-glow)',
+              boxShadow: 'var(--shadow-glow)',
+              transition: 'var(--theme-transition)'
             }}
           >
             Voltar ao Início

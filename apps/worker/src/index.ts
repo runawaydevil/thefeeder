@@ -132,6 +132,19 @@ async function start() {
   console.log("🚀 Starting TheFeeder Worker...");
 
   try {
+    // Initialize Redis connection
+    try {
+      const { initializeRedis } = await import('./lib/cache.js');
+      const redisConnected = await initializeRedis();
+      if (redisConnected) {
+        console.log('✅ Redis initialized successfully');
+      } else {
+        console.warn('⚠️ Redis initialization failed - cache will be disabled');
+      }
+    } catch (error) {
+      console.error('❌ Failed to initialize Redis:', error);
+    }
+
     // Start Express API server for scheduling
     const app = express();
     app.use(express.json());
@@ -140,13 +153,12 @@ async function start() {
     // Import API handlers
     const { testAlternative } = await import('./api/test-alternative.js');
     const { getBrowserAutomationStats } = await import('./api/browser-automation-stats.js');
+    const { getHealthCheck } = await import('./api/health-check.js');
     
     app.post("/api/feeds/test-alternative", testAlternative);
     app.get("/api/browser-automation/stats", getBrowserAutomationStats);
     
-    app.get("/health", (req, res) => {
-      res.json({ status: "ok" });
-    });
+    app.get("/health", getHealthCheck);
 
     app.listen(WORKER_API_PORT, () => {
       console.log(`📡 Worker API listening on port ${WORKER_API_PORT}`);

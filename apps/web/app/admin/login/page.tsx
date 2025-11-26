@@ -3,6 +3,7 @@
 import { useState, FormEvent } from "react";
 import { signIn } from "next-auth/react";
 import { useRouter } from "next/navigation";
+import { ThemeToggle } from "@/src/components/ThemeToggle";
 
 export default function AdminLoginPage() {
   const router = useRouter();
@@ -37,13 +38,22 @@ export default function AdminLoginPage() {
   };
 
   return (
-    <div className="min-h-screen relative overflow-x-hidden overflow-y-auto scanlines flex items-center justify-center px-4">
+    <div className="min-h-screen relative overflow-x-hidden overflow-y-auto scanlines flex items-center justify-center px-4" style={{ background: 'var(--color-bg-primary)', transition: 'var(--theme-transition)' }}>
       <div className="vaporwave-grid" />
       <div className="absolute inset-0 opacity-30" style={{
-        background: 'radial-gradient(circle at 50% 0%, hsl(320 100% 50% / 0.4), transparent 50%), radial-gradient(circle at 80% 80%, hsl(270 100% 50% / 0.3), transparent 50%)'
+        background: 'var(--gradient-bg-overlay)',
+        transition: 'var(--theme-transition)'
       }} />
       
-      <div className="relative z-10 w-full max-w-md space-y-6 md:space-y-8 cyber-card border-2 border-vaporwave-pink/50 p-5 md:p-8 backdrop-blur-md mx-2">
+      {/* Theme Toggle */}
+      <div className="absolute top-4 right-4 z-20">
+        <ThemeToggle />
+      </div>
+      
+      <div className="relative z-10 w-full max-w-md space-y-6 md:space-y-8 cyber-card border-2 p-5 md:p-8 backdrop-blur-md mx-2" style={{ 
+        borderColor: 'var(--color-accent-primary)', 
+        transition: 'var(--theme-transition)' 
+      }}>
         <div className="text-center space-y-3 md:space-y-4">
           <div className="glow-soft flex justify-center">
             <img src="/logo.png" alt="The Feeder Logo" className="w-14 h-14 md:w-20 md:h-20 opacity-80" />
@@ -60,7 +70,7 @@ export default function AdminLoginPage() {
           )}
 
           <div>
-            <label htmlFor="email" className="block text-[10px] md:text-xs font-medium mb-1.5 md:mb-2 text-vaporwave-cyan uppercase tracking-wider">
+            <label htmlFor="email" className="block text-[10px] md:text-xs font-medium mb-1.5 md:mb-2 uppercase tracking-wider" style={{ color: 'var(--color-accent-secondary)', transition: 'var(--theme-transition)' }}>
               Email
             </label>
             <input
@@ -69,13 +79,26 @@ export default function AdminLoginPage() {
               value={email}
               onChange={(e) => setEmail(e.target.value)}
               required
-              className="w-full px-3 py-2 md:px-4 md:py-3 text-sm bg-background/80 border-2 border-vaporwave-pink/30 rounded-md text-foreground focus:border-vaporwave-pink focus:outline-none focus:ring-2 focus:ring-vaporwave-pink/50 transition-all"
+              className="w-full px-3 py-2 md:px-4 md:py-3 text-sm bg-background/80 border-2 rounded-md transition-all"
+              style={{
+                color: 'var(--color-text-primary)',
+                borderColor: 'var(--color-accent-primary)',
+                transition: 'var(--theme-transition)'
+              }}
+              onFocus={(e) => {
+                e.target.style.borderColor = 'var(--color-accent-primary)';
+                e.target.style.boxShadow = '0 0 0 2px var(--color-accent-primary)';
+              }}
+              onBlur={(e) => {
+                e.target.style.borderColor = 'var(--color-accent-primary)';
+                e.target.style.boxShadow = 'none';
+              }}
               placeholder="admin@example.com"
             />
           </div>
 
           <div>
-            <label htmlFor="password" className="block text-[10px] md:text-xs font-medium mb-1.5 md:mb-2 text-vaporwave-cyan uppercase tracking-wider">
+            <label htmlFor="password" className="block text-[10px] md:text-xs font-medium mb-1.5 md:mb-2 uppercase tracking-wider" style={{ color: 'var(--color-accent-secondary)', transition: 'var(--theme-transition)' }}>
               Password
             </label>
             <input
@@ -84,7 +107,20 @@ export default function AdminLoginPage() {
               value={password}
               onChange={(e) => setPassword(e.target.value)}
               required
-              className="w-full px-3 py-2 md:px-4 md:py-3 text-sm bg-background/80 border-2 border-vaporwave-pink/30 rounded-md text-foreground focus:border-vaporwave-pink focus:outline-none focus:ring-2 focus:ring-vaporwave-pink/50 transition-all"
+              className="w-full px-3 py-2 md:px-4 md:py-3 text-sm bg-background/80 border-2 rounded-md transition-all"
+              style={{
+                color: 'var(--color-text-primary)',
+                borderColor: 'var(--color-accent-primary)',
+                transition: 'var(--theme-transition)'
+              }}
+              onFocus={(e) => {
+                e.target.style.borderColor = 'var(--color-accent-primary)';
+                e.target.style.boxShadow = '0 0 0 2px var(--color-accent-primary)';
+              }}
+              onBlur={(e) => {
+                e.target.style.borderColor = 'var(--color-accent-primary)';
+                e.target.style.boxShadow = 'none';
+              }}
               placeholder="••••••••"
             />
           </div>
@@ -92,7 +128,21 @@ export default function AdminLoginPage() {
           <button
             type="submit"
             disabled={loading}
-            className="w-full min-h-[44px] py-2 px-4 text-xs sm:text-sm bg-vaporwave-pink/10 text-vaporwave-pink/90 border border-vaporwave-pink/40 rounded hover:bg-vaporwave-pink/20 hover:border-vaporwave-pink/60 hover:shadow-[0_0_8px_hsl(320_100%_65%_/_0.3)] disabled:opacity-50 disabled:cursor-not-allowed transition-all uppercase tracking-wider font-normal touch-manipulation"
+            className="w-full min-h-[44px] py-2 px-4 text-xs sm:text-sm border rounded disabled:opacity-50 disabled:cursor-not-allowed transition-all uppercase tracking-wider font-normal touch-manipulation"
+            style={{
+              backgroundColor: 'var(--color-accent-primary)',
+              color: 'var(--color-bg-primary)',
+              borderColor: 'var(--color-accent-primary)',
+              transition: 'var(--theme-transition)'
+            }}
+            onMouseEnter={(e) => {
+              e.currentTarget.style.opacity = '0.9';
+              e.currentTarget.style.boxShadow = 'var(--shadow-glow)';
+            }}
+            onMouseLeave={(e) => {
+              e.currentTarget.style.opacity = '1';
+              e.currentTarget.style.boxShadow = 'none';
+            }}
           >
             {loading ? "SIGNING IN..." : "SIGN IN"}
           </button>

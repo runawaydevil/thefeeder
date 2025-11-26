@@ -3,6 +3,56 @@ import Redis from "ioredis";
 let redisClient: Redis | null = null;
 
 /**
+ * Initialize Redis connection
+ * Should be called at application startup
+ */
+export async function initializeRedis(): Promise<boolean> {
+  const redisUrl = process.env.REDIS_URL;
+  
+  if (!redisUrl) {
+    console.warn("[Cache] REDIS_URL not configured, cache will be disabled");
+    return false;
+  }
+
+  if (!redisClient) {
+    try {
+      redisClient = new Redis(redisUrl, {
+        maxRetriesPerRequest: 3,
+        retryStrategy: (times) => {
+          if (times > 3) {
+            return null;
+          }
+          return Math.min(times * 50, 2000);
+        },
+        lazyConnect: false,
+        connectTimeout: 10000,
+        enableReadyCheck: true,
+      });
+
+      redisClient.on("error", (error) => {
+        console.error("[Cache] Redis error:", error.message);
+      });
+
+      redisClient.on("connect", () => {
+        console.log("[Cache] Redis connected");
+      });
+
+      redisClient.on("ready", () => {
+        console.log("[Cache] Redis ready");
+      });
+
+      await redisClient.connect();
+      return true;
+    } catch (error) {
+      console.error("[Cache] Failed to initialize Redis:", error);
+      return false;
+    }
+  }
+
+  return true;
+}
+
+/**
  * Get Redis client instance (singleton)
  * Returns null if Redis is not configured or unavailable
  */
@@ -11,35 +61,6 @@ function getRedisClient(): Redis | null {
   
   if (!redisUrl) {
     return null;
-  }
-
-  if (!redisClient) {
-    try {
-      redisClient = new Redis(redisUrl, {
-        maxRetriesPerRequest: 3,
-        retryStrategy: (times) => {
-          // Retry up to 3 times, then give up
-          if (times > 3) {
-            return null; // Stop retrying
-          }
-          return Math.min(times * 50, 2000);
-        },
-        lazyConnect: true,
-      });
-
-      // Handle connection errors gracefully
-      redisClient.on("error", (error) => {
-        console.error("[Cache] Redis error:", error.message);
-        // Don't throw - allow app to continue without cache
-      });
-
-      redisClient.on("connect", () => {
-        console.log("[Cache] Redis connected");
-      });
-    } catch (error) {
-      console.error("[Cache] Failed to create Redis client:", error);
-      return null;
-    }
   }
 
   return redisClient;
@@ -136,6 +157,59 @@ export async function del(key: string): Promise<boolean> {
 }
 
 /**
+ * Check if Redis is available
+ */
+export async function isAvailable(): Promise<boolean> {
+  const client = getRedisClient();
+  if (!client) {
+    return false;
+  }
+
+  try {
+    const result = await client.ping();
+    return result === "PONG";
+  } catch {
+    return false;
+  }
+}
+
+/**
+ * Get Redis health status
+ */
+export async function getHealthStatus(): Promise<{
+  available: boolean;
+  connected: boolean;
+  error?: string;
+}> {
+  const client = getRedisClient();
+  
+  if (!client) {
+    return {
+      available: false,
+      connected: false,
+      error: "Redis client not initialized",
+    };
+  }
+
+  try {
+    const pingResult = await client.ping();
+    const status = client.status;
+    
+    return {
+      available: true,
+      connected: status === "ready" && pingResult === "PONG",
+      error: status !== "ready" ? `Status: ${status}` : undefined,
+    };
+  } catch (error: any) {
+    return {
+      available: false,
+      connected: false,
+      error: error.message || "Unknown error",
+    };
+  }
+}
+
+/**
  * Cache wrapper function - executes function and caches result
  * Returns cached value if available, otherwise executes function and caches result
  */
@@ -160,4 +234,3 @@ export async function cached<T>(
 
   return result;
 }
-

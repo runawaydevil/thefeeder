@@ -18,6 +18,19 @@ export async function register() {
     const tzString = Intl.DateTimeFormat().resolvedOptions().timeZone;
     console.log(`   Node.js timezone: ${tzString}`);
     console.log(`   Current time: ${testDate.toLocaleString('pt-BR', { timeZone: timezone })}`);
+    
+    // Initialize Redis connection
+    try {
+      const { initializeRedis } = await import('./src/lib/cache');
+      const redisConnected = await initializeRedis();
+      if (redisConnected) {
+        console.log('✅ Redis initialized successfully');
+      } else {
+        console.warn('⚠️ Redis initialization failed - cache will be disabled');
+      }
+    } catch (error) {
+      console.error('❌ Failed to initialize Redis:', error);
+    }
   }
 }
 

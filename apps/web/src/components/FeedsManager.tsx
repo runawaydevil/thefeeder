@@ -5,6 +5,8 @@ import { FeedIcon } from "@/src/lib/feed-icon";
 import { formatDateTime } from "@/src/lib/date-utils";
 import FeedStatusBadge from "./FeedStatusBadge";
 import FeedDetails from "./FeedDetails";
+import { useToast } from "@/src/hooks/useToast";
+import { ToastContainer } from "./Toast";
 
 interface Feed {
   id: string;
@@ -40,6 +42,7 @@ export default function FeedsManager() {
     siteUrl: "",
     refreshIntervalMinutes: 60,
   });
+  const { toasts, removeToast, success, error, warning } = useToast();
 
   useEffect(() => {
     fetchFeeds();
@@ -63,7 +66,7 @@ export default function FeedsManager() {
     e.preventDefault();
     
     if (formData.refreshIntervalMinutes < 10) {
-      alert("Refresh interval must be at least 10 minutes");
+      warning("Refresh interval must be at least 10 minutes");
       return;
     }
 
@@ -82,13 +85,14 @@ export default function FeedsManager() {
         setShowForm(false);
         setEditing(null);
         setFormData({ title: "", url: "", siteUrl: "", refreshIntervalMinutes: 60 });
+        success(editing ? "Feed updated successfully!" : "Feed created successfully!");
       } else {
         const data = await res.json();
-        alert(data.error || "Error saving feed");
+        error(data.error || "Error saving feed");
       }
-    } catch (error) {
-      console.error("Error saving feed:", error);
-      alert("Failed to save feed");
+    } catch (err) {
+      console.error("Error saving feed:", err);
+      error("Failed to save feed");
     }
   };
 
@@ -114,17 +118,19 @@ export default function FeedsManager() {
         fetchFeeds();
         // Show success message if provided
         if (data.message) {
-          alert(data.message);
+          success(data.message);
+        } else {
+          success("Feed deleted successfully!");
         }
       } else {
         // Show specific error message from API
         const errorMessage = data.error || `Error deleting feed: ${res.status} ${res.statusText}`;
-        alert(errorMessage);
+        error(errorMessage);
         console.error("Delete feed error:", { status: res.status, error: data });
       }
-    } catch (error) {
-      console.error("Error deleting feed:", error);
-      alert(`Failed to delete feed: ${error instanceof Error ? error.message : "Unknown error"}`);
+    } catch (err) {
+      console.error("Error deleting feed:", err);
+      error(`Failed to delete feed: ${err instanceof Error ? err.message : "Unknown error"}`);
     }
   };
 
@@ -133,15 +139,15 @@ export default function FeedsManager() {
       const res = await fetch(`/api/feeds/${id}/fetch`, { method: "POST" });
       if (res.ok) {
         const data = await res.json();
-        alert(`Fetched ${data.itemsCreated} new items, updated ${data.itemsUpdated} items`);
+        success(`Fetched ${data.itemsCreated} new items, updated ${data.itemsUpdated} items`);
         fetchFeeds();
       } else {
         const data = await res.json();
-        alert(data.error || "Error fetching feed");
+        error(data.error || "Error fetching feed");
       }
-    } catch (error) {
-      console.error("Error fetching feed:", error);
-      alert("Failed to fetch feed");
+    } catch (err) {
+      console.error("Error fetching feed:", err);
+      error("Failed to fetch feed");
     }
   };
 
@@ -161,7 +167,7 @@ export default function FeedsManager() {
 
   const handleDiscover = async () => {
     if (!discoverUrl.trim()) {
-      alert("Please enter a URL");
+      warning("Please enter a URL");
       return;
     }
 
@@ -180,14 +186,16 @@ export default function FeedsManager() {
       if (res.ok) {
         setDiscoveredFeeds(data.feeds || []);
         if (data.feeds.length === 0) {
-          alert("No feeds found for this URL");
+          warning("No feeds found for this URL");
+        } else {
+          success(`Found ${data.feeds.length} feed(s)`);
         }
       } else {
-        alert(data.error || "Error discovering feeds");
+        error(data.error || "Error discovering feeds");
       }
-    } catch (error) {
-      console.error("Error discovering feeds:", error);
-      alert("Failed to discover feeds");
+    } catch (err) {
+      console.error("Error discovering feeds:", err);
+      error("Failed to discover feeds");
     } finally {
       setDiscovering(false);
     }
@@ -212,7 +220,7 @@ export default function FeedsManager() {
       
       if (!res.ok) {
         const data = await res.json();
-        alert(data.error || "Error exporting OPML");
+        error(data.error || "Error exporting OPML");
         return;
       }
 
@@ -236,9 +244,10 @@ export default function FeedsManager() {
       a.click();
       document.body.removeChild(a);
       window.URL.revokeObjectURL(url);
-    } catch (error) {
-      console.error("Error exporting OPML:", error);
-      alert("Failed to export OPML");
+      success("OPML exported successfully!");
+    } catch (err) {
+      console.error("Error exporting OPML:", err);
+      error("Failed to export OPML");
     }
   };
 
@@ -248,7 +257,7 @@ export default function FeedsManager() {
 
     // Validate file type
     if (!file.type.includes("xml") && !file.name.endsWith(".opml")) {
-      alert("Invalid file type. Please upload an OPML (.opml) file");
+      error("Invalid file type. Please upload an OPML (.opml) file");
       return;
     }
 
@@ -277,12 +286,13 @@ export default function FeedsManager() {
         fetchFeeds();
         // Clear file input
         event.target.value = "";
+        success(`Successfully imported ${data.imported} feed(s)!`);
       } else {
-        alert(data.error || "Error importing OPML");
+        error(data.error || "Error importing OPML");
       }
-    } catch (error) {
-      console.error("Error importing OPML:", error);
-      alert("Failed to import OPML");
+    } catch (err) {
+      console.error("Error importing OPML:", err);
+      error("Failed to import OPML");
     } finally {
       setImportingOPML(false);
     }
@@ -290,6 +300,7 @@ export default function FeedsManager() {
 
   return (
     <div>
+      <ToastContainer toasts={toasts} onRemove={removeToast} />
       <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3 mb-4">
         <h2 className="text-base md:text-lg font-bold text-vaporwave-cyan neon-glow-cyan uppercase tracking-wider">Feeds</h2>
         <div className="flex gap-2 flex-wrap w-full sm:w-auto">
@@ -303,17 +314,23 @@ export default function FeedsManager() {
           />
           <label
             htmlFor="opml-import-input"
-            className={`flex-1 sm:flex-initial min-h-[44px] px-3 py-1.5 text-xs sm:text-sm rounded hover:shadow-[0_0_6px_hsl(270_100%_70%_/_0.3)] transition-all border uppercase tracking-wider font-normal cursor-pointer flex items-center justify-center touch-manipulation ${
+            className={`flex-1 sm:flex-initial min-h-[44px] px-3 py-1.5 text-xs sm:text-sm rounded transition-all border uppercase tracking-wider font-normal cursor-pointer flex items-center justify-center touch-manipulation ${
               importingOPML
                 ? "bg-vaporwave-purple/20 text-primary-foreground/50 border-vaporwave-purple/20 cursor-not-allowed"
                 : "bg-vaporwave-purple/10 text-vaporwave-purple/90 border-vaporwave-purple/40 hover:bg-vaporwave-purple/20 hover:border-vaporwave-purple/60"
             }`}
+            style={{ transition: 'var(--theme-transition)' }}
+            onMouseEnter={(e) => { if (!importingOPML) e.currentTarget.style.boxShadow = 'var(--shadow-glow)'; }}
+            onMouseLeave={(e) => { e.currentTarget.style.boxShadow = 'none'; }}
           >
             {importingOPML ? "⏳ Importing..." : "📤 Import OPML"}
           </label>
           <button
             onClick={handleExportOPML}
-            className="flex-1 sm:flex-initial min-h-[44px] px-3 py-1.5 text-xs sm:text-sm bg-vaporwave-pink/10 text-vaporwave-pink/90 border border-vaporwave-pink/40 rounded hover:bg-vaporwave-pink/20 hover:border-vaporwave-pink/60 hover:shadow-[0_0_6px_hsl(320_100%_65%_/_0.3)] transition-all uppercase tracking-wider font-normal touch-manipulation"
+            className="flex-1 sm:flex-initial min-h-[44px] px-3 py-1.5 text-xs sm:text-sm bg-vaporwave-pink/10 text-vaporwave-pink/90 border border-vaporwave-pink/40 rounded hover:bg-vaporwave-pink/20 hover:border-vaporwave-pink/60 transition-all uppercase tracking-wider font-normal touch-manipulation"
+            style={{ transition: 'var(--theme-transition)' }}
+            onMouseEnter={(e) => { e.currentTarget.style.boxShadow = 'var(--shadow-glow)'; }}
+            onMouseLeave={(e) => { e.currentTarget.style.boxShadow = 'none'; }}
           >
             📥 Export OPML
           </button>
@@ -326,7 +343,10 @@ export default function FeedsManager() {
                 setDiscoverUrl("");
               }
             }}
-            className="flex-1 sm:flex-initial min-h-[44px] px-3 py-1.5 text-xs sm:text-sm bg-vaporwave-purple/10 text-vaporwave-purple/90 border border-vaporwave-purple/40 rounded hover:bg-vaporwave-purple/20 hover:border-vaporwave-purple/60 hover:shadow-[0_0_6px_hsl(270_100%_70%_/_0.3)] transition-all uppercase tracking-wider font-normal touch-manipulation"
+            className="flex-1 sm:flex-initial min-h-[44px] px-3 py-1.5 text-xs sm:text-sm bg-vaporwave-purple/10 text-vaporwave-purple/90 border border-vaporwave-purple/40 rounded hover:bg-vaporwave-purple/20 hover:border-vaporwave-purple/60 transition-all uppercase tracking-wider font-normal touch-manipulation"
+            style={{ transition: 'var(--theme-transition)' }}
+            onMouseEnter={(e) => { e.currentTarget.style.boxShadow = 'var(--shadow-glow)'; }}
+            onMouseLeave={(e) => { e.currentTarget.style.boxShadow = 'none'; }}
           >
             {showDiscover ? "Cancel" : "🔍 Discover"}
           </button>
@@ -337,7 +357,10 @@ export default function FeedsManager() {
               setShowDiscover(false);
               setFormData({ title: "", url: "", siteUrl: "", refreshIntervalMinutes: 60 });
             }}
-            className="flex-1 sm:flex-initial min-h-[44px] px-3 py-1.5 text-xs sm:text-sm bg-vaporwave-cyan/10 text-vaporwave-cyan/90 border border-vaporwave-cyan/40 rounded hover:bg-vaporwave-cyan/20 hover:border-vaporwave-cyan/60 hover:shadow-[0_0_6px_hsl(180_100%_60%_/_0.3)] transition-all uppercase tracking-wider font-normal touch-manipulation"
+            className="flex-1 sm:flex-initial min-h-[44px] px-3 py-1.5 text-xs sm:text-sm bg-vaporwave-cyan/10 text-vaporwave-cyan/90 border border-vaporwave-cyan/40 rounded hover:bg-vaporwave-cyan/20 hover:border-vaporwave-cyan/60 transition-all uppercase tracking-wider font-normal touch-manipulation"
+            style={{ transition: 'var(--theme-transition)' }}
+            onMouseEnter={(e) => { e.currentTarget.style.boxShadow = 'var(--shadow-glow)'; }}
+            onMouseLeave={(e) => { e.currentTarget.style.boxShadow = 'none'; }}
           >
             {showForm ? "Cancel" : "+ Add Feed"}
           </button>
@@ -392,7 +415,10 @@ export default function FeedsManager() {
             <button
               onClick={handleDiscover}
               disabled={discovering}
-              className="min-h-[44px] px-3 py-1.5 text-xs sm:text-sm bg-vaporwave-purple/10 text-vaporwave-purple/90 border border-vaporwave-purple/40 rounded hover:bg-vaporwave-purple/20 hover:border-vaporwave-purple/60 hover:shadow-[0_0_6px_hsl(270_100%_70%_/_0.3)] disabled:opacity-50 disabled:cursor-not-allowed transition-all uppercase tracking-wider font-normal flex-shrink-0 w-full sm:w-auto touch-manipulation"
+              className="min-h-[44px] px-3 py-1.5 text-xs sm:text-sm bg-vaporwave-purple/10 text-vaporwave-purple/90 border border-vaporwave-purple/40 rounded hover:bg-vaporwave-purple/20 hover:border-vaporwave-purple/60 disabled:opacity-50 disabled:cursor-not-allowed transition-all uppercase tracking-wider font-normal flex-shrink-0 w-full sm:w-auto touch-manipulation"
+              style={{ transition: 'var(--theme-transition)' }}
+              onMouseEnter={(e) => { if (!e.currentTarget.disabled) e.currentTarget.style.boxShadow = 'var(--shadow-glow)'; }}
+              onMouseLeave={(e) => { e.currentTarget.style.boxShadow = 'none'; }}
             >
               {discovering ? "Searching..." : "Discover"}
             </button>
@@ -478,7 +504,10 @@ export default function FeedsManager() {
           </div>
           <button
             type="submit"
-            className="min-h-[44px] px-3 py-1.5 text-xs sm:text-sm bg-vaporwave-pink/10 text-vaporwave-pink/90 border border-vaporwave-pink/40 rounded hover:bg-vaporwave-pink/20 hover:border-vaporwave-pink/60 hover:shadow-[0_0_6px_hsl(320_100%_65%_/_0.3)] transition-all uppercase tracking-wider font-normal touch-manipulation"
+            className="min-h-[44px] px-3 py-1.5 text-xs sm:text-sm bg-vaporwave-pink/10 text-vaporwave-pink/90 border border-vaporwave-pink/40 rounded hover:bg-vaporwave-pink/20 hover:border-vaporwave-pink/60 transition-all uppercase tracking-wider font-normal touch-manipulation"
+            style={{ transition: 'var(--theme-transition)' }}
+            onMouseEnter={(e) => { e.currentTarget.style.boxShadow = 'var(--shadow-glow)'; }}
+            onMouseLeave={(e) => { e.currentTarget.style.boxShadow = 'none'; }}
           >
             {editing ? "Update" : "Create"} Feed
           </button>
@@ -489,7 +518,10 @@ export default function FeedsManager() {
         {feeds.map((feed: Feed) => (
           <div
             key={feed.id}
-            className={`cyber-card border-2 ${feed.isActive ? 'border-vaporwave-cyan/50' : 'border-vaporwave-purple/30 opacity-70'} p-3 md:p-4 flex flex-col md:flex-row items-start md:items-center justify-between gap-3 hover:shadow-[0_0_15px_hsl(180_100%_60%_/_0.3)] transition-all`}
+            className={`cyber-card border-2 ${feed.isActive ? 'border-vaporwave-cyan/50' : 'border-vaporwave-purple/30 opacity-70'} p-3 md:p-4 flex flex-col md:flex-row items-start md:items-center justify-between gap-3 transition-all`}
+            style={{ transition: 'var(--theme-transition)' }}
+            onMouseEnter={(e) => { e.currentTarget.style.boxShadow = 'var(--shadow-card)'; }}
+            onMouseLeave={(e) => { e.currentTarget.style.boxShadow = 'var(--shadow-card)'; }}
           >
             <div className="flex-1">
               <div className="flex items-center gap-2 mb-1.5 flex-wrap">
@@ -527,19 +559,28 @@ export default function FeedsManager() {
             <div className="flex gap-2 sm:gap-1.5 flex-wrap w-full sm:w-auto">
               <button
                 onClick={() => setSelectedFeedId(feed.id)}
-                className="flex-1 sm:flex-initial min-h-[44px] px-3 py-1.5 text-xs sm:text-sm bg-vaporwave-pink/10 text-vaporwave-pink/90 border border-vaporwave-pink/40 rounded hover:bg-vaporwave-pink/20 hover:border-vaporwave-pink/60 hover:shadow-[0_0_6px_hsl(320_100%_65%_/_0.3)] transition-all uppercase tracking-wider font-normal touch-manipulation"
+                className="flex-1 sm:flex-initial min-h-[44px] px-3 py-1.5 text-xs sm:text-sm bg-vaporwave-pink/10 text-vaporwave-pink/90 border border-vaporwave-pink/40 rounded hover:bg-vaporwave-pink/20 hover:border-vaporwave-pink/60 transition-all uppercase tracking-wider font-normal touch-manipulation"
+            style={{ transition: 'var(--theme-transition)' }}
+            onMouseEnter={(e) => { e.currentTarget.style.boxShadow = 'var(--shadow-glow)'; }}
+            onMouseLeave={(e) => { e.currentTarget.style.boxShadow = 'none'; }}
               >
                 Health
               </button>
               <button
                 onClick={() => handleFetch(feed.id)}
-                className="flex-1 sm:flex-initial min-h-[44px] px-3 py-1.5 text-xs sm:text-sm bg-vaporwave-cyan/10 text-vaporwave-cyan/90 border border-vaporwave-cyan/40 rounded hover:bg-vaporwave-cyan/20 hover:border-vaporwave-cyan/60 hover:shadow-[0_0_6px_hsl(180_100%_60%_/_0.3)] transition-all uppercase tracking-wider font-normal touch-manipulation"
+                className="flex-1 sm:flex-initial min-h-[44px] px-3 py-1.5 text-xs sm:text-sm bg-vaporwave-cyan/10 text-vaporwave-cyan/90 border border-vaporwave-cyan/40 rounded hover:bg-vaporwave-cyan/20 hover:border-vaporwave-cyan/60 transition-all uppercase tracking-wider font-normal touch-manipulation"
+            style={{ transition: 'var(--theme-transition)' }}
+            onMouseEnter={(e) => { e.currentTarget.style.boxShadow = 'var(--shadow-glow)'; }}
+            onMouseLeave={(e) => { e.currentTarget.style.boxShadow = 'none'; }}
               >
                 Fetch
               </button>
               <button
                 onClick={() => handleEdit(feed)}
-                className="flex-1 sm:flex-initial min-h-[44px] px-3 py-1.5 text-xs sm:text-sm bg-vaporwave-purple/10 text-vaporwave-purple/90 border border-vaporwave-purple/40 rounded hover:bg-vaporwave-purple/20 hover:border-vaporwave-purple/60 hover:shadow-[0_0_6px_hsl(270_100%_70%_/_0.3)] transition-all uppercase tracking-wider font-normal touch-manipulation"
+                className="flex-1 sm:flex-initial min-h-[44px] px-3 py-1.5 text-xs sm:text-sm bg-vaporwave-purple/10 text-vaporwave-purple/90 border border-vaporwave-purple/40 rounded hover:bg-vaporwave-purple/20 hover:border-vaporwave-purple/60 transition-all uppercase tracking-wider font-normal touch-manipulation"
+            style={{ transition: 'var(--theme-transition)' }}
+            onMouseEnter={(e) => { e.currentTarget.style.boxShadow = 'var(--shadow-glow)'; }}
+            onMouseLeave={(e) => { e.currentTarget.style.boxShadow = 'none'; }}
               >
                 Edit
               </button>

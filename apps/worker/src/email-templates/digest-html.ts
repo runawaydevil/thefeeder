@@ -120,7 +120,7 @@ export function generateDigestHtml(options: DigestHtmlOptions): string {
                   </td>
                 </tr>
                 <tr>
-                  <td align="center" style="font-family: 'Orbitron', 'Arial Black', sans-serif; font-size: 24px; font-weight: 900; color: #ff006e; text-shadow: 0 0 10px #ff006e, 0 0 20px #ff006e; letter-spacing: 2px; text-transform: uppercase; padding-bottom: 10px;" class="mobile-font-size">
+                  <td align="center" style="font-family: 'Orbitron', 'Arial Black', sans-serif; font-size: 24px; font-weight: 900; color: #ff006e; letter-spacing: 2px; text-transform: uppercase; padding-bottom: 10px;" class="mobile-font-size">
                     THE FEEDER
                   </td>
                 </tr>
@@ -149,7 +149,7 @@ export function generateDigestHtml(options: DigestHtmlOptions): string {
                     <!-- Feed title -->
                     <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0">
                       <tr>
-                        <td style="font-family: 'Orbitron', 'Arial Black', sans-serif; font-size: 14px; font-weight: 700; color: #00d9ff; text-shadow: 0 0 10px #00d9ff; text-transform: uppercase; letter-spacing: 1px; padding: 8px 12px; background: rgba(0, 217, 255, 0.1); border: 1px solid rgba(0, 217, 255, 0.5); border-radius: 4px; margin-bottom: 15px;">
+                        <td style="font-family: 'Orbitron', 'Arial Black', sans-serif; font-size: 14px; font-weight: 700; color: #00d9ff; text-transform: uppercase; letter-spacing: 1px; padding: 8px 12px; background: rgba(0, 217, 255, 0.1); border: 1px solid rgba(0, 217, 255, 0.5); border-radius: 4px; margin-bottom: 15px;">
                           ${escapeHtml(feedTitle)}
                         </td>
                       </tr>
@@ -162,7 +162,7 @@ export function generateDigestHtml(options: DigestHtmlOptions): string {
                         <td>
                           <!-- Item title -->
                           <div style="font-size: 16px; font-weight: bold; margin-bottom: 8px;" class="mobile-item-title">
-                            <a href="${item.url}" target="_blank" rel="noopener noreferrer" style="color: #ff006e; text-decoration: none; text-shadow: 0 0 8px rgba(255, 0, 110, 0.3);">
+                            <a href="${item.url}" target="_blank" rel="noopener noreferrer" style="color: #ff006e; text-decoration: none;">
                               ${escapeHtml(item.title)}
                             </a>
                           </div>
@@ -211,7 +211,7 @@ export function generateDigestHtml(options: DigestHtmlOptions): string {
                 </tr>
                 <tr>
                   <td align="center" style="padding: 10px 0;">
-                    <a href="${siteUrl}" target="_blank" rel="noopener noreferrer" style="display: inline-block; padding: 12px 30px; background: linear-gradient(135deg, #ff006e 0%, #d6006e 100%); color: #ffffff; text-decoration: none; border-radius: 4px; font-weight: bold; font-size: 14px; text-shadow: 0 0 8px rgba(255, 0, 110, 0.5); min-height: 44px; line-height: 20px;">
+                    <a href="${siteUrl}" target="_blank" rel="noopener noreferrer" style="display: inline-block; padding: 12px 30px; background: #ff006e; color: #ffffff; text-decoration: none; border-radius: 4px; font-weight: bold; font-size: 14px; min-height: 44px; line-height: 20px;">
                       Visit TheFeeder
                     </a>
                   </td>

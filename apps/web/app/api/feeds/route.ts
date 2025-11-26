@@ -4,16 +4,22 @@ import { prisma } from "@/src/lib/prisma";
 import { Role } from "@prisma/client";
 import { normalizeFeedUrl } from "@/src/lib/feed-url";
 import { invalidateAllFeedCache } from "@/src/lib/cache-invalidation";
+import { validateRequestBody, validatePayloadSize } from "@/src/lib/payload-validator";
+import { rateLimitByIP } from "@/src/lib/rate-limit-redis";
+import { getCorsHeaders } from "@/src/lib/cors";
 
 const MIN_REFRESH_INTERVAL = 10; // minutes
 
 // GET - List all feeds
-export async function GET() {
+export async function GET(req: NextRequest) {
   try {
     const session = await auth();
     
     if (!session?.user || session.user.role !== Role.admin) {
-      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+      return NextResponse.json(
+        { error: "Unauthorized" },
+        { status: 401, headers: getCorsHeaders(req.headers.get("origin")) },
+      );
     }
 
     const feeds = await prisma.feed.findMany({
@@ -34,12 +40,14 @@ export async function GET() {
       },
     });
 
-    return NextResponse.json(feeds);
+    return NextResponse.json(feeds, {
+      headers: getCorsHeaders(req.headers.get("origin")),
+    });
   } catch (error) {
     console.error("Error fetching feeds:", error);
     return NextResponse.json(
       { error: "Internal server error" },
-      { status: 500 },
+      { status: 500, headers: getCorsHeaders(req.headers.get("origin")) },
     );
   }
 }
@@ -50,10 +58,53 @@ export async function POST(req: NextRequest) {
     const session = await auth();
     
     if (!session?.user || session.user.role !== Role.admin) {
-      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+      return NextResponse.json(
+        { error: "Unauthorized" },
+        { status: 401, headers: getCorsHeaders(req.headers.get("origin")) },
+      );
     }
 
-    const body = await req.json();
+    // Rate limiting - 10 feed creations per minute per IP
+    const ip = req.headers.get("x-forwarded-for") || req.headers.get("x-real-ip") || "unknown";
+    const rateLimit = await rateLimitByIP(ip, 10, 60000, "feeds_create");
+    
+    if (!rateLimit.allowed) {
+      return NextResponse.json(
+        {
+          error: "Too many requests. Please try again later.",
+          code: "RATE_LIMIT",
+          retryAfter: rateLimit.retryAfter,
+        },
+        {
+          status: 429,
+          headers: {
+            "Retry-After": rateLimit.retryAfter?.toString() || "60",
+            ...getCorsHeaders(req.headers.get("origin")),
+          },
+        },
+      );
+    }
+
+    // Validate payload size
+    const rawBody = await req.text();
+    const sizeCheck = validatePayloadSize(rawBody, 10240); // 10KB max for feed creation
+    if (!sizeCheck.valid) {
+      return NextResponse.json(
+        { error: sizeCheck.error },
+        { status: 413, headers: getCorsHeaders(req.headers.get("origin")) },
+      );
+    }
+
+    const body = JSON.parse(rawBody);
+    
+    // Validate request body
+    const validation = validateRequestBody(body);
+    if (!validation.valid) {
+      return NextResponse.json(
+        { error: validation.error },
+        { status: 400, headers: getCorsHeaders(req.headers.get("origin")) },
+      );
+    }
     const { title, url, siteUrl, refreshIntervalMinutes } = body;
 
     if (!title || !url || !refreshIntervalMinutes) {
@@ -127,18 +178,24 @@ export async function POST(req: NextRequest) {
       });
     });
 
-    return NextResponse.json(feed, { status: 201 });
+    return NextResponse.json(feed, {
+      status: 201,
+      headers: {
+        "X-RateLimit-Remaining": rateLimit.remaining.toString(),
+        ...getCorsHeaders(req.headers.get("origin")),
+      },
+    });
   } catch (error: any) {
     if (error.code === "P2002") {
       return NextResponse.json(
         { error: "A feed with this URL already exists" },
-        { status: 409 },
+        { status: 409, headers: getCorsHeaders(req.headers.get("origin")) },
       );
     }
     console.error("Error creating feed:", error);
     return NextResponse.json(
       { error: "Internal server error" },
-      { status: 500 },
+      { status: 500, headers: getCorsHeaders(req.headers.get("origin")) },
     );
   }
 }

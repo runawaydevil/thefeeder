@@ -156,7 +156,7 @@ export default async function HomePage({ searchParams }: HomePageProps) {
             >
               runawaydevil
             </a>
-            {" "}- 2026
+            {" "}- {new Date().getFullYear()}
           </span>
           <span className="flex items-center gap-1 md:gap-1.5">
             <ThemeToggle />

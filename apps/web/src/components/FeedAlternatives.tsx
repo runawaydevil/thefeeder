@@ -1,6 +1,8 @@
 "use client";
 
 import { useState } from 'react';
+import { useToast } from "@/src/hooks/useToast";
+import { ToastContainer } from "./Toast";
 
 interface FeedAlternativesProps {
   feedId: string;
@@ -24,6 +26,7 @@ export default function FeedAlternatives({
 }: FeedAlternativesProps) {
   const [testResults, setTestResults] = useState<Record<string, TestResult>>({});
   const [replacing, setReplacing] = useState<string | null>(null);
+  const { toasts, removeToast, success, error } = useToast();
 
   if (!alternatives || alternatives.length === 0) {
     return null;
@@ -81,27 +84,29 @@ export default function FeedAlternatives({
       });
 
       if (res.ok) {
-        alert('Feed URL updated successfully! The feed will be retried shortly.');
+        success('Feed URL updated successfully! The feed will be retried shortly.');
         onUrlReplaced?.();
       } else {
         const data = await res.json();
-        alert(`Failed to update feed URL: ${data.error || 'Unknown error'}`);
+        error(`Failed to update feed URL: ${data.error || 'Unknown error'}`);
       }
-    } catch (error: any) {
-      alert(`Error updating feed URL: ${error.message}`);
+    } catch (err: any) {
+      error(`Error updating feed URL: ${err.message}`);
     } finally {
       setReplacing(null);
     }
   };
 
   return (
-    <div 
-      className="p-4 rounded border" 
-      style={{ 
-        background: 'var(--color-bg-secondary)', 
-        borderColor: 'var(--color-border)' 
-      }}
-    >
+    <div>
+      <ToastContainer toasts={toasts} onRemove={removeToast} />
+      <div 
+        className="p-4 rounded border" 
+        style={{ 
+          background: 'var(--color-bg-secondary)', 
+          borderColor: 'var(--color-border)' 
+        }}
+      >
       <h3 className="text-sm font-bold mb-2" style={{ color: 'var(--color-accent-primary)' }}>
         🔍 Alternative Feed URLs Found
       </h3>
@@ -193,6 +198,7 @@ export default function FeedAlternatives({
             </div>
           );
         })}
+      </div>
       </div>
     </div>
   );
