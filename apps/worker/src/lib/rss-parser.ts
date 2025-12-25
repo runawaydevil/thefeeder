@@ -4,6 +4,7 @@ import { generateProxyUrls, isLikelyBlocked } from "./rss-proxy.js";
 import { fetchFeed } from "./http-client.js";
 import { parseFeedV2, type ParsedFeedV2 } from "./feed-parser-v2.js";
 import { browserAutomationService } from "./browser-automation.js";
+import { logger } from "./logger.js";
 
 const parser = new Parser({
   customFields: {
@@ -72,12 +73,12 @@ function convertV2ToLegacyFormat(v2: ParsedFeedV2): ParsedFeed {
 }
 
 export async function parseFeed(feedUrl: string, customUserAgent?: string, requiresBrowser: boolean = false): Promise<ParsedFeed> {
-  console.log(`[RSS Parser] ===== STARTING PARSE FEED: ${feedUrl} =====`);
+  logger.debug(`Starting parse feed: ${feedUrl}`, { requiresBrowser });
   
   // If feed requires browser automation, use it directly
   if (requiresBrowser && browserAutomationService.isAvailable()) {
     try {
-      console.log(`[RSS Parser] Feed requires browser automation, using Puppeteer directly...`);
+      logger.debug(`Feed requires browser automation, using Puppeteer directly...`);
       
       const htmlContent = await browserAutomationService.fetchWithBrowser(feedUrl, {
         timeout: 60000,
@@ -85,7 +86,7 @@ export async function parseFeed(feedUrl: string, customUserAgent?: string, requi
       
       const feed = await parser.parseString(htmlContent);
       
-      console.log(`[RSS Parser] ✓ Browser automation succeeded: ${feed.title || 'Untitled'}`);
+      logger.debug(`Browser automation succeeded: ${feed.title || 'Untitled'}`);
       
       return {
         title: feed.title || "Untitled Feed",
@@ -96,26 +97,25 @@ export async function parseFeed(feedUrl: string, customUserAgent?: string, requi
         },
       };
     } catch (browserError) {
-      console.error(`[RSS Parser] ✗ Browser automation failed:`, browserError instanceof Error ? browserError.message : browserError);
+      logger.error(`Browser automation failed`, browserError as Error);
       // Fall through to standard methods
     }
   }
   
   // STEP 1: Try custom robust parser FIRST (PRIMARY METHOD)
   try {
-    console.log(`[RSS Parser] STEP 1: Trying custom parser V2...`);
+    logger.debug(`STEP 1: Trying custom parser V2...`);
     const result = await parseFeedV2(feedUrl);
-    console.log(`[RSS Parser] ✓ STEP 1 SUCCESS: Custom parser V2 succeeded`);
+    logger.debug(`STEP 1 SUCCESS: Custom parser V2 succeeded`);
     
     // Convert to expected format
     return convertV2ToLegacyFormat(result);
   } catch (error) {
-    console.error(`[RSS Parser] ✗ STEP 1 FAILED: Custom parser V2 failed:`, error instanceof Error ? error.message : error);
-    console.log(`[RSS Parser] → Continuing to fallback strategies...`);
+    logger.debug(`STEP 1 FAILED: Custom parser V2 failed`, { error: (error as Error).message });
   }
   
   // STEP 2: Try rss-parser with multiple User-Agents
-  console.log(`[RSS Parser] STEP 2: Trying rss-parser with multiple User-Agents...`);
+  logger.debug(`STEP 2: Trying rss-parser with multiple User-Agents...`);
   
   // Try with multiple User-Agents if we get 403
   const userAgents = [
@@ -134,7 +134,7 @@ export async function parseFeed(feedUrl: string, customUserAgent?: string, requi
         await new Promise(resolve => setTimeout(resolve, 1000)); // 1 second delay
       }
       
-      console.log(`[RSS Parser] STEP 2: Parsing feed (attempt ${i + 1}/${userAgents.length}): ${feedUrl}`);
+      logger.debug(`STEP 2: Parsing feed (attempt ${i + 1}/${userAgents.length}): ${feedUrl}`);
       
       const feedParser = new Parser({
         customFields: {
@@ -160,7 +160,7 @@ export async function parseFeed(feedUrl: string, customUserAgent?: string, requi
       
       const feed = await feedParser.parseURL(feedUrl);
       
-      console.log(`[RSS Parser] ✓ STEP 2 SUCCESS: Successfully parsed feed: ${feed.title || 'Untitled'}`);
+      logger.debug(`STEP 2 SUCCESS: Successfully parsed feed: ${feed.title || 'Untitled'}`);
       
       return {
         title: feed.title || "Untitled Feed",
@@ -172,32 +172,32 @@ export async function parseFeed(feedUrl: string, customUserAgent?: string, requi
       
       // If it's a 403, try next User-Agent
       if (error.message?.includes("403") || error.message?.includes("Forbidden")) {
-        console.warn(`[RSS Parser] STEP 2: Got 403 with User-Agent ${i + 1}, trying next...`);
+        logger.debug(`STEP 2: Got 403 with User-Agent ${i + 1}, trying next...`);
         continue;
       }
       
       // For other errors, break the loop
-      console.error(`[RSS Parser] ✗ STEP 2 FAILED: ${error.message}`);
+      logger.debug(`STEP 2 FAILED: ${error.message}`);
       break;
     }
   }
   
   // STEP 3: Try advanced HTTP client with multiple strategies
-  console.log(`[RSS Parser] STEP 3: Trying advanced HTTP client + rss-parser...`);
+  logger.debug(`STEP 3: Trying advanced HTTP client + rss-parser...`);
   if (isLikelyBlocked(lastError)) {
-    console.warn(`[RSS Parser] STEP 3: Feed appears to be blocked, trying advanced HTTP client...`);
+    logger.debug(`STEP 3: Feed appears to be blocked, trying advanced HTTP client...`);
     
     try {
       let text = await fetchFeed(feedUrl);
       
-      // Log first 500 chars to debug
-      console.log(`[RSS Parser] Raw response first 500 chars:`, text.substring(0, 500));
-      console.log(`[RSS Parser] First char code:`, text.charCodeAt(0));
+      // Log first 500 chars to debug only in debug mode
+      logger.debug(`Raw response first 500 chars: ${text.substring(0, 500)}`);
+      logger.debug(`First char code: ${text.charCodeAt(0)}`);
       
       // Additional cleanup for XML parsing
       // Remove BOM if present
       if (text.charCodeAt(0) === 0xFEFF) {
-        console.log(`[RSS Parser] Removing BOM`);
+        logger.debug(`Removing BOM`);
         text = text.substring(1);
       }
       // Remove any leading/trailing whitespace
@@ -205,7 +205,7 @@ export async function parseFeed(feedUrl: string, customUserAgent?: string, requi
       
       // Check if it looks like XML
       if (!text.startsWith('<?xml') && !text.startsWith('<rss') && !text.startsWith('<feed')) {
-        console.error(`[RSS Parser] Content doesn't look like XML. First 200 chars:`, text.substring(0, 200));
+        logger.debug(`Content doesn't look like XML. First 200 chars: ${text.substring(0, 200)}`);
         throw new Error('Response is not valid XML/RSS feed - got HTML or other content');
       }
       
@@ -223,7 +223,7 @@ export async function parseFeed(feedUrl: string, customUserAgent?: string, requi
       
       const feed = await parser.parseString(text);
       
-      console.log(`[RSS Parser] ✓ STEP 3 SUCCESS: Successfully parsed feed via advanced HTTP client: ${feed.title || 'Untitled'}`);
+      logger.debug(`STEP 3 SUCCESS: Successfully parsed feed via advanced HTTP client: ${feed.title || 'Untitled'}`);
       
       return {
         title: feed.title || "Untitled Feed",
@@ -231,17 +231,17 @@ export async function parseFeed(feedUrl: string, customUserAgent?: string, requi
         items: feed.items || [],
       };
     } catch (fetchError) {
-      console.error(`[RSS Parser] ✗ STEP 3 FAILED: Advanced HTTP client failed:`, fetchError instanceof Error ? fetchError.message : fetchError);
+      logger.debug(`STEP 3 FAILED: Advanced HTTP client failed`, { error: (fetchError as Error).message });
     }
     
     // STEP 4: Try proxy services
-    console.log(`[RSS Parser] STEP 4: Trying proxy services...`);
+    logger.debug(`STEP 4: Trying proxy services...`);
     
     const proxyUrls = generateProxyUrls(feedUrl);
     
     for (const { proxy, url } of proxyUrls) {
       try {
-        console.log(`[RSS Parser] STEP 4: Trying ${proxy}: ${url}`);
+        logger.debug(`STEP 4: Trying ${proxy}: ${url}`);
         
         const proxyParser = new Parser({
           customFields: {
@@ -263,7 +263,7 @@ export async function parseFeed(feedUrl: string, customUserAgent?: string, requi
         
         const feed = await proxyParser.parseURL(url);
         
-        console.log(`[RSS Parser] ✓ STEP 4 SUCCESS: Successfully parsed feed via ${proxy}: ${feed.title || 'Untitled'}`);
+        logger.debug(`STEP 4 SUCCESS: Successfully parsed feed via ${proxy}: ${feed.title || 'Untitled'}`);
         
         return {
           title: feed.title || "Untitled Feed",
@@ -271,7 +271,7 @@ export async function parseFeed(feedUrl: string, customUserAgent?: string, requi
           items: feed.items || [],
         };
       } catch (proxyError) {
-        console.warn(`[RSS Parser] STEP 4: ${proxy} failed:`, proxyError instanceof Error ? proxyError.message : proxyError);
+        logger.debug(`STEP 4: ${proxy} failed`, { error: (proxyError as Error).message });
         continue;
       }
     }
@@ -280,7 +280,7 @@ export async function parseFeed(feedUrl: string, customUserAgent?: string, requi
   // STEP 5: Try browser automation (last resort for blocked feeds)
   if (isLikelyBlocked(lastError) && browserAutomationService.isAvailable()) {
     try {
-      console.log(`[RSS Parser] STEP 5: Trying browser automation (Puppeteer)...`);
+      logger.debug(`STEP 5: Trying browser automation (Puppeteer)...`);
       
       const htmlContent = await browserAutomationService.fetchWithBrowser(feedUrl, {
         timeout: 60000,
@@ -289,7 +289,7 @@ export async function parseFeed(feedUrl: string, customUserAgent?: string, requi
       // Parse the HTML content as XML/RSS
       const feed = await parser.parseString(htmlContent);
       
-      console.log(`[RSS Parser] ✓ STEP 5 SUCCESS: Browser automation succeeded: ${feed.title || 'Untitled'}`);
+      logger.debug(`STEP 5 SUCCESS: Browser automation succeeded: ${feed.title || 'Untitled'}`);
       
       return {
         title: feed.title || "Untitled Feed",
@@ -300,12 +300,12 @@ export async function parseFeed(feedUrl: string, customUserAgent?: string, requi
         },
       };
     } catch (browserError) {
-      console.error(`[RSS Parser] ✗ STEP 5 FAILED: Browser automation failed:`, browserError instanceof Error ? browserError.message : browserError);
+      logger.error(`STEP 5 FAILED: Browser automation failed`, browserError as Error);
     }
   }
   
-  console.error(`[RSS Parser] ✗ ALL STEPS FAILED: Failed to parse feed ${feedUrl} after all attempts`);
-  console.error(`[RSS Parser] Final error:`, lastError);
+  logger.error(`ALL STEPS FAILED: Failed to parse feed ${feedUrl} after all attempts`);
+  logger.error(`Final error: ${lastError}`);
   throw new Error(`Failed to parse feed: ${lastError instanceof Error ? lastError.message : "Unknown error"}`);
 }
 

@@ -5,6 +5,7 @@
 
 // @ts-ignore - Puppeteer will be available after npm install
 import puppeteer, { Browser, Page } from 'puppeteer';
+import { logger } from './logger.js';
 
 export interface BrowserFetchOptions {
   timeout?: number;
@@ -27,7 +28,7 @@ export class BrowserAutomationService {
       // Check if Puppeteer is installed and can be loaded
       return true;
     } catch (error) {
-      console.error('[Browser Automation] Puppeteer not available:', error);
+      logger.error('Puppeteer not available', error as Error);
       return false;
     }
   }
@@ -61,7 +62,7 @@ export class BrowserAutomationService {
     this.isLaunching = true;
 
     try {
-      console.log('[Browser Automation] Launching browser...');
+      logger.debug('Launching browser...');
       
       this.browser = await puppeteer.launch({
         headless: true,
@@ -75,17 +76,17 @@ export class BrowserAutomationService {
         ],
       });
 
-      console.log('[Browser Automation] ✓ Browser launched successfully');
+      logger.debug('Browser launched successfully');
       
       // Handle browser disconnect
       this.browser.on('disconnected', () => {
-        console.log('[Browser Automation] Browser disconnected');
+        logger.debug('Browser disconnected');
         this.browser = null;
       });
 
       return this.browser;
     } catch (error) {
-      console.error('[Browser Automation] Failed to launch browser:', error);
+      logger.error('Failed to launch browser', error as Error);
       this.browser = null;
       throw error;
     } finally {
@@ -115,7 +116,7 @@ export class BrowserAutomationService {
       const browser = await this.getBrowser();
       page = await browser.newPage();
 
-      console.log(`[Browser Automation] Fetching: ${url}`);
+      logger.debug(`Fetching with browser: ${url}`);
 
       // Set realistic browser fingerprint
       await page.setUserAgent(userAgent);
@@ -144,16 +145,16 @@ export class BrowserAutomationService {
       // Get page content
       const content = await page.content();
 
-      console.log(`[Browser Automation] ✓ Successfully fetched ${url} (${content.length} bytes)`);
+      logger.debug(`Successfully fetched ${url} (${content.length} bytes)`);
 
       return content;
     } catch (error: any) {
-      console.error(`[Browser Automation] ✗ Failed to fetch ${url}:`, error.message);
+      logger.error(`Failed to fetch ${url}`, error);
       throw error;
     } finally {
       if (page) {
         await page.close().catch((err: any) => {
-          console.error('[Browser Automation] Error closing page:', err);
+          logger.error('Error closing page', err);
         });
       }
       this.activePages--;
@@ -165,13 +166,13 @@ export class BrowserAutomationService {
    */
   async shutdown(): Promise<void> {
     if (this.browser) {
-      console.log('[Browser Automation] Shutting down browser...');
+      logger.debug('Shutting down browser...');
       try {
         await this.browser.close();
         this.browser = null;
-        console.log('[Browser Automation] ✓ Browser shut down');
+        logger.debug('Browser shut down');
       } catch (error) {
-        console.error('[Browser Automation] Error shutting down browser:', error);
+        logger.error('Error shutting down browser', error as Error);
       }
     }
   }

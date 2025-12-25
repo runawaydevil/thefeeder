@@ -6,6 +6,7 @@ import { generateDigestText } from "../email-templates/digest-text.js";
 import { buildEmailHeaders } from "./email-headers.js";
 import { validateSmtpConfig, isValidEmail, sanitizeEmailAddress, sanitizeSubject } from "./email-validation.js";
 import { logEmailSent, logEmailError, previewEmail } from "./email-logger.js";
+import { logger } from "./logger.js";
 
 interface TransporterConfig {
   host?: string;
@@ -68,17 +69,17 @@ export async function sendDigestEmail(
   // Validate SMTP configuration
   const validation = validateSmtpConfig();
   if (!validation.valid && process.env.SMTP_HOST) {
-    console.error("[EMAIL] SMTP configuration invalid:", validation.errors);
+    logger.error("SMTP configuration invalid", new Error(validation.errors.join(', ')));
     throw new Error("Cannot send emails - SMTP not configured properly");
   }
   
   if (validation.warnings.length > 0) {
-    console.warn("[EMAIL] SMTP configuration warnings:", validation.warnings);
+    logger.warn("SMTP configuration warnings: " + validation.warnings.join(', '));
   }
   
   // Validate and sanitize email address
   if (!isValidEmail(email)) {
-    console.warn(`[EMAIL] Skipping invalid email address: ${email}`);
+    logger.warn(`Skipping invalid email address: ${email}`);
     return;
   }
   

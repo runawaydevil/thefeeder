@@ -5,6 +5,7 @@
 
 import { PrismaClient } from '@prisma/client';
 import { healthTrackingService } from './health-tracking.js';
+import { logger } from './logger.js';
 
 const prisma = new PrismaClient();
 
@@ -100,7 +101,7 @@ export class MonitoringAlertsService {
 
       return null;
     } catch (error) {
-      console.error('[Monitoring] Error checking failure rate:', error);
+      logger.error('Error checking failure rate', error as Error);
       return null;
     }
   }
@@ -123,7 +124,7 @@ export class MonitoringAlertsService {
 
       return null;
     } catch (error) {
-      console.error('[Monitoring] Error checking browser automation:', error);
+      logger.error('Error checking browser automation', error as Error);
       return null;
     }
   }
@@ -146,7 +147,7 @@ export class MonitoringAlertsService {
 
       return null;
     } catch (error) {
-      console.error('[Monitoring] Error checking paused feeds:', error);
+      logger.error('Error checking paused feeds', error as Error);
       return null;
     }
   }
@@ -169,7 +170,7 @@ export class MonitoringAlertsService {
 
       return null;
     } catch (error) {
-      console.error('[Monitoring] Error checking blocked feeds:', error);
+      logger.error('Error checking blocked feeds', error as Error);
       return null;
     }
   }
@@ -224,7 +225,7 @@ export class MonitoringAlertsService {
         overallHealth,
       };
     } catch (error) {
-      console.error('[Monitoring] Error getting health summary:', error);
+      logger.error('Error getting health summary', error as Error);
       return {
         totalFeeds: 0,
         activeFeeds: 0,
@@ -245,17 +246,14 @@ export class MonitoringAlertsService {
     const { healthy, alerts } = await this.checkSystemHealth();
 
     if (!healthy) {
-      console.log('\n========================================');
-      console.log('🚨 SYSTEM HEALTH ALERTS');
-      console.log('========================================');
-      alerts.forEach(alert => console.log(alert));
-      console.log('========================================\n');
+      logger.warn('SYSTEM HEALTH ALERTS');
+      alerts.forEach(alert => logger.warn(alert));
     } else {
-      console.log('✅ System health check: All systems operational');
+      logger.info('System health check: All systems operational');
     }
 
     const summary = await this.getHealthSummary();
-    console.log(`📊 Health Summary: ${summary.healthyFeeds}/${summary.totalFeeds} feeds healthy (${summary.overallHealth})`);
+    logger.info(`Health Summary: ${summary.healthyFeeds}/${summary.totalFeeds} feeds healthy (${summary.overallHealth})`);
   }
 }
 

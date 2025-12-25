@@ -7,6 +7,7 @@ import { healthTrackingService } from "../lib/health-tracking.js";
 import { autoPauseManager } from "../lib/auto-pause.js";
 import { statusMachine } from "../lib/status-machine.js";
 import { notificationService } from "../lib/notification-service.js";
+import { logger } from "../lib/logger.js";
 
 export interface FeedFetchJobData {
   feedId: string;
@@ -14,7 +15,7 @@ export interface FeedFetchJobData {
 
 function isRedditFeed(feedUrl: string): boolean {
   try {
-    const url = new URL(feedUrl);
+    const url = new globalThis.URL(feedUrl);
     return url.hostname.includes("reddit.com") && feedUrl.includes(".rss");
   } catch {
     return false;
@@ -25,14 +26,14 @@ export async function processFeedFetch(job: Job<FeedFetchJobData>) {
   const { feedId } = job.data;
   const startTime = Date.now();
   let statusCode: number | undefined;
-  let errorMessage: string | undefined;
+  let errorMessage: string = '';
   let strategy = 'standard';
 
   try {
     const feed = await prisma.feed.findUnique({ where: { id: feedId } });
 
     if (!feed) {
-      console.warn(`Feed ${feedId} not found - removing orphaned job`);
+      logger.warn(`Feed ${feedId} not found - removing orphaned job`);
       // Remove the repeat job if it exists
       if (job.opts?.repeat) {
         await job.remove();
@@ -42,13 +43,13 @@ export async function processFeedFetch(job: Job<FeedFetchJobData>) {
     }
 
     if (!feed.isActive) {
-      console.log(`Skipping inactive feed: ${feed.title}`);
+      logger.debug(`Skipping inactive feed: ${feed.title}`);
       return { skipped: true, reason: "inactive" };
     }
 
     // Check if feed is paused
     if (feed.status === 'paused') {
-      console.log(`Skipping paused feed: ${feed.title}`);
+      logger.debug(`Skipping paused feed: ${feed.title}`);
       return { skipped: true, reason: "paused" };
     }
 
@@ -57,13 +58,13 @@ export async function processFeedFetch(job: Job<FeedFetchJobData>) {
       if (feed.lastFetchedAt) {
         const hoursSinceLastFetch = (Date.now() - feed.lastFetchedAt.getTime()) / (1000 * 60 * 60);
         if (hoursSinceLastFetch < 1) {
-          console.log(`Skipping Reddit feed ${feed.title} - fetched ${Math.round(hoursSinceLastFetch * 60)} minutes ago (minimum 60 minutes)`);
+          logger.debug(`Skipping Reddit feed ${feed.title} - fetched ${Math.round(hoursSinceLastFetch * 60)} minutes ago (minimum 60 minutes)`);
           return { skipped: true, reason: "reddit_rate_limit", hoursSinceLastFetch: hoursSinceLastFetch };
         }
       }
     }
 
-    console.log(`Fetching feed: ${feed.title} (${feed.url})`);
+    logger.debug(`Fetching feed: ${feed.title} (${feed.url})`);
 
     // Use random user agent for each fetch
     const userAgent = getRandomUserAgent();
@@ -89,7 +90,7 @@ export async function processFeedFetch(job: Job<FeedFetchJobData>) {
           where: { id: feedId },
           data: { requiresBrowser: true },
         });
-        console.log(`[Feed Fetch] ✓ Marked feed ${feed.title} as requiring browser automation`);
+        logger.info(`Marked feed ${feed.title} as requiring browser automation`);
       }
     }
     
@@ -182,7 +183,7 @@ export async function processFeedFetch(job: Job<FeedFetchJobData>) {
     // Clean up old items if total exceeds 50k
     await cleanupOldItems();
 
-    console.log(`[Feed Fetch] ✓ Success: ${feed.title} (${itemsCreated} created, ${itemsUpdated} updated, ${responseTime}ms)`);
+    logger.debug(`Feed fetch success: ${feed.title} (${itemsCreated} created, ${itemsUpdated} updated, ${responseTime}ms)`);
 
     return {
       success: true,
@@ -194,7 +195,7 @@ export async function processFeedFetch(job: Job<FeedFetchJobData>) {
     const responseTime = Date.now() - startTime;
     
     // Extract error details
-    errorMessage = error.message || 'Unknown error';
+    errorMessage = error?.message || 'Unknown error';
     
     // Try to extract status code from error message
     const statusMatch = errorMessage.match(/Status code (\d+)/i);
@@ -253,7 +254,7 @@ export async function processFeedFetch(job: Job<FeedFetchJobData>) {
       statusCode,
     });
 
-    console.error(`[Feed Fetch] ✗ Failed: ${feedId} (${errorType}, ${responseTime}ms)`, errorMessage);
+    logger.error(`Feed fetch failed: ${feedId} (${errorType}, ${responseTime}ms)`, error);
     throw error;
   }
 }
@@ -297,10 +298,10 @@ async function cleanupOldItems() {
         });
       }
 
-      console.log(`Cleaned up ${oldestItems.length} old items (total was ${totalCount}, now ${totalCount - oldestItems.length})`);
+      logger.debug(`Cleaned up ${oldestItems.length} old items (total was ${totalCount}, now ${totalCount - oldestItems.length})`);
     }
   } catch (error) {
-    console.error("Error cleaning up old items:", error);
+    logger.error("Error cleaning up old items", error as Error);
     // Don't throw - cleanup failure shouldn't break feed fetching
   }
 }

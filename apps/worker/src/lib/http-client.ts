@@ -4,6 +4,7 @@
  */
 
 import { generateRealisticHeaders, getRandomUserAgent } from "./user-agents.js";
+import { logger } from "./logger.js";
 
 interface FetchOptions {
   timeout?: number;
@@ -18,7 +19,6 @@ interface FetchOptions {
  */
 async function randomDelay(min: number = 2000, max: number = 5000): Promise<void> {
   const delay = Math.floor(Math.random() * (max - min + 1)) + min;
-  console.log(`[HTTP Client] → Human-like delay: ${delay}ms`);
   await new Promise(resolve => setTimeout(resolve, delay));
 }
 
@@ -46,7 +46,7 @@ export async function fetchWithRetry(
         await randomDelay(minDelay, maxDelay);
       }
       
-      console.log(`[HTTP Client] → Attempt ${attempt}/${retries}: ${url}`);
+      logger.debug(`Attempt ${attempt}/${retries}: ${url}`);
 
       // Generate realistic headers
       const headers = generateRealisticHeaders();
@@ -70,7 +70,7 @@ export async function fetchWithRetry(
       
       // Remove BOM (Byte Order Mark) if present
       if (text.charCodeAt(0) === 0xFEFF) {
-        console.log(`[HTTP Client] → Removing BOM`);
+        logger.debug(`Removing BOM`);
         text = text.substring(1);
       }
       
@@ -78,16 +78,15 @@ export async function fetchWithRetry(
       const originalLength = text.length;
       text = text.trim();
       if (text.length < originalLength) {
-        console.log(`[HTTP Client] → Trimmed ${originalLength - text.length} whitespace chars`);
+        logger.debug(`Trimmed ${originalLength - text.length} whitespace chars`);
       }
       
-      console.log(`[HTTP Client] ✓ Success (${text.length} bytes)`);
+      logger.debug(`Success (${text.length} bytes)`);
       return text;
     } catch (error: any) {
       lastError = error;
-      console.warn(
-        `[HTTP Client] ✗ Attempt ${attempt} failed:`,
-        error.message
+      logger.debug(
+        `Attempt ${attempt} failed: ${error.message}`
       );
 
       // Don't retry on certain errors
@@ -101,7 +100,7 @@ export async function fetchWithRetry(
       // Wait before retry (exponential backoff)
       if (attempt < retries) {
         const delay = retryDelay * Math.pow(2, attempt - 1);
-        console.log(`[HTTP Client] → Waiting ${delay}ms before retry...`);
+        logger.debug(`Waiting ${delay}ms before retry...`);
         await new Promise((resolve) => setTimeout(resolve, delay));
       }
     }
@@ -114,22 +113,21 @@ export async function fetchWithRetry(
  * Fetch feed with multiple strategies
  */
 export async function fetchFeed(url: string): Promise<string> {
-  console.log(`[HTTP Client] ===== STARTING FETCH FEED FOR: ${url} =====`);
+  logger.debug(`Starting fetch feed for: ${url}`);
   
   // Strategy 1: Realistic browser with full headers
   try {
-    console.log(`[HTTP Client] → Strategy 1: Realistic browser headers (Chrome/Firefox/Safari)`);
+    logger.debug(`Strategy 1: Realistic browser headers (Chrome/Firefox/Safari)`);
     const result = await fetchWithRetry(url, { 
       retries: 2,
       minDelay: 2000,
       maxDelay: 4000,
     });
-    console.log(`[HTTP Client] ✓ Strategy 1 succeeded`);
+    logger.debug(`Strategy 1 succeeded`);
     return result;
   } catch (error) {
-    console.warn(
-      `[HTTP Client] ✗ Strategy 1 failed:`,
-      error instanceof Error ? error.message : error
+    logger.debug(
+      `Strategy 1 failed: ${error instanceof Error ? error.message : error}`
     );
   }
 
@@ -138,7 +136,7 @@ export async function fetchFeed(url: string): Promise<string> {
 
   // Strategy 2: Try with different realistic headers
   try {
-    console.log(`[HTTP Client] → Strategy 2: Alternative browser profile`);
+    logger.debug(`Strategy 2: Alternative browser profile`);
     const headers = generateRealisticHeaders();
     
     const controller = new AbortController();
@@ -156,20 +154,19 @@ export async function fetchFeed(url: string): Promise<string> {
       
       // Remove BOM if present
       if (text.charCodeAt(0) === 0xFEFF) {
-        console.log(`[HTTP Client] → Removing BOM`);
+        logger.debug(`Removing BOM`);
         text = text.substring(1);
       }
       
       // Trim whitespace
       text = text.trim();
       
-      console.log(`[HTTP Client] ✓ Strategy 2 succeeded (${text.length} bytes)`);
+      logger.debug(`Strategy 2 succeeded (${text.length} bytes)`);
       return text;
     }
   } catch (error) {
-    console.warn(
-      `[HTTP Client] ✗ Strategy 2 failed:`,
-      error instanceof Error ? error.message : error
+    logger.debug(
+      `Strategy 2 failed: ${error instanceof Error ? error.message : error}`
     );
   }
 
@@ -178,7 +175,7 @@ export async function fetchFeed(url: string): Promise<string> {
 
   // Strategy 3: Feed reader User-Agent
   try {
-    console.log(`[HTTP Client] → Strategy 3: Feed reader User-Agent`);
+    logger.debug(`Strategy 3: Feed reader User-Agent`);
     const controller = new AbortController();
     const timeoutId = setTimeout(() => controller.abort(), 15000);
     
@@ -199,24 +196,22 @@ export async function fetchFeed(url: string): Promise<string> {
       
       // Remove BOM if present
       if (text.charCodeAt(0) === 0xFEFF) {
-        console.log(`[HTTP Client] → Removing BOM`);
+        logger.debug(`Removing BOM`);
         text = text.substring(1);
       }
       
       // Trim whitespace
       text = text.trim();
       
-      console.log(`[HTTP Client] ✓ Strategy 3 succeeded (${text.length} bytes)`);
+      logger.debug(`Strategy 3 succeeded (${text.length} bytes)`);
       return text;
     }
   } catch (error) {
-    console.warn(
-      `[HTTP Client] ✗ Strategy 3 failed:`,
-      error instanceof Error ? error.message : error
+    logger.debug(
+      `Strategy 3 failed: ${error instanceof Error ? error.message : error}`
     );
   }
 
-  console.error(`[HTTP Client] ✗ All strategies failed`);
   throw new Error(
     "All fetch strategies failed - feed may be blocked or inaccessible"
   );

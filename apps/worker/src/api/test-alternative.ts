@@ -1,5 +1,6 @@
 import { Request, Response } from 'express';
 import { feedDiscoveryService } from '../lib/feed-discovery.js';
+import { logger } from '../lib/logger.js';
 
 /**
  * POST /api/feeds/test-alternative
@@ -13,13 +14,13 @@ export async function testAlternative(req: Request, res: Response) {
       return res.status(400).json({ error: 'URL is required' });
     }
 
-    console.log(`[API] Testing alternative URL: ${url}`);
+    logger.debug(`Testing alternative URL: ${url}`);
 
     const result = await feedDiscoveryService.testAlternative(url);
 
     return res.json(result);
   } catch (error: any) {
-    console.error('[API] Error testing alternative:', error);
+    logger.error('Error testing alternative', error);
     return res.status(500).json({ 
       error: 'Failed to test alternative',
       message: error.message 

@@ -1,6 +1,7 @@
 import { Job } from "bullmq";
 import { prisma } from "../lib/prisma.js";
 import { sendDigestEmail } from "../lib/email.js";
+import { logger } from "../lib/logger.js";
 
 export interface DailyDigestJobData {
   scheduledAt: Date;
@@ -8,7 +9,7 @@ export interface DailyDigestJobData {
 
 export async function processDailyDigest(job: Job<DailyDigestJobData>) {
   try {
-    console.log("Processing daily digest...");
+    logger.info("Processing daily digest...");
 
     // Get all approved subscribers
     const subscribers = await prisma.subscriber.findMany({
@@ -16,7 +17,7 @@ export async function processDailyDigest(job: Job<DailyDigestJobData>) {
     });
 
     if (subscribers.length === 0) {
-      console.log("No approved subscribers found");
+      logger.info("No approved subscribers found");
       return { success: true, recipients: 0, items: 0 };
     }
 
@@ -40,7 +41,7 @@ export async function processDailyDigest(job: Job<DailyDigestJobData>) {
     });
 
     if (items.length === 0) {
-      console.log("No items found for digest");
+      logger.info("No items found for digest");
       return { success: true, recipients: 0, items: 0 };
     }
 
@@ -55,7 +56,7 @@ export async function processDailyDigest(job: Job<DailyDigestJobData>) {
         );
         sentCount++;
       } catch (error) {
-        console.error(`Failed to send digest to ${subscriber.email}:`, error);
+        logger.error(`Failed to send digest to ${subscriber.email}`, error as Error);
       }
     }
 
@@ -67,7 +68,7 @@ export async function processDailyDigest(job: Job<DailyDigestJobData>) {
       },
     });
 
-    console.log(`Daily digest sent to ${sentCount} recipients with ${items.length} items`);
+    logger.info(`Daily digest sent to ${sentCount} recipients with ${items.length} items`);
 
     return {
       success: true,
@@ -75,7 +76,7 @@ export async function processDailyDigest(job: Job<DailyDigestJobData>) {
       items: items.length,
     };
   } catch (error) {
-    console.error("Error processing daily digest:", error);
+    logger.error("Error processing daily digest", error as Error);
     throw error;
   }
 }

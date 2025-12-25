@@ -3,6 +3,8 @@
  * Determines when and how to retry failed feeds
  */
 
+import { logger } from './logger.js';
+
 export type ErrorType = 'timeout' | 'blocked' | 'server_error' | 'other';
 
 export interface CalculateNextRetryParams {
@@ -21,27 +23,27 @@ export class RetryStrategyEngine {
 
     // Blocked feeds (403/522): wait 24 hours
     if (errorType === 'blocked' || statusCode === 403 || statusCode === 522) {
-      console.log(`[Retry Strategy] Blocked feed - scheduling retry in 24 hours`);
+      logger.debug(`Blocked feed - scheduling retry in 24 hours`);
       return new Date(now.getTime() + 24 * 60 * 60 * 1000);
     }
 
     // Server errors (5xx): exponential backoff
     if (errorType === 'server_error' || (statusCode && statusCode >= 500 && statusCode < 600)) {
       const backoffDelay = this.getExponentialBackoff(feed.consecutiveFailures || 1);
-      console.log(`[Retry Strategy] Server error - exponential backoff: ${backoffDelay}ms`);
+      logger.debug(`Server error - exponential backoff: ${backoffDelay}ms`);
       return new Date(now.getTime() + backoffDelay);
     }
 
     // Timeout: use standard interval but with increased timeout next time
     if (errorType === 'timeout') {
       const intervalMs = feed.refreshIntervalMinutes * 60 * 1000;
-      console.log(`[Retry Strategy] Timeout - retry in ${feed.refreshIntervalMinutes} minutes`);
+      logger.debug(`Timeout - retry in ${feed.refreshIntervalMinutes} minutes`);
       return new Date(now.getTime() + intervalMs);
     }
 
     // Other errors: use standard interval
     const intervalMs = feed.refreshIntervalMinutes * 60 * 1000;
-    console.log(`[Retry Strategy] Other error - retry in ${feed.refreshIntervalMinutes} minutes`);
+    logger.debug(`Other error - retry in ${feed.refreshIntervalMinutes} minutes`);
     return new Date(now.getTime() + intervalMs);
   }
 
@@ -61,7 +63,7 @@ export class RetryStrategyEngine {
     const maxTimeout = 60;
     const adjustedTimeout = Math.min(newTimeout, maxTimeout);
 
-    console.log(`[Retry Strategy] Adjusting timeout: ${currentTimeout}s → ${adjustedTimeout}s`);
+    logger.debug(`Adjusting timeout: ${currentTimeout}s → ${adjustedTimeout}s`);
     return adjustedTimeout;
   }
 

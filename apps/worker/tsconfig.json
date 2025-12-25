@@ -3,14 +3,16 @@
     "target": "ES2020",
     "module": "ESNext",
     "lib": ["ES2020"],
-    "types": ["node"],
     "moduleResolution": "bundler",
     "resolveJsonModule": true,
     "allowJs": false,
     "strict": true,
     "esModuleInterop": true,
     "skipLibCheck": true,
-    "forceConsistentCasingInFileNames": true
+    "forceConsistentCasingInFileNames": true,
+    "allowSyntheticDefaultImports": true,
+    "typeRoots": ["./node_modules/@types"],
+    "types": ["node"]
   },
   "include": ["src/**/*"],
   "exclude": ["node_modules"]

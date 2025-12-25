@@ -2,7 +2,8 @@ import { Queue } from "bullmq";
 import { prisma } from "./prisma.js";
 import { FeedFetchJobData } from "../jobs/feed-fetch.js";
 import { retryStrategyEngine } from "./retry-strategy.js";
-import type { Feed } from "@prisma/client";
+import { logger } from "./logger.js";
+import type { Feed } from "../types/prisma.js";
 
 const REDIS_URL = process.env.REDIS_URL || "redis://localhost:6379";
 
@@ -26,13 +27,13 @@ export async function scheduleFeed(feedId: string) {
   }
 
   if (!feed.isActive) {
-    console.log(`Skipping inactive feed: ${feed.title}`);
+    logger.debug(`Skipping inactive feed: ${feed.title}`);
     return;
   }
 
   // Don't schedule paused feeds
   if (feed.status === 'paused') {
-    console.log(`Skipping paused feed: ${feed.title}`);
+    logger.debug(`Skipping paused feed: ${feed.title}`);
     return;
   }
 
@@ -58,7 +59,7 @@ export async function scheduleFeed(feedId: string) {
       errorType,
     });
     
-    console.log(`[Scheduler] Feed ${feed.title} has ${feed.consecutiveFailures} failures, using ${errorType} retry strategy`);
+    logger.debug(`Feed ${feed.title} has ${feed.consecutiveFailures} failures, using ${errorType} retry strategy`);
   } else {
     // Normal scheduling for healthy feeds
     const lastFetched = feed.lastFetchedAt
@@ -84,7 +85,6 @@ export async function scheduleFeed(feedId: string) {
     {
       jobId,
       delay,
-      timeout,
       repeat: {
         every: feed.refreshIntervalMinutes * 60 * 1000, // Convert minutes to milliseconds
       },
@@ -99,7 +99,7 @@ export async function scheduleFeed(feedId: string) {
       ? `(in ${delayHours} hours)` 
       : `(in ${delayMinutes} minutes)`;
   
-  console.log(`Scheduled feed fetch: ${feed.title} ${delayStr}`);
+  logger.debug(`Scheduled feed fetch: ${feed.title} ${delayStr}`);
 }
 
 /**
@@ -132,7 +132,7 @@ export async function unscheduleFeed(feedId: string) {
   const existing = existingJobs.find((j) => j.id === jobId);
   if (existing) {
     await queue.removeRepeatableByKey(existing.key);
-    console.log(`Unscheduled feed: ${feedId}`);
+    logger.debug(`Unscheduled feed: ${feedId}`);
   }
 }
 
@@ -149,7 +149,7 @@ export async function fetchFeedImmediately(feedId: string) {
   }
 
   if (!feed.isActive) {
-    console.log(`Skipping immediate fetch for inactive feed: ${feed.title}`);
+    logger.debug(`Skipping immediate fetch for inactive feed: ${feed.title}`);
     return;
   }
 
@@ -166,6 +166,6 @@ export async function fetchFeedImmediately(feedId: string) {
     },
   );
 
-  console.log(`Immediate fetch triggered for feed: ${feed.title}`);
+  logger.debug(`Immediate fetch triggered for feed: ${feed.title}`);
 }
 

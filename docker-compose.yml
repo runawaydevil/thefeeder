@@ -19,6 +19,7 @@ services:
       - NEXT_PUBLIC_SITE_URL=${NEXT_PUBLIC_SITE_URL:-https://feeder.works}
       - TZ=${TZ:-America/Sao_Paulo}
       - NEXT_PUBLIC_TZ=${TZ:-America/Sao_Paulo}
+      - LOG_LEVEL=${LOG_LEVEL:-error}
     ports:
       - "8041:3000"
     depends_on:
@@ -59,6 +60,7 @@ services:
       - NEXT_PUBLIC_SITE_URL=${NEXT_PUBLIC_SITE_URL:-https://feeder.works}
       - WORKER_API_PORT=3001
       - WORKER_API_TOKEN=${WORKER_API_TOKEN:-change-me-in-production}
+      - LOG_LEVEL=${LOG_LEVEL:-error}
     depends_on:
       db:
         condition: service_healthy

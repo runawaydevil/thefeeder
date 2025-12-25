@@ -5,6 +5,7 @@
 
 import { PrismaClient } from '@prisma/client';
 import { feedDiscoveryService } from './feed-discovery.js';
+import { logger } from './logger.js';
 
 const prisma = new PrismaClient();
 
@@ -50,7 +51,7 @@ export class StatusMachine {
         const recentSuccesses = feed.healthLogs.filter(log => log.success).length;
         if (recentSuccesses >= 5 && feed.status === 'degraded') {
           newStatus = 'active';
-          console.log(`[Status Machine] ${feed.title}: degraded → active (5 consecutive successes)`);
+          logger.info(`${feed.title}: degraded → active (5 consecutive successes)`);
         }
       }
     } else {
@@ -59,19 +60,19 @@ export class StatusMachine {
       // 3+ consecutive 403/522 errors: blocked
       if ((statusCode === 403 || statusCode === 522 || errorType === 'blocked') && feed.consecutiveFailures >= 3) {
         newStatus = 'blocked';
-        console.log(`[Status Machine] ${feed.title}: ${feed.status} → blocked (3+ consecutive 403/522)`);
+        logger.warn(`${feed.title}: ${feed.status} → blocked (3+ consecutive 403/522)`);
       }
       // 3+ consecutive timeouts: unreachable
       else if (errorType === 'timeout' && feed.consecutiveFailures >= 3) {
         newStatus = 'unreachable';
-        console.log(`[Status Machine] ${feed.title}: ${feed.status} → unreachable (3+ consecutive timeouts)`);
+        logger.warn(`${feed.title}: ${feed.status} → unreachable (3+ consecutive timeouts)`);
       }
       // 1-2 failures in last 10 attempts: degraded
       else if (feed.healthLogs.length >= 10) {
         const recentFailures = feed.healthLogs.filter(log => !log.success).length;
         if (recentFailures >= 1 && recentFailures <= 2 && feed.status === 'active') {
           newStatus = 'degraded';
-          console.log(`[Status Machine] ${feed.title}: active → degraded (${recentFailures} failures in last 10)`);
+          logger.warn(`${feed.title}: active → degraded (${recentFailures} failures in last 10)`);
         }
       }
     }
@@ -85,9 +86,9 @@ export class StatusMachine {
       
       // Trigger alternative discovery for blocked/unreachable feeds
       if (newStatus === 'blocked' || newStatus === 'unreachable') {
-        console.log(`[Status Machine] Triggering alternative discovery for ${feed.title}`);
+        logger.info(`Triggering alternative discovery for ${feed.title}`);
         this.discoverAlternatives(feedId, feed.url).catch(error => {
-          console.error(`[Status Machine] Error discovering alternatives: ${error.message}`);
+          logger.error(`Error discovering alternatives: ${error.message}`);
         });
       }
     }
@@ -154,12 +155,12 @@ export class StatusMachine {
           },
         });
         
-        console.log(`[Status Machine] Stored ${alternatives.length} alternatives for feed ${feedId}`);
+        logger.info(`Stored ${alternatives.length} alternatives for feed ${feedId}`);
       } else {
-        console.log(`[Status Machine] No alternatives found for feed ${feedId}`);
+        logger.info(`No alternatives found for feed ${feedId}`);
       }
     } catch (error: any) {
-      console.error(`[Status Machine] Error in discoverAlternatives: ${error.message}`);
+      logger.error(`Error in discoverAlternatives: ${error.message}`);
     }
   }
 }

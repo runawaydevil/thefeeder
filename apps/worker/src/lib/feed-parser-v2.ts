@@ -5,6 +5,7 @@
  */
 
 import { fetchFeed } from "./http-client.js";
+import { logger } from "./logger.js";
 
 export interface ParsedFeedV2 {
   title: string;
@@ -89,7 +90,7 @@ function extractAttribute(xmlString: string, tagName: string, attribute: string)
  * Parse RSS feed using regex-based extraction
  */
 function parseRSS(xmlContent: string): ParsedFeedV2 {
-  console.log('[Feed Parser V2] Parsing as RSS');
+  logger.debug('Parsing as RSS');
   
   // Extract feed-level metadata
   const title = extractText(xmlContent, 'title') || 'Untitled RSS Feed';
@@ -121,7 +122,7 @@ function parseRSS(xmlContent: string): ParsedFeedV2 {
     }
   }
   
-  console.log(`[Feed Parser V2] RSS parsed: ${title} (${items.length} items)`);
+  logger.debug(`RSS parsed: ${title} (${items.length} items)`);
   
   return { title, link, description, items };
 }
@@ -130,7 +131,7 @@ function parseRSS(xmlContent: string): ParsedFeedV2 {
  * Parse Atom feed using regex-based extraction
  */
 function parseAtom(xmlContent: string): ParsedFeedV2 {
-  console.log('[Feed Parser V2] Parsing as Atom');
+  logger.debug('Parsing as Atom');
   
   // Extract feed-level metadata
   const title = extractText(xmlContent, 'title') || 'Untitled Atom Feed';
@@ -164,7 +165,7 @@ function parseAtom(xmlContent: string): ParsedFeedV2 {
     }
   }
   
-  console.log(`[Feed Parser V2] Atom parsed: ${title} (${items.length} items)`);
+  logger.debug(`Atom parsed: ${title} (${items.length} items)`);
   
   return { title, link, description, items };
 }
@@ -181,7 +182,7 @@ function detectAndParse(xmlContent: string): ParsedFeedV2 {
     return parseAtom(xmlContent);
   } else {
     // Default to RSS if unsure
-    console.log('[Feed Parser V2] Unknown format, trying RSS');
+    logger.debug('Unknown format, trying RSS');
     return parseRSS(xmlContent);
   }
 }
@@ -191,7 +192,7 @@ function detectAndParse(xmlContent: string): ParsedFeedV2 {
  * Fetches feed content and parses with custom XML parser
  */
 export async function parseFeedV2(feedUrl: string): Promise<ParsedFeedV2> {
-  console.log(`[Feed Parser V2] ===== PARSING FEED: ${feedUrl} =====`);
+  logger.debug(`Parsing feed: ${feedUrl}`);
   
   try {
     // Use robust HTTP client to fetch feed
@@ -202,7 +203,7 @@ export async function parseFeedV2(feedUrl: string): Promise<ParsedFeedV2> {
     
     // Remove BOM (Byte Order Mark)
     if (cleanXml.charCodeAt(0) === 0xFEFF) {
-      console.log(`[Feed Parser V2] Removing BOM`);
+      logger.debug(`Removing BOM`);
       cleanXml = cleanXml.substring(1);
     }
     
@@ -212,27 +213,27 @@ export async function parseFeedV2(feedUrl: string): Promise<ParsedFeedV2> {
     // Remove any leading garbage before XML declaration
     const xmlStart = cleanXml.search(/<\?xml|<rss|<feed/i);
     if (xmlStart > 0) {
-      console.log(`[Feed Parser V2] Removing ${xmlStart} chars before XML start`);
+      logger.debug(`Removing ${xmlStart} chars before XML start`);
       cleanXml = cleanXml.substring(xmlStart);
     }
     
     // Log first 200 chars for debugging
-    console.log(`[Feed Parser V2] Clean XML first 200 chars:`, cleanXml.substring(0, 200));
+    logger.debug(`Clean XML first 200 chars: ${cleanXml.substring(0, 200)}`);
     
     // Validate it looks like XML
     if (!cleanXml.startsWith('<?xml') && !cleanXml.startsWith('<rss') && !cleanXml.startsWith('<feed')) {
-      console.error(`[Feed Parser V2] Content doesn't look like XML. First 200 chars:`, cleanXml.substring(0, 200));
+      logger.error(`Content doesn't look like XML. First 200 chars: ${cleanXml.substring(0, 200)}`);
       throw new Error('Response is not valid XML/RSS feed');
     }
     
     // Parse the feed
     const result = detectAndParse(cleanXml);
     
-    console.log(`[Feed Parser V2] ✓ Successfully parsed: ${result.title} (${result.items.length} items)`);
+    logger.debug(`Successfully parsed: ${result.title} (${result.items.length} items)`);
     
     return result;
   } catch (error) {
-    console.error(`[Feed Parser V2] ✗ Failed to parse ${feedUrl}:`, error);
+    logger.error(`Failed to parse ${feedUrl}`, error as Error);
     throw new Error(`Failed to parse feed: ${error instanceof Error ? error.message : 'Unknown error'}`);
   }
 }

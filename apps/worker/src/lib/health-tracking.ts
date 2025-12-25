@@ -5,6 +5,7 @@
 
 import { PrismaClient } from '@prisma/client';
 import { cached, cacheKey } from './cache.js';
+import { logger } from './logger.js';
 
 const prisma = new PrismaClient();
 
@@ -92,9 +93,9 @@ export class HealthTrackingService {
       // Cleanup old logs (keep last 100)
       await this.cleanupOldLogs(feedId);
 
-      console.log(`[Health Tracking] Recorded attempt for feed ${feedId}: ${success ? 'SUCCESS' : 'FAILURE'}`);
+      logger.debug(`Recorded attempt for feed ${feedId}: ${success ? 'SUCCESS' : 'FAILURE'}`);
     } catch (error) {
-      console.error('[Health Tracking] Error recording attempt:', error);
+      logger.error('Error recording attempt', error as Error);
       // Don't throw - health tracking should not break feed fetching
     }
   }
@@ -220,10 +221,10 @@ export class HealthTrackingService {
           },
         });
 
-        console.log(`[Health Tracking] Cleaned up old logs for feed ${feedId}`);
+        logger.debug(`Cleaned up old logs for feed ${feedId}`);
       }
     } catch (error) {
-      console.error('[Health Tracking] Error cleaning up logs:', error);
+      logger.error('Error cleaning up logs', error as Error);
       // Don't throw - cleanup failure should not break the system
     }
   }
@@ -281,7 +282,7 @@ export class HealthTrackingService {
         feedsUsingBrowser,
       };
     } catch (error) {
-      console.error('[Health Tracking] Error getting browser automation stats:', error);
+      logger.error('Error getting browser automation stats', error as Error);
       return {
         totalAttempts: 0,
         successfulAttempts: 0,

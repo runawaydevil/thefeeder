@@ -1,6 +1,7 @@
 import { Request, Response } from "express";
 import { prisma } from "../lib/prisma.js";
 import { getHealthStatus as getRedisHealth } from "../lib/cache.js";
+import { logger } from "../lib/logger.js";
 
 export interface HealthCheckResponse {
   status: "healthy" | "degraded" | "unhealthy";
@@ -167,7 +168,7 @@ export async function getHealthCheck(req: Request, res: Response) {
       ).length;
     } catch (error: any) {
       // Metrics failure doesn't affect health status
-      console.error("[Health Check] Error fetching metrics:", error);
+      logger.error("Error fetching metrics", error);
     }
   }
 
@@ -213,7 +214,7 @@ export async function getHealthCheck(req: Request, res: Response) {
         failed: dailyDigestJobs[3],
       };
     } catch (error: any) {
-      console.error("[Health Check] Error fetching job metrics:", error);
+      logger.error("Error fetching job metrics", error);
     }
   }
 

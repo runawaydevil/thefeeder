@@ -1,4 +1,4 @@
-import { Worker, Queue } from "bullmq";
+import { Worker, Queue, Job } from "bullmq";
 import express from "express";
 import { prisma } from "./lib/prisma.js";
 import { processFeedFetch, FeedFetchJobData } from "./jobs/feed-fetch.js";
@@ -6,17 +6,17 @@ import { processDailyDigest, DailyDigestJobData } from "./jobs/daily-digest.js";
 import { scheduleFeed } from "./lib/scheduler.js";
 import scheduleRouter from "./api/schedule.js";
 import { monitoringAlertsService } from "./lib/monitoring-alerts.js";
+import { logger } from "./lib/logger.js";
 
 // Configure timezone from environment variable
 const timezone = process.env.TZ || "America/Sao_Paulo";
 process.env.TZ = timezone;
 
-// Log timezone configuration
-console.log(`🌍 Timezone configured: ${timezone}`);
-const testDate = new Date();
-const tzString = Intl.DateTimeFormat().resolvedOptions().timeZone;
-console.log(`   Node.js timezone: ${tzString}`);
-console.log(`   Current time: ${testDate.toLocaleString("pt-BR", { timeZone: timezone })}`);
+// Log timezone configuration only on startup
+logger.info(`Timezone configured: ${timezone}`, {
+  nodeTimezone: Intl.DateTimeFormat().resolvedOptions().timeZone,
+  currentTime: new Date().toLocaleString("pt-BR", { timeZone: timezone })
+});
 
 // Environment variables are injected by Docker Compose via env_file and environment
 // No need to load .env file manually in Docker environment
@@ -38,7 +38,7 @@ const dailyDigestQueue = new Queue<DailyDigestJobData>("daily-digest", {
 // Create workers
 const feedFetchWorker = new Worker<FeedFetchJobData>(
   "feed-fetch",
-  async (job) => {
+  async (job: Job<FeedFetchJobData>) => {
     return await processFeedFetch(job);
   },
   {
@@ -49,7 +49,7 @@ const feedFetchWorker = new Worker<FeedFetchJobData>(
 
 const dailyDigestWorker = new Worker<DailyDigestJobData>(
   "daily-digest",
-  async (job) => {
+  async (job: Job<DailyDigestJobData>) => {
     return await processDailyDigest(job);
   },
   {
@@ -58,21 +58,13 @@ const dailyDigestWorker = new Worker<DailyDigestJobData>(
   },
 );
 
-// Worker event handlers
-feedFetchWorker.on("completed", (job) => {
-  console.log(`Feed fetch job ${job.id} completed`);
+// Worker event handlers - only log failures
+feedFetchWorker.on("failed", (job: Job<FeedFetchJobData> | undefined, err: Error) => {
+  logger.error(`Feed fetch job ${job?.id} failed`, err);
 });
 
-feedFetchWorker.on("failed", (job, err) => {
-  console.error(`Feed fetch job ${job?.id} failed:`, err);
-});
-
-dailyDigestWorker.on("completed", (job) => {
-  console.log(`Daily digest job ${job.id} completed`);
-});
-
-dailyDigestWorker.on("failed", (job, err) => {
-  console.error(`Daily digest job ${job?.id} failed:`, err);
+dailyDigestWorker.on("failed", (job: Job<DailyDigestJobData> | undefined, err: Error) => {
+  logger.error(`Daily digest job ${job?.id} failed`, err);
 });
 
 // Function to schedule feed fetches
@@ -85,7 +77,7 @@ async function scheduleFeedFetches() {
     try {
       await scheduleFeed(feed.id);
     } catch (error) {
-      console.error(`Error scheduling feed ${feed.id}:`, error);
+      logger.error(`Error scheduling feed ${feed.id}`, error as Error);
     }
   }
 }
@@ -107,7 +99,7 @@ async function scheduleDailyDigest() {
     },
   );
 
-  console.log(`Daily digest scheduled for ${digestTime} daily (timezone: ${timezone})`);
+  logger.info(`Daily digest scheduled for ${digestTime} daily`, { timezone });
 }
 
 // Function to run monitoring checks periodically
@@ -120,16 +112,16 @@ async function startMonitoring() {
     try {
       await monitoringAlertsService.logAlerts();
     } catch (error) {
-      console.error('[Monitoring] Error running health checks:', error);
+      logger.error('Error running health checks', error as Error);
     }
   }, 60 * 60 * 1000); // 1 hour
   
-  console.log('📊 Monitoring alerts scheduled (every hour)');
+  logger.info('Monitoring alerts scheduled (every hour)');
 }
 
 // Initialize
 async function start() {
-  console.log("🚀 Starting TheFeeder Worker...");
+  logger.info("Starting TheFeeder Worker...");
 
   try {
     // Initialize Redis connection
@@ -137,12 +129,12 @@ async function start() {
       const { initializeRedis } = await import('./lib/cache.js');
       const redisConnected = await initializeRedis();
       if (redisConnected) {
-        console.log('✅ Redis initialized successfully');
+        logger.info('Redis initialized successfully');
       } else {
-        console.warn('⚠️ Redis initialization failed - cache will be disabled');
+        logger.warn('Redis initialization failed - cache will be disabled');
       }
     } catch (error) {
-      console.error('❌ Failed to initialize Redis:', error);
+      logger.error('Failed to initialize Redis', error as Error);
     }
 
     // Start Express API server for scheduling
@@ -161,22 +153,22 @@ async function start() {
     app.get("/health", getHealthCheck);
 
     app.listen(WORKER_API_PORT, () => {
-      console.log(`📡 Worker API listening on port ${WORKER_API_PORT}`);
+      logger.info(`Worker API listening on port ${WORKER_API_PORT}`);
     });
 
     await scheduleFeedFetches();
     await scheduleDailyDigest();
     await startMonitoring();
-    console.log("✅ Worker started successfully");
+    logger.info("Worker started successfully");
   } catch (error) {
-    console.error("❌ Error starting worker:", error);
+    logger.error("Error starting worker", error as Error);
     process.exit(1);
   }
 }
 
 // Handle shutdown
 process.on("SIGTERM", async () => {
-  console.log("SIGTERM received, shutting down...");
+  logger.info("SIGTERM received, shutting down...");
   await feedFetchWorker.close();
   await dailyDigestWorker.close();
   await prisma.$disconnect();
@@ -184,7 +176,7 @@ process.on("SIGTERM", async () => {
 });
 
 process.on("SIGINT", async () => {
-  console.log("SIGINT received, shutting down...");
+  logger.info("SIGINT received, shutting down...");
   await feedFetchWorker.close();
   await dailyDigestWorker.close();
   await prisma.$disconnect();

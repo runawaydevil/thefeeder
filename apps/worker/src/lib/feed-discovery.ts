@@ -1,5 +1,6 @@
 import { fetchFeed } from "./http-client.js";
 import { getRandomUserAgent } from "./user-agents.js";
+import { logger } from "./logger.js";
 
 /**
  * Service for discovering alternative feed URLs
@@ -39,13 +40,13 @@ export class FeedDiscoveryService {
         const htmlAlternatives = await this.findFeedLinksInHtml(baseUrl);
         alternatives.push(...htmlAlternatives.filter(alt => alt !== url));
       } catch (error) {
-        console.log(`[Feed Discovery] Could not parse HTML for ${baseUrl}`);
+        logger.debug(`Could not parse HTML for ${baseUrl}`);
       }
       
-      console.log(`[Feed Discovery] Found ${alternatives.length} alternatives for ${url}`);
+      logger.debug(`Found ${alternatives.length} alternatives for ${url}`);
       return alternatives;
     } catch (error: any) {
-      console.error(`[Feed Discovery] Error discovering alternatives: ${error.message}`);
+      logger.error(`Error discovering alternatives: ${error.message}`);
       return alternatives;
     }
   }
@@ -70,8 +71,7 @@ export class FeedDiscoveryService {
     
     try {
       const userAgent = getRandomUserAgent();
-      const response = await fetchFeed(url, userAgent);
-      const html = response.data;
+      const html = await fetchFeed(url);
       
       // Look for <link> tags with feed types
       const linkRegex = /<link[^>]*(?:type=["']application\/(?:rss|atom)\+xml["']|rel=["']alternate["'])[^>]*>/gi;
@@ -96,7 +96,7 @@ export class FeedDiscoveryService {
       
       return alternatives;
     } catch (error: any) {
-      console.log(`[Feed Discovery] Could not fetch HTML: ${error.message}`);
+      logger.debug(`Could not fetch HTML: ${error.message}`);
       return alternatives;
     }
   }
@@ -111,8 +111,8 @@ export class FeedDiscoveryService {
       const parser = new Parser();
       
       // Try to fetch and parse the feed
-      const response = await fetchFeed(url, userAgent);
-      await parser.parseString(response.data);
+      const feedContent = await fetchFeed(url);
+      await parser.parseString(feedContent);
       
       return { valid: true };
     } catch (error: any) {

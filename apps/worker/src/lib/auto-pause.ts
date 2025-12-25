@@ -4,6 +4,7 @@
  */
 
 import { PrismaClient } from '@prisma/client';
+import { logger } from './logger.js';
 
 const prisma = new PrismaClient();
 
@@ -16,7 +17,7 @@ export class AutoPauseManager {
    */
   async checkAutoPause(feed: any): Promise<boolean> {
     if (feed.consecutiveFailures >= this.FAILURE_THRESHOLD) {
-      console.log(`[Auto-Pause] Feed ${feed.title} has ${feed.consecutiveFailures} consecutive failures - auto-pausing`);
+      logger.warn(`Feed ${feed.title} has ${feed.consecutiveFailures} consecutive failures - auto-pausing`);
       
       const reason = `Auto-paused after ${feed.consecutiveFailures} consecutive failures. Last error: ${feed.lastError || 'Unknown'}`;
       await this.pauseFeed(feed.id, reason);
@@ -41,9 +42,9 @@ export class AutoPauseManager {
         },
       });
 
-      console.log(`[Auto-Pause] ✓ Feed ${feedId} paused: ${reason}`);
+      logger.info(`Feed ${feedId} paused: ${reason}`);
     } catch (error) {
-      console.error(`[Auto-Pause] Error pausing feed ${feedId}:`, error);
+      logger.error(`Error pausing feed ${feedId}`, error as Error);
       throw error;
     }
   }
@@ -64,9 +65,9 @@ export class AutoPauseManager {
         },
       });
 
-      console.log(`[Auto-Pause] ✓ Feed ${feedId} resumed`);
+      logger.info(`Feed ${feedId} resumed`);
     } catch (error) {
-      console.error(`[Auto-Pause] Error resuming feed ${feedId}:`, error);
+      logger.error(`Error resuming feed ${feedId}`, error as Error);
       throw error;
     }
   }
@@ -84,9 +85,9 @@ export class AutoPauseManager {
         },
       });
 
-      console.log(`[Auto-Pause] ✓ Reset failure counter for feed ${feedId}`);
+      logger.debug(`Reset failure counter for feed ${feedId}`);
     } catch (error) {
-      console.error(`[Auto-Pause] Error resetting failure count for ${feedId}:`, error);
+      logger.error(`Error resetting failure count for ${feedId}`, error as Error);
       throw error;
     }
   }

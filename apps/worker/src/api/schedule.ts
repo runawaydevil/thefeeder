@@ -1,5 +1,6 @@
 import express from "express";
 import { scheduleFeed, unscheduleFeed, fetchFeedImmediately } from "../lib/scheduler.js";
+import { logger } from "../lib/logger.js";
 
 const router = express.Router();
 
@@ -27,7 +28,7 @@ router.post("/:feedId", requireAuth, async (req, res) => {
     await scheduleFeed(feedId);
     res.json({ success: true, message: `Feed ${feedId} scheduled` });
   } catch (error: any) {
-    console.error("Error scheduling feed:", error);
+    logger.error("Error scheduling feed", error);
     res.status(500).json({ error: error.message || "Internal server error" });
   }
 });
@@ -39,7 +40,7 @@ router.delete("/:feedId", requireAuth, async (req, res) => {
     await unscheduleFeed(feedId);
     res.json({ success: true, message: `Feed ${feedId} unscheduled` });
   } catch (error: any) {
-    console.error("Error unscheduling feed:", error);
+    logger.error("Error unscheduling feed", error);
     res.status(500).json({ error: error.message || "Internal server error" });
   }
 });
@@ -51,7 +52,7 @@ router.post("/:feedId/fetch", requireAuth, async (req, res) => {
     await fetchFeedImmediately(feedId);
     res.json({ success: true, message: `Immediate fetch triggered for feed ${feedId}` });
   } catch (error: any) {
-    console.error("Error triggering immediate fetch:", error);
+    logger.error("Error triggering immediate fetch", error);
     res.status(500).json({ error: error.message || "Internal server error" });
   }
 });

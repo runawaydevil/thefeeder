@@ -4,6 +4,7 @@
  */
 
 import { PrismaClient } from '@prisma/client';
+import { logger } from './logger.js';
 
 const prisma = new PrismaClient();
 
@@ -36,10 +37,10 @@ export class NotificationService {
         },
       });
 
-      console.log(`[Notification] Created ${priority} ${type} notification for feed ${feedId}: ${title}`);
+      logger.info(`Created ${priority} ${type} notification for feed ${feedId}: ${title}`);
       return notification;
     } catch (error) {
-      console.error('[Notification] Error creating notification:', error);
+      logger.error('Error creating notification', error as Error);
       // Don't throw - notification failure should not break the system
       return null;
     }
@@ -77,9 +78,9 @@ export class NotificationService {
         data: { isRead: true },
       });
 
-      console.log(`[Notification] Marked notification ${notificationId} as read`);
+      logger.debug(`Marked notification ${notificationId} as read`);
     } catch (error) {
-      console.error('[Notification] Error marking notification as read:', error);
+      logger.error('Error marking notification as read', error as Error);
       throw error;
     }
   }
@@ -94,9 +95,9 @@ export class NotificationService {
         data: { isRead: true },
       });
 
-      console.log(`[Notification] Dismissed all notifications for feed ${feedId}`);
+      logger.debug(`Dismissed all notifications for feed ${feedId}`);
     } catch (error) {
-      console.error('[Notification] Error dismissing feed notifications:', error);
+      logger.error('Error dismissing feed notifications', error as Error);
       throw error;
     }
   }

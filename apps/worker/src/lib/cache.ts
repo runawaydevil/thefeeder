@@ -1,4 +1,5 @@
 import Redis from "ioredis";
+import { logger } from "./logger.js";
 
 let redisClient: Redis | null = null;
 
@@ -10,7 +11,7 @@ export async function initializeRedis(): Promise<boolean> {
   const redisUrl = process.env.REDIS_URL;
   
   if (!redisUrl) {
-    console.warn("[Cache] REDIS_URL not configured, cache will be disabled");
+    logger.warn("REDIS_URL not configured, cache will be disabled");
     return false;
   }
 
@@ -30,21 +31,21 @@ export async function initializeRedis(): Promise<boolean> {
       });
 
       redisClient.on("error", (error) => {
-        console.error("[Cache] Redis error:", error.message);
+        logger.error("Redis error", error);
       });
 
       redisClient.on("connect", () => {
-        console.log("[Cache] Redis connected");
+        logger.debug("Redis connected");
       });
 
       redisClient.on("ready", () => {
-        console.log("[Cache] Redis ready");
+        logger.debug("Redis ready");
       });
 
       await redisClient.connect();
       return true;
     } catch (error) {
-      console.error("[Cache] Failed to initialize Redis:", error);
+      logger.error("Failed to initialize Redis", error as Error);
       return false;
     }
   }
@@ -109,7 +110,7 @@ export async function get<T = any>(key: string): Promise<T | null> {
     }
     return JSON.parse(value) as T;
   } catch (error) {
-    console.error(`[Cache] Error getting key ${key}:`, error);
+    logger.error(`Error getting cache key ${key}`, error as Error);
     return null;
   }
 }
@@ -133,7 +134,7 @@ export async function set(
     await client.setex(key, ttlSeconds, serialized);
     return true;
   } catch (error) {
-    console.error(`[Cache] Error setting key ${key}:`, error);
+    logger.error(`Error setting cache key ${key}`, error as Error);
     return false;
   }
 }
@@ -151,7 +152,7 @@ export async function del(key: string): Promise<boolean> {
     await client.del(key);
     return true;
   } catch (error) {
-    console.error(`[Cache] Error deleting key ${key}:`, error);
+    logger.error(`Error deleting cache key ${key}`, error as Error);
     return false;
   }
 }
@@ -229,7 +230,7 @@ export async function cached<T>(
 
   // Store in cache (don't await - fire and forget)
   set(key, result, ttlSeconds).catch((error) => {
-    console.error(`[Cache] Error caching result for ${key}:`, error);
+    logger.error(`Error caching result for ${key}`, error as Error);
   });
 
   return result;

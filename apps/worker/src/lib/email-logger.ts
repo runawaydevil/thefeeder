@@ -1,6 +1,8 @@
 /**
  * Email log entry for structured logging
  */
+import { logger } from './logger.js';
+
 export interface EmailLogEntry {
   timestamp: string;
   messageId: string;
@@ -27,9 +29,8 @@ export interface EmailLogEntry {
  * });
  */
 export function logEmailSent(entry: EmailLogEntry): void {
-  console.log(
-    `[EMAIL SENT] ${entry.timestamp} | To: ${entry.to} | Subject: "${entry.subject}" | ` +
-    `Items: ${entry.itemCount} | MessageID: ${entry.messageId}`
+  logger.info(
+    `Email sent to ${entry.to} | Subject: "${entry.subject}" | Items: ${entry.itemCount} | MessageID: ${entry.messageId}`
   );
 }
 
@@ -50,9 +51,8 @@ export function logEmailSent(entry: EmailLogEntry): void {
  * });
  */
 export function logEmailError(entry: EmailLogEntry): void {
-  console.error(
-    `[EMAIL FAILED] ${entry.timestamp} | To: ${entry.to} | Subject: "${entry.subject}" | ` +
-    `Items: ${entry.itemCount} | MessageID: ${entry.messageId} | Error: ${entry.error || "Unknown error"}`
+  logger.error(
+    `Email failed to ${entry.to} | Subject: "${entry.subject}" | Items: ${entry.itemCount} | MessageID: ${entry.messageId} | Error: ${entry.error || "Unknown error"}`
   );
 }
 
@@ -82,22 +82,21 @@ export function previewEmail(
   subject: string,
   headers: Record<string, string>
 ): void {
-  console.log("\n" + "=".repeat(70));
-  console.log("EMAIL PREVIEW (Development Mode)");
-  console.log("=".repeat(70));
-  console.log(`To: ${to}`);
-  console.log(`Subject: ${subject}`);
-  console.log("\nHeaders:");
-  for (const [key, value] of Object.entries(headers)) {
-    console.log(`  ${key}: ${value}`);
-  }
-  console.log("\n" + "-".repeat(70));
-  console.log("HTML Content (first 500 chars):");
-  console.log("-".repeat(70));
-  console.log(html.substring(0, 500) + (html.length > 500 ? "..." : ""));
-  console.log("\n" + "-".repeat(70));
-  console.log("Plain Text Content (first 500 chars):");
-  console.log("-".repeat(70));
-  console.log(text.substring(0, 500) + (text.length > 500 ? "..." : ""));
-  console.log("=".repeat(70) + "\n");
+  const preview = [
+    "EMAIL PREVIEW (Development Mode)",
+    "=".repeat(70),
+    `To: ${to}`,
+    `Subject: ${subject}`,
+    "\nHeaders:",
+    ...Object.entries(headers).map(([key, value]) => `  ${key}: ${value}`),
+    "\nHTML Content (first 500 chars):",
+    "-".repeat(70),
+    html.substring(0, 500) + (html.length > 500 ? "..." : ""),
+    "\nPlain Text Content (first 500 chars):",
+    "-".repeat(70),
+    text.substring(0, 500) + (text.length > 500 ? "..." : ""),
+    "=".repeat(70)
+  ].join("\n");
+  
+  logger.debug(preview);
 }
